@@ -54,10 +54,11 @@ export default function SearchForm({
 
         {/* Rank */}
         <div className="lg:col-span-1">
-          <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
+          <label htmlFor="search-rank" className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
             Your Rank
           </label>
           <input
+            id="search-rank"
             type="number"
             min="1"
             max="300000"
@@ -73,10 +74,11 @@ export default function SearchForm({
 
         {/* Category */}
         <div>
-          <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
+          <label htmlFor="search-category" className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
             Category
           </label>
           <select
+            id="search-category"
             value={category}
             onChange={e => setCategory(e.target.value)}
             className="w-full px-3.5 py-2.5 border border-border rounded-lg font-mono text-sm text-ink
@@ -90,10 +92,11 @@ export default function SearchForm({
 
         {/* Seat Type */}
         <div>
-          <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
+          <label htmlFor="search-seattype" className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
             Seat Type
           </label>
           <select
+            id="search-seattype"
             value={seatType}
             onChange={e => setSeatType(e.target.value)}
             className="w-full px-3.5 py-2.5 border border-border rounded-lg text-sm text-ink
@@ -107,10 +110,11 @@ export default function SearchForm({
 
         {/* Branch search */}
         <div className="relative" ref={branchRef}>
-          <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
+          <label htmlFor="search-branch" className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
             Branch <span className="font-normal normal-case">(optional)</span>
           </label>
           <input
+            id="search-branch"
             type="text"
             placeholder="e.g. Computer Science"
             value={branchQuery}
