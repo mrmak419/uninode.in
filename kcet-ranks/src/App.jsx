@@ -146,9 +146,13 @@ export default function App() {
           
           if (window.gtag) {
             window.gtag('event', 'search', {
-              search_term: selectedBranches.join(','),
-              rank_entered: rankNum,
+              mode: mode,
+              rank_entered: mode === 'predictor' ? rankNum : 'N/A',
+              variation: mode === 'predictor' ? variation : 'N/A',
               category: category,
+              seat_type: seatType,
+              college_query: collegeQuery.trim() || 'N/A',
+              search_term: selectedBranches.join(','),
               results_count: 0
             })
           }
@@ -167,9 +171,13 @@ export default function App() {
       // Send event to Google Analytics
       if (window.gtag) {
         window.gtag('event', 'search', {
-          search_term: selectedBranches.length > 0 ? selectedBranches.join(',') : 'All Branches',
+          mode: mode,
           rank_entered: mode === 'predictor' ? rankNum : 'N/A',
+          variation: mode === 'predictor' ? variation : 'N/A',
           category: category,
+          seat_type: seatType,
+          college_query: collegeQuery.trim() || 'N/A',
+          search_term: selectedBranches.length > 0 ? selectedBranches.join(',') : 'All Branches',
           results_count: data ? data.length : 0
         })
       }
@@ -216,13 +224,19 @@ export default function App() {
             {/* Mode Toggle */}
             <div className="flex bg-border/50 p-1 rounded-full w-full md:w-auto self-start md:self-center shrink-0 border border-border/80">
               <button 
-                onClick={() => setMode('predictor')}
+                onClick={() => {
+                  setMode('predictor')
+                  if (window.gtag) window.gtag('event', 'mode_switch', { new_mode: 'predictor' })
+                }}
                 className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${mode === 'predictor' ? 'bg-white shadow-sm text-ink' : 'text-muted hover:text-ink'}`}
               >
                 Predictor
               </button>
               <button 
-                onClick={() => setMode('explorer')}
+                onClick={() => {
+                  setMode('explorer')
+                  if (window.gtag) window.gtag('event', 'mode_switch', { new_mode: 'explorer' })
+                }}
                 className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${mode === 'explorer' ? 'bg-white shadow-sm text-ink' : 'text-muted hover:text-ink'}`}
               >
                 Explorer
