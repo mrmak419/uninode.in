@@ -296,6 +296,12 @@ export default function SearchForm({
           <button
             type="button"
             onClick={async () => {
+              if (window.gtag) {
+                window.gtag('event', 'share_clicked', {
+                  method: navigator.share ? 'web_share_api' : 'clipboard'
+                });
+              }
+
               const url = window.location.href;
               const copyFallback = () => {
                 navigator.clipboard.writeText(url)
