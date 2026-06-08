@@ -1,0 +1,31 @@
+[{
+    "college_code": "E001",
+    "course_name": "COMPUTER SCIENCE AND ENGINEERING",
+    "category": "2BG",
+    "expected_rank": "10476"
+  },
+  {
+    "college_code": "E313",
+    "course_name": "COMPUTER SCIENCE AND ENGG(ARTIFICIA L INTELLIGENCE AND MACHINE LEARNING)",
+    "category": "GM",
+    "expected_rank": "242818"
+  },
+  {
+    "college_code": "E008",
+    "course_name": "CIVIL ENGINEERING",
+    "category": "2BG",
+    "expected_rank": "21009"
+  },
+  {
+    "college_code": "E014",
+    "course_name": "MECHANICAL ENGINEERING",
+    "category": "1R",
+    "expected_rank": "--"
+  },
+  {
+    "college_code": "E015",
+    "course_name": "COMPUTER SCIENCE AND ENGINEERING",
+    "category": "2BG",
+    "expected_rank": "--"
+  }
+]  
