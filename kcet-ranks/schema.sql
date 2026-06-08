@@ -6,7 +6,8 @@
 -- Colleges
 CREATE TABLE IF NOT EXISTS colleges (
   college_code  TEXT PRIMARY KEY,
-  college_name  TEXT NOT NULL
+  college_name  TEXT NOT NULL,
+  search_terms  TEXT
 );
 
 -- Parent Branches (e.g. "Computer Science")
@@ -78,14 +79,13 @@ CREATE POLICY "admin all parent_branches" ON parent_branches FOR ALL TO authenti
 CREATE POLICY "admin all specialisations" ON specialisations FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "admin all branches" ON branches FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- ── Helper view: latest 6 rounds ─────────────────────────────
+-- ── Helper view: latest rounds ─────────────────────────────
 DROP VIEW IF EXISTS latest_rounds;
 
 CREATE MATERIALIZED VIEW latest_rounds AS
 SELECT DISTINCT year, round, seat_type
 FROM cutoffs
-ORDER BY year DESC, round DESC
-LIMIT 6;
+ORDER BY year DESC, round DESC;
 
 GRANT SELECT ON latest_rounds TO public;
 
@@ -95,6 +95,8 @@ DROP VIEW IF EXISTS cutoffs_matrix;
 CREATE MATERIALIZED VIEW cutoffs_matrix AS
 SELECT 
   c.college_code, 
+  col.college_name,
+  col.search_terms,
   c.course_name, 
   c.category, 
   c.seat_type,
@@ -102,7 +104,8 @@ SELECT
   MIN(c.rank) as min_rank,
   MAX(c.rank) as max_rank
 FROM cutoffs c
-GROUP BY c.college_code, c.course_name, c.category, c.seat_type;
+JOIN colleges col ON c.college_code = col.college_code
+GROUP BY c.college_code, col.college_name, col.search_terms, c.course_name, c.category, c.seat_type;
 
 -- Unique index for concurrent refreshes and fast lookups
 CREATE UNIQUE INDEX IF NOT EXISTS idx_cutoffs_matrix_unique 

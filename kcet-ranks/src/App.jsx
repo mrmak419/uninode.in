@@ -21,11 +21,14 @@ export default function App() {
   const [variation,  setVariation]  = useState(3000)
   const [category,   setCategory]   = useState('GM')
   const [seatType,   setSeatType]   = useState('ROK')
-  const [branchQuery,setBranchQuery]= useState('')
+  const [selectedBranches, setSelectedBranches] = useState([])
+  const [collegeQuery, setCollegeQuery] = useState('')
+  const [mode, setMode] = useState('predictor') // 'predictor' | 'explorer'
 
   // Data state
   const [rounds,     setRounds]     = useState([])   // [{year, round}]
   const [branches,   setBranches]   = useState([])   // unique course names
+  const [colleges,   setColleges]   = useState([])   // list of all colleges
   const [results,    setResults]    = useState(null) // null = not searched yet
   const [loading,    setLoading]    = useState(false)
   const [error,      setError]      = useState(null)
@@ -33,7 +36,7 @@ export default function App() {
   // Load available rounds and branch list on mount
   useEffect(() => {
     async function loadMeta() {
-      // Get latest 6 distinct (year, round, seat_type) combos from the view
+      // Get all distinct (year, round, seat_type) combos from the view
       const { data: roundData } = await supabase
         .from('latest_rounds')
         .select('year, round, seat_type')
@@ -49,7 +52,6 @@ export default function App() {
             seen.add(key)
             unique.push(r)
           }
-          if (unique.length === 6) break
         }
         setRounds(unique)
       }
@@ -60,16 +62,32 @@ export default function App() {
         .select('raw_name, parent_branches(name, alias), specialisations(name)')
         .order('raw_name')
       if (branchData) setBranches(branchData)
+
+      // Get all colleges for autocomplete dropdown
+      const { data: collegeData } = await supabase
+        .from('colleges')
+        .select('college_code, college_name, search_terms')
+        .order('college_code')
+      if (collegeData) setColleges(collegeData)
     }
     loadMeta()
   }, [])
 
   const search = useCallback(async () => {
-    const rankNum = parseInt(rank, 10)
-    if (!rank || isNaN(rankNum) || rankNum < 1) {
-      setError('Please enter a valid rank.')
-      return
+    let rankNum;
+    if (mode === 'predictor') {
+      rankNum = parseInt(rank, 10)
+      if (!rank || isNaN(rankNum) || rankNum < 1) {
+        setError('Please enter a valid rank.')
+        return
+      }
+    } else {
+      if (!collegeQuery && selectedBranches.length === 0) {
+        setError('Please select at least one college or branch to explore cutoffs.')
+        return
+      }
     }
+
     if (!category) {
       setError('Please select a category.')
       return
@@ -80,63 +98,55 @@ export default function App() {
     setResults(null)
 
     try {
-      const safeVariation = Math.min(50000, Math.max(0, variation))
-      const lo = Math.max(1, rankNum - safeVariation)
-      const hi = rankNum + safeVariation
-
       // ── Smart Branch Matching ──
       let query = supabase
         .from('cutoffs_matrix')
         .select('college_code, college_name, course_name, category, seat_type, rounds')
         .eq('category', category)
         .eq('seat_type', seatType)
-        .gte('max_rank', lo)
-        .lte('min_rank', hi)
 
-      const rawInput = branchQuery.trim()
-      let matchingRawNames = []
-      if (rawInput) {
-        const upperQ = rawInput.toUpperCase()
-        const lowerQ = rawInput.toLowerCase()
+      if (mode === 'predictor') {
+        const safeVariation = Math.min(50000, Math.max(0, variation))
+        const lo = Math.max(1, rankNum - safeVariation)
+        const hi = rankNum + safeVariation
+        query = query.gte('max_rank', lo).lte('min_rank', hi)
+      }
+
+      // ── Filter by College Name or Code ──
+      const cQuery = collegeQuery.trim().toLowerCase()
+      if (cQuery) {
+        const matchedCodes = colleges.filter(c => {
+          return c.college_name.toLowerCase().includes(cQuery) || 
+                 c.college_code.toLowerCase().includes(cQuery) || 
+                 (c.search_terms && c.search_terms.toLowerCase().includes(cQuery))
+        }).map(c => c.college_code)
+
+        if (matchedCodes.length === 0) {
+          setResults([])
+          setLoading(false)
+          return
+        }
+        query = query.in('college_code', matchedCodes)
+      }
+
+      // ── Filter by Multiple Branches ──
+      if (selectedBranches.length > 0) {
+        const branchNames = selectedBranches.map(b => b.toLowerCase())
         
-        const stopWords = ['engg', 'engineering', 'tech', 'technology', 'and', 'of', 'in', 'with', 'course', 'the']
-        const queryTokens = lowerQ
-          .replace(/[^a-z0-9\s]/g, ' ')
-          .split(/\s+/)
-          .filter(w => !stopWords.includes(w) && w.length >= 3) // min 3 chars to prevent noisy short matches
-
-        matchingRawNames = branches.filter(b => {
-          // 1. Exact alias match (e.g. "CSE")
-          if (b.parent_branches?.alias === upperQ) return true
-
-          // 2. Exact parent name match
-          if (b.parent_branches?.name.toLowerCase() === lowerQ) return true
-
-          // 3. Token match
-          const rawNameLower = b.raw_name.toLowerCase()
-          const parentNameLower = b.parent_branches?.name?.toLowerCase() || ''
-          const specNameLower = b.specialisations?.name?.toLowerCase() || ''
-
-          if (queryTokens.length > 0) {
-            // Require ALL valid tokens to match somewhere
-            return queryTokens.every(token => {
-              // User said "if atleast 5-6 letters match let it show" -> includes covers partial matches beautifully
-              return rawNameLower.includes(token) || 
-                     parentNameLower.includes(token) || 
-                     specNameLower.includes(token)
-            })
-          }
-          return false
+        // Find all raw_names where the parent_branch name matches ANY of the selected branches
+        const matchingRawNames = branches.filter(b => {
+          const pName = b.parent_branches?.name?.toLowerCase()
+          const pAlias = b.parent_branches?.alias?.toLowerCase()
+          return branchNames.includes(pName) || branchNames.includes(pAlias)
         }).map(b => b.raw_name)
 
-        // If tokens were extracted but no matches found, or if input was just stop words
         if (matchingRawNames.length === 0) {
           setResults([])
           setLoading(false)
           
           if (window.gtag) {
             window.gtag('event', 'search', {
-              search_term: rawInput,
+              search_term: selectedBranches.join(','),
               rank_entered: rankNum,
               category: category,
               results_count: 0
@@ -157,8 +167,8 @@ export default function App() {
       // Send event to Google Analytics
       if (window.gtag) {
         window.gtag('event', 'search', {
-          search_term: rawInput || 'All Branches',
-          rank_entered: rankNum,
+          search_term: selectedBranches.length > 0 ? selectedBranches.join(',') : 'All Branches',
+          rank_entered: mode === 'predictor' ? rankNum : 'N/A',
           category: category,
           results_count: data ? data.length : 0
         })
@@ -169,7 +179,7 @@ export default function App() {
     } finally {
       setLoading(false)
     }
-  }, [rank, variation, category, seatType, branchQuery])
+  }, [mode, rank, variation, category, seatType, selectedBranches, collegeQuery, branches])
 
   // Group results by college + course for the pivot table
   const groupedResults = results ? groupByCourseCollege(results, rounds) : null
@@ -190,17 +200,33 @@ export default function App() {
       {/* Header */}
       <header className="border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <img src="/logo.png" alt="KCET Logo" className="w-12 h-12 rounded-xl shadow-sm" />
               <div>
                 <h1 className="text-3xl md:text-4xl font-display font-bold text-ink">
-                  KCET College Predictor
+                  KCET {mode === 'predictor' ? 'Predictor' : 'Explorer'}
                 </h1>
                 <p className="text-muted mt-1 font-body">
                   Historical cut-off analysis ({yearsText})
                 </p>
               </div>
+            </div>
+
+            {/* Mode Toggle */}
+            <div className="flex bg-border/50 p-1 rounded-full w-full md:w-auto self-start md:self-center shrink-0 border border-border/80">
+              <button 
+                onClick={() => setMode('predictor')}
+                className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${mode === 'predictor' ? 'bg-white shadow-sm text-ink' : 'text-muted hover:text-ink'}`}
+              >
+                Predictor
+              </button>
+              <button 
+                onClick={() => setMode('explorer')}
+                className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${mode === 'explorer' ? 'bg-white shadow-sm text-ink' : 'text-muted hover:text-ink'}`}
+              >
+                Explorer
+              </button>
             </div>
           </div>
         </div>
@@ -209,12 +235,15 @@ export default function App() {
       {/* Search */}
       <main className="max-w-7xl mx-auto px-4 py-6 md:py-8">
         <SearchForm
+          mode={mode}
           rank={rank}           setRank={setRank}
           variation={variation} setVariation={setVariation}
           category={category}   setCategory={setCategory}
           seatType={seatType}   setSeatType={setSeatType}
-          branchQuery={branchQuery} setBranchQuery={setBranchQuery}
+          selectedBranches={selectedBranches} setSelectedBranches={setSelectedBranches}
+          collegeQuery={collegeQuery} setCollegeQuery={setCollegeQuery}
           branches={branches}
+          colleges={colleges}
           allCategories={ALL_CATEGORIES}
           onSearch={search}
           loading={loading}
@@ -244,9 +273,11 @@ export default function App() {
 
           {!loading && results !== null && groupedResults.length === 0 && (
             <div className="text-center py-16">
-              <p className="text-ink font-body font-medium">No colleges found</p>
+              <p className="text-ink font-body font-medium">No results found</p>
               <p className="mt-1 text-muted font-body text-sm">
-                Try increasing your ± variation or changing the branch filter.
+                {mode === 'predictor' 
+                  ? 'Try increasing your ± variation or changing the branch filter.' 
+                  : 'Try changing the college or branch filter.'}
               </p>
             </div>
           )}

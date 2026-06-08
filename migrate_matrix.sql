@@ -11,8 +11,7 @@ DROP MATERIALIZED VIEW IF EXISTS latest_rounds;
 CREATE MATERIALIZED VIEW latest_rounds AS
 SELECT DISTINCT year, round, seat_type
 FROM cutoffs
-ORDER BY year DESC, round DESC
-LIMIT 6;
+ORDER BY year DESC, round DESC;
 
 GRANT SELECT ON latest_rounds TO public;
 

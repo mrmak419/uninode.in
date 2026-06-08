@@ -139,6 +139,15 @@ def main():
             "seat_type":    args.seat_type,
         })
 
+    # Deduplicate cutoff_rows to avoid Postgres "ON CONFLICT DO UPDATE command cannot affect row a second time"
+    unique_cutoffs = {}
+    for row in cutoff_rows:
+        key = (row["college_code"], row["course_name"], row["category"], row["year"], row["round"], row["seat_type"])
+        # If duplicate, we just overwrite (the last one wins)
+        unique_cutoffs[key] = row
+    
+    cutoff_rows = list(unique_cutoffs.values())
+
     if skipped:
         print("Skipped " + str(skipped) + " malformed rows")
 
