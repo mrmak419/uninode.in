@@ -16,14 +16,19 @@ const ALL_CATEGORIES = [
 // DB aliases will handle this dynamically now.
 
 export default function App() {
+  // Parse initial URL parameters for shared links
+  const searchParams = new URLSearchParams(window.location.search)
+
   // Search state
-  const [rank,       setRank]       = useState('')
-  const [variation,  setVariation]  = useState(3000)
-  const [category,   setCategory]   = useState('GM')
-  const [seatType,   setSeatType]   = useState('ROK')
-  const [selectedBranches, setSelectedBranches] = useState([])
-  const [collegeQuery, setCollegeQuery] = useState('')
-  const [mode, setMode] = useState('predictor') // 'predictor' | 'explorer'
+  const [rank,       setRank]       = useState(searchParams.get('rank') || '')
+  const [variation,  setVariation]  = useState(parseInt(searchParams.get('variation')) || 3000)
+  const [category,   setCategory]   = useState(searchParams.get('cat') || 'GM')
+  const [seatType,   setSeatType]   = useState(searchParams.get('seat') || 'ROK')
+  const [selectedBranches, setSelectedBranches] = useState(searchParams.get('branches') ? searchParams.get('branches').split(',') : [])
+  const [collegeQuery, setCollegeQuery] = useState(searchParams.get('college') || '')
+  const [mode, setMode] = useState(searchParams.get('mode') || 'predictor') // 'predictor' | 'explorer'
+
+  const [hasAutoSearched, setHasAutoSearched] = useState(false)
 
   // Data state
   const [rounds,     setRounds]     = useState([])   // [{year, round}]
@@ -168,6 +173,17 @@ export default function App() {
 
       setResults(data || [])
 
+      // Update URL with current search parameters so it's easily shareable
+      const params = new URLSearchParams()
+      params.set('mode', mode)
+      if (mode === 'predictor' && rankNum) params.set('rank', rankNum)
+      if (mode === 'predictor') params.set('variation', variation)
+      params.set('cat', category)
+      params.set('seat', seatType)
+      if (collegeQuery) params.set('college', collegeQuery)
+      if (selectedBranches.length > 0) params.set('branches', selectedBranches.join(','))
+      window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
+
       // Send event to Google Analytics
       if (window.gtag) {
         window.gtag('event', 'search', {
@@ -187,7 +203,36 @@ export default function App() {
     } finally {
       setLoading(false)
     }
-  }, [mode, rank, variation, category, seatType, selectedBranches, collegeQuery, branches])
+  }, [mode, rank, variation, category, seatType, selectedBranches, collegeQuery, branches, colleges])
+
+  // Auto-trigger search if URL params are present (shared link)
+  useEffect(() => {
+    // Only auto-search once all metadata has successfully loaded
+    if (branches.length > 0 && colleges.length > 0 && rounds.length > 0 && !hasAutoSearched) {
+      const searchParams = new URLSearchParams(window.location.search)
+      if (searchParams.has('cat') || searchParams.has('rank') || searchParams.has('college') || searchParams.has('branches')) {
+        setHasAutoSearched(true)
+        // Set a tiny timeout to ensure React has finished committing all state updates
+        setTimeout(() => {
+          search()
+        }, 50)
+      } else {
+        setHasAutoSearched(true) // No params, so just mark as done
+      }
+    }
+  }, [branches, colleges, rounds, hasAutoSearched, search])
+
+  const handleClear = useCallback(() => {
+    setRank('')
+    setVariation(3000)
+    setCategory('GM')
+    setSeatType('ROK')
+    setSelectedBranches([])
+    setCollegeQuery('')
+    setResults(null)
+    setError(null)
+    window.history.replaceState({}, '', window.location.pathname)
+  }, [])
 
   // Group results by college + course for the pivot table
   const groupedResults = results ? groupByCourseCollege(results, rounds) : null
@@ -260,6 +305,7 @@ export default function App() {
           colleges={colleges}
           allCategories={ALL_CATEGORIES}
           onSearch={search}
+          onClear={handleClear}
           loading={loading}
         />
 

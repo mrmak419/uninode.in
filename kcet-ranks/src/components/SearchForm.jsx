@@ -19,6 +19,7 @@ export default function SearchForm({
   colleges = [],
   allCategories,
   onSearch,
+  onClear,
   loading,
 }) {
   const [branchOpen, setBranchOpen] = useState(false)
@@ -240,65 +241,120 @@ export default function SearchForm({
         </div>
       </div>
 
-      {/* Variation row */}
-      {mode === 'predictor' && (
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-muted uppercase tracking-wider shrink-0">
-              ± Variation
-            </span>
-            <div className="flex items-center gap-1">
-              {VARIATION_PRESETS.map(v => (
-                <button
-                  key={v}
-                  onClick={(e) => { e.preventDefault(); setVariation(v) }}
-                  className={
-                    'px-2.5 py-1 rounded-md text-xs font-mono transition-colors ' +
-                    (variation === v
-                      ? 'bg-ink text-paper'
-                      : 'bg-paper border border-border text-muted hover:border-ink hover:text-ink')
-                  }
-                >
-                  {v >= 1000 ? (v/1000) + 'k' : v}
-                </button>
-              ))}
-              <input
-                type="number"
-                min="0"
-                max="50000"
-                value={variation}
-                onChange={e => {
-                  let val = parseInt(e.target.value) || 0
-                  setVariation(Math.min(50000, Math.max(0, val)))
-                }}
-                className="w-20 px-2 py-1 border border-border rounded-md font-mono text-xs text-ink
-                           focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent bg-paper"
-              />
+      {/* Bottom Row: Variation & Buttons */}
+      <div className="mt-6 pt-4 sm:pt-0 border-t border-border/40 sm:border-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        
+        {/* Left side: Variation (only in predictor mode) */}
+        <div>
+          {mode === 'predictor' && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-muted uppercase tracking-wider shrink-0">
+                ± Variation
+              </span>
+              <div className="flex items-center gap-1">
+                {VARIATION_PRESETS.map(v => (
+                  <button
+                    key={v}
+                    onClick={(e) => { e.preventDefault(); setVariation(v) }}
+                    className={
+                      'px-2.5 py-1 rounded-md text-xs font-mono transition-colors ' +
+                      (variation === v
+                        ? 'bg-ink text-paper'
+                        : 'bg-paper border border-border text-muted hover:border-ink hover:text-ink')
+                    }
+                  >
+                    {v >= 1000 ? (v/1000) + 'k' : v}
+                  </button>
+                ))}
+                <input
+                  type="number"
+                  min="0"
+                  max="50000"
+                  value={variation}
+                  onChange={e => {
+                    let val = parseInt(e.target.value) || 0
+                    setVariation(Math.min(50000, Math.max(0, val)))
+                  }}
+                  className="w-20 px-2 py-1 border border-border rounded-md font-mono text-xs text-ink
+                             focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent bg-paper"
+                />
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-
-        {/* Search button */}
-        <button
-          onClick={onSearch}
-          disabled={loading}
-          className="sm:ml-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg
-                     bg-ink text-paper text-sm font-semibold
-                     hover:bg-accent transition-colors duration-150
-                     disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? (
-            <>
-              <Spinner />
-              Searching…
-            </>
-          ) : mode === 'predictor' ? (
-            'Find Colleges'
-          ) : (
-            'Show Results'
           )}
-        </button>
+        </div>
+
+        {/* Right side: Buttons */}
+        <div className="flex items-center justify-end gap-3 shrink-0">
+          {/* Clear button */}
+          <button
+            type="button"
+            onClick={onClear}
+            className="px-4 py-2.5 rounded-lg text-sm font-semibold text-muted hover:text-ink hover:bg-paper transition-colors duration-150 focus:outline-none"
+          >
+            Clear
+          </button>
+
+          {/* Share button */}
+          <button
+            type="button"
+            onClick={async () => {
+              const url = window.location.href;
+              const copyFallback = () => {
+                navigator.clipboard.writeText(url)
+                const btn = document.getElementById('share-btn-text')
+                if (btn) {
+                  const original = btn.innerText
+                  btn.innerText = 'Copied!'
+                  setTimeout(() => { btn.innerText = original }, 2000)
+                }
+              }
+
+              if (navigator.share) {
+                try {
+                  await navigator.share({
+                    title: 'KCET College Predictor',
+                    text: 'Check out these KCET cutoffs!',
+                    url: url
+                  })
+                } catch (err) {
+                  // Fallback to copy if share fails (but not if user just dismissed the sheet)
+                  if (err.name !== 'AbortError') copyFallback()
+                }
+              } else {
+                copyFallback()
+              }
+            }}
+            title="Copy link to these results"
+            className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg
+                       border border-border bg-white text-ink text-sm font-semibold
+                       hover:bg-paper transition-colors duration-150 focus:outline-none"
+          >
+            <svg className="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+            <span id="share-btn-text">Share</span>
+          </button>
+
+          {/* Search button */}
+          <button
+            onClick={onSearch}
+            disabled={loading}
+            className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg
+                       bg-ink text-paper text-sm font-semibold
+                       hover:bg-accent transition-colors duration-150
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <>
+                <Spinner />
+                Searching…
+              </>
+            ) : (
+              'Search'
+            )}
+          </button>
+        </div>
+      </div>
     </form>
   )
 }
