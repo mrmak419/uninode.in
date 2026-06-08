@@ -269,12 +269,14 @@ export default function App() {
 
       {/* Footer */}
       <footer className="mt-16 border-t border-border">
-        <div className="max-w-7xl mx-auto px-4 py-6 text-center text-muted text-xs font-body space-y-1">
+        <div className="max-w-7xl mx-auto px-4 py-6 text-center text-muted text-xs font-body space-y-2">
           <p>Cut-off ranks are from previous counselling rounds and are for reference only.</p>
           <p>Always verify on the official <a href="https://cetonline.karnataka.gov.in" target="_blank" rel="noreferrer" className="underline hover:text-ink">KEA website</a>.</p>
-          <p className="pt-3 mt-3 border-t border-border/50 max-w-xl mx-auto text-gray-400">
-            <strong>Privacy Notice:</strong> This website uses Google Analytics to anonymously track website usage (such as search queries and rank ranges) to help improve the tool. No personally identifiable information is collected.
-          </p>
+          <div className="pt-4 flex items-center justify-center gap-4 text-gray-500">
+            <a href="/privacy-policy" className="hover:text-ink transition-colors">Privacy Policy</a>
+            <span>&bull;</span>
+            <a href="/terms-of-service" className="hover:text-ink transition-colors">Terms of Service</a>
+          </div>
         </div>
       </footer>
     </div>
