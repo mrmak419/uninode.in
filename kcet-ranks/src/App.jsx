@@ -190,14 +190,17 @@ export default function App() {
       {/* Header */}
       <header className="border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
-          <div className="flex items-start gap-3">
-            <div>
-              <h1 className="font-display text-3xl md:text-4xl text-ink leading-tight">
-                KCET Rank Explorer
-              </h1>
-              <p className="mt-1 text-muted text-sm md:text-base font-body">
-                Engineering cut-off ranks · {yearsText} · All categories
-              </p>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <img src="/logo.png" alt="KCET Logo" className="w-12 h-12 rounded-xl shadow-sm" />
+              <div>
+                <h1 className="text-3xl md:text-4xl font-display font-bold text-ink">
+                  KCET College Predictor
+                </h1>
+                <p className="text-muted mt-1 font-body">
+                  Historical cut-off analysis ({yearsText})
+                </p>
+              </div>
             </div>
           </div>
         </div>
