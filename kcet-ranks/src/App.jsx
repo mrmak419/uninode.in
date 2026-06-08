@@ -377,19 +377,25 @@ export default function App() {
   )
 }
 
-// ── Group flat rows into { college_code, college_name, course_name, rounds: {year_round: rank} }
 function groupByCourseCollege(rows, availableRounds) {
   const map = new Map()
 
   for (const row of rows) {
-    const key = row.college_code + '||' + row.course_name
+    // Normalize course name: lowercase, remove all spaces and special characters
+    const normalizedCourse = (row.course_name || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+    const key = row.college_code + '||' + normalizedCourse
+
     if (!map.has(key)) {
       map.set(key, {
         college_code: row.college_code,
         college_name: row.college_name || row.college_code,
-        course_name:  row.course_name,
-        rounds: row.rounds || {},
+        course_name:  row.course_name, // Keep the first original name for display
+        rounds: { ...(row.rounds || {}) },
       })
+    } else {
+      // Merge rounds if the course is already in the map (handles variations like "Computer Sci ence")
+      const existing = map.get(key)
+      existing.rounds = { ...existing.rounds, ...(row.rounds || {}) }
     }
   }
 

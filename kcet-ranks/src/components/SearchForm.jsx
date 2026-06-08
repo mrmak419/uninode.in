@@ -65,8 +65,6 @@ export default function SearchForm({
   const filteredColleges = colleges.filter(c => {
     if (!collegeQuery) return false
     const q = collegeQuery.toLowerCase()
-    // Don't show dropdown if exact match is already typed
-    if (c.college_name.toLowerCase() === q || c.college_code.toLowerCase() === q) return false
     return c.college_name.toLowerCase().includes(q) || 
            c.college_code.toLowerCase().includes(q) || 
            (c.search_terms && c.search_terms.toLowerCase().includes(q))
@@ -153,8 +151,8 @@ export default function SearchForm({
 
         {/* College search */}
         <div className="relative" ref={collegeRef}>
-          <label htmlFor="search-college" className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
-            College
+          <label htmlFor="search-college" className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5 flex items-center justify-between">
+            <span>College {mode === 'predictor' && <span className="text-muted/60 normal-case font-normal ml-1">(Optional)</span>}</span>
           </label>
           <input
             id="search-college"
@@ -190,8 +188,8 @@ export default function SearchForm({
 
       {/* Multi-Branch Row */}
       <div className="mt-4" ref={branchRef}>
-        <label htmlFor="search-branch" className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
-          Branches
+        <label htmlFor="search-branch" className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5 flex items-center justify-between">
+          <span>Branches {mode === 'predictor' && <span className="text-muted/60 normal-case font-normal ml-1">(Optional)</span>}</span>
         </label>
         
         <div className="relative border border-border rounded-lg bg-paper focus-within:ring-2 focus-within:ring-accent/30 focus-within:border-accent transition-colors">

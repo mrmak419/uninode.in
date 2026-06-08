@@ -6,10 +6,23 @@ export default function ResultsTable({ rows, rounds, userRank }) {
   const uniqueYears = Array.from(new Set(rounds.map(r => r.year))).sort((a, b) => b - a).slice(0, 3)
   const uniqueRoundNums = Array.from(new Set(rounds.map(r => r.round))).sort((a, b) => a - b)
 
-  const [expandedRowKey, setExpandedRowKey] = useState(null)
+  const [expandedKeys, setExpandedKeys] = useState(new Set())
 
   function toggleRow(key) {
-    setExpandedRowKey(prev => prev === key ? null : key)
+    setExpandedKeys(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        if (next.size >= 5) {
+          // Remove the oldest opened row to maintain a max of 5
+          const oldestKey = next.values().next().value
+          next.delete(oldestKey)
+        }
+        next.add(key)
+      }
+      return next
+    })
   }
 
   // Get the latest available cutoff for a specific row
@@ -41,7 +54,7 @@ export default function ResultsTable({ rows, rounds, userRank }) {
       <div className="border border-border rounded-b-xl md:rounded-t-none rounded-xl overflow-hidden bg-white shadow-sm">
         {rows.map((row, i) => {
           const rowKey = row.college_code + '||' + row.course_name
-          const isExpanded = expandedRowKey === rowKey
+          const isExpanded = expandedKeys.has(rowKey)
           const latestCutoff = getLatestRoundRank(row)
 
           return (
