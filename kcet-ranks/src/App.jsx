@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from './lib/supabase'
 import SearchForm from './components/SearchForm.jsx'
 import ResultsTable from './components/ResultsTable.jsx'
+import Analytics from './components/Analytics.jsx'
 
 const ALL_CATEGORIES = [
   '1G','1K','1R',
@@ -93,6 +94,7 @@ export default function App() {
         .lte('min_rank', hi)
 
       const rawInput = branchQuery.trim()
+      let matchingRawNames = []
       if (rawInput) {
         const upperQ = rawInput.toUpperCase()
         const lowerQ = rawInput.toLowerCase()
@@ -103,7 +105,7 @@ export default function App() {
           .split(/\s+/)
           .filter(w => !stopWords.includes(w) && w.length >= 3) // min 3 chars to prevent noisy short matches
 
-        const matchingRawNames = branches.filter(b => {
+        matchingRawNames = branches.filter(b => {
           // 1. Exact alias match (e.g. "CSE")
           if (b.parent_branches?.alias === upperQ) return true
 
@@ -131,6 +133,15 @@ export default function App() {
         if (matchingRawNames.length === 0) {
           setResults([])
           setLoading(false)
+          
+          if (window.gtag) {
+            window.gtag('event', 'search', {
+              search_term: rawInput,
+              rank_entered: rankNum,
+              category: category,
+              results_count: 0
+            })
+          }
           return
         }
 
@@ -142,6 +153,17 @@ export default function App() {
       if (qErr) throw qErr
 
       setResults(data || [])
+
+      // Send event to Google Analytics
+      if (window.gtag) {
+        window.gtag('event', 'search', {
+          search_term: rawInput || 'All Branches',
+          rank_entered: rankNum,
+          category: category,
+          results_count: data ? data.length : 0
+        })
+      }
+
     } catch (e) {
       setError('Search failed: ' + (e.message || 'unknown error'))
     } finally {
@@ -163,6 +185,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-paper">
+      <Analytics />
+      
       {/* Header */}
       <header className="border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
@@ -248,6 +272,9 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 py-6 text-center text-muted text-xs font-body space-y-1">
           <p>Cut-off ranks are from previous counselling rounds and are for reference only.</p>
           <p>Always verify on the official <a href="https://cetonline.karnataka.gov.in" target="_blank" rel="noreferrer" className="underline hover:text-ink">KEA website</a>.</p>
+          <p className="pt-3 mt-3 border-t border-border/50 max-w-xl mx-auto text-gray-400">
+            <strong>Privacy Notice:</strong> This website uses Google Analytics to anonymously track website usage (such as search queries and rank ranges) to help improve the tool. No personally identifiable information is collected.
+          </p>
         </div>
       </footer>
     </div>
