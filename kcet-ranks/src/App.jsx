@@ -215,7 +215,8 @@ export default function App() {
       }
 
     } catch (e) {
-      setError('Search failed: ' + (e.message || 'unknown error'))
+      console.error("Search failed:", e)
+      setError('Search failed. Please ensure the selected stream and filters are valid.')
     } finally {
       setLoading(false)
     }
