@@ -1,98 +1,77 @@
 # KCET Rank Explorer
 
-Engineering cut-off ranks for Karnataka students. Filter by rank, category, branch across 2024-2025 counselling rounds.
+A blazing-fast, Next-gen web platform to explore KCET Cutoff Ranks across multiple streams (Engineering, Agriculture, Medical, Architecture, etc.). Built with React, Vite, TailwindCSS, and Supabase.
 
 ---
 
-## Setup (one time)
+## 🚀 Architecture Highlights
 
-### 1. Supabase schema
-Open https://supabase.com/dashboard → your project → SQL editor
-Paste and run the contents of `schema.sql`
+1. **Pre-Computed Materialized Views**: Instead of running heavy aggregations on 100,000+ cutoff rows per user search, Supabase pivots and caches the data into `cutoffs_matrix_<stream>` views.
+2. **Static Metadata Generation**: The `npm run build` process queries Supabase to generate `meta_engineering.json` and a full `sitemap.xml` for SEO. This prevents 2 database reads per page load and ensures instant rendering.
+3. **Automated Python Ingestion Pipeline**: Extracts data from poorly-formatted KEA PDFs, dynamically handles different yearly formats (2024 vs 2025), and uploads chunked data into Supabase via REST.
 
-### 2. Import your CSVs
-Install requests library:
-```
-pip install requests
-```
+---
 
-Import each validated CSV — pass your Supabase SERVICE ROLE key
-(Settings → API → service_role secret):
+## 📥 Data Ingestion Workflow (Zero-Config)
 
-```
-python kea_import.py round1_2025_rok.csv --year 2025 --round 1 --seat-type ROK --key YOUR_SERVICE_ROLE_KEY
-python kea_import.py round2_2025_rok.csv --year 2025 --round 2 --seat-type ROK --key YOUR_SERVICE_ROLE_KEY
-```
+You never have to manually enter Year, Round, Stream, or Seat Type! 
 
-Or set the key as an environment variable so you don't paste it every time:
-```
-# Windows
-set SUPABASE_KEY=your_service_role_key
-python kea_import.py round1_2025_rok.csv --year 2025 --round 1 --seat-type ROK
+### 1. Place Your PDFs
+Place the new KEA PDF into the `pdf/` folder using the following exact structure:
+`pdf/<year>/round<round_num>/<stream>/<seat_type>.pdf`
 
-# Mac / Linux
-export SUPABASE_KEY=your_service_role_key
-python kea_import.py round1_2025_rok.csv --year 2025 --round 1 --seat-type ROK
-```
+*Example:*
+`pdf/2025/round3/agri_bsc/HK.pdf`
+`pdf/2024/round1/engineering/ROK.pdf`
 
-### 3. Set up the frontend
+### 2. Run the Master Importer
+```bash
+python master_import.py
 ```
+1. The script will recursively scan the `pdf/` folder.
+2. It will present you with a menu of all detected PDFs.
+3. Select your PDF. The script will automatically:
+   - Determine the correct extractor to use (2024 vs 2025 format).
+   - Extract all ranks to a temporary CSV.
+   - Allow you to **Cross-Verify** random entries against the actual PDF.
+   - Securely upload the data into Supabase (`cutoffs` table).
+   - Delete the source PDF (it keeps the CSV as a physical backup in `csv/`).
+4. **Important:** The materialized view for that stream is automatically refreshed via the database RPC!
+
+---
+
+## 🖥️ Frontend Management
+
+If you have uploaded a completely **brand new college or branch** that did not exist in any previous rounds, you must rebuild the metadata JSON files so the dropdown menus update.
+
+```bash
 cd kcet-ranks
-npm install
-cp .env.example .env
+npm run build
 ```
-Edit `.env` and paste your Supabase ANON key (not the service role key — this one is safe to expose)
+*(You do not need to do this if the college/branch already existed in the database).*
 
-Run locally:
-```
+To run the local development server:
+```bash
+cd kcet-ranks
 npm run dev
 ```
 
-### 4. Deploy to Cloudflare Pages
-1. Push this folder to a GitHub repo
-2. Go to https://dash.cloudflare.com → Workers & Pages → Create
-3. Connect your GitHub repo
-4. Build settings:
-   - Framework preset: Vite
-   - Build command: `npm run build`
-   - Output directory: `dist`
-5. Environment variables → add `VITE_SUPABASE_ANON_KEY` = your anon key
-6. Deploy
-
 ---
 
-## Adding new rounds (every counselling season)
+## 🛠️ Supabase Setup (One Time)
 
-1. Download the new PDF from KEA website
-2. Extract: `python kea_rank_extractor.py newfile.pdf --output new_round.csv`
-3. Validate: `python kea_validate.py --csv new_round.csv --checks checks.json`
-4. Import: `python kea_import.py new_round.csv --year 2026 --round 1 --seat-type ROK`
+1. Open https://supabase.com/dashboard → your project → SQL editor
+2. Paste and run the contents of `sql/schema.sql` (Creates base tables and security policies).
+3. Paste and run the contents of `sql/add_stream_refresh_rpc.sql` (Creates the automated Materialized View generators).
 
-The website automatically picks up the new data. The "latest 6 rounds" view updates itself.
+Create a `.env` file in the root directory for the Python uploaders:
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your_service_role_key
+```
 
----
-
-## Seat type codes
-- `ROK` — Rest of Karnataka (most students)
-- `HK`  — Hyderabad Karnataka (HKR reserved seats)
-- `SNQ` — Supernumerary quota (if you have that data)
-
----
-
-## Tagging branches (for better frontend filtering)
-After import, go to Supabase dashboard → Table editor → branches
-For each `raw_name`, fill in:
-- `parent_branch`: Computer Science / Electronics / Mechanical / Civil / etc.
-- `specialisation`: Core / AI & ML / IoT / Cyber Security / etc.
-
-These tags power the branch dropdown grouping in the frontend.
-
-
-
-## Adding new rounds (every counselling season)
- 
-1. Download the new PDF from KEA website
-2. Extract: `python kea_rank_extractor.py newfile.pdf --output new_round.csv`
-3. Validate: `python kea_validate.py --csv new_round.csv --checks checks.json`
-4. Import: `python kea_import.py new_round.csv --year 2026 --round 1 --seat-type ROK`
-The website automatically picks up the new data. The "latest 6 rounds" view updates itself.
+Create a `.env` file inside `kcet-ranks/`:
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key
+```

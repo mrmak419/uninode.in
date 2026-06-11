@@ -18,7 +18,7 @@ export default function Privacy() {
         <section className="space-y-3">
           <h2 className="text-xl font-bold">2. How We Use Your Information</h2>
           <p>
-            The anonymous data we collect is used strictly for analytical purposes to understand user trends, fix bugs, and improve the functionality of the KCET College Predictor.
+            The anonymous data we collect is used strictly for analytical purposes to understand user trends, fix bugs, and improve the functionality of the KCET College Analyzer.
           </p>
         </section>
 

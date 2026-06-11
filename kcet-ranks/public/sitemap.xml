@@ -2,20 +2,74 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://kcet.uninode.in/</loc>
-    <lastmod>2026-06-08</lastmod>
+    <lastmod>2026-06-11T10:10:28.943Z</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://kcet.uninode.in/privacy-policy</loc>
-    <lastmod>2026-06-08</lastmod>
+    <loc>https://kcet.uninode.in/privacy</loc>
+    <lastmod>2026-06-11T10:10:28.943Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://kcet.uninode.in/terms-of-service</loc>
-    <lastmod>2026-06-08</lastmod>
+    <loc>https://kcet.uninode.in/terms</loc>
+    <lastmod>2026-06-11T10:10:28.943Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://kcet.uninode.in/engineering</loc>
+    <lastmod>2026-06-11T10:10:28.943Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://kcet.uninode.in/agri_bsc</loc>
+    <lastmod>2026-06-11T10:10:28.943Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://kcet.uninode.in/architecture</loc>
+    <lastmod>2026-06-11T10:10:28.943Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://kcet.uninode.in/b_pharma</loc>
+    <lastmod>2026-06-11T10:10:28.943Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://kcet.uninode.in/bpo</loc>
+    <lastmod>2026-06-11T10:10:28.943Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://kcet.uninode.in/bpt</loc>
+    <lastmod>2026-06-11T10:10:28.943Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://kcet.uninode.in/food_science</loc>
+    <lastmod>2026-06-11T10:10:28.943Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://kcet.uninode.in/nursing</loc>
+    <lastmod>2026-06-11T10:10:28.943Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://kcet.uninode.in/pharma_d</loc>
+    <lastmod>2026-06-11T10:10:28.943Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>

@@ -4,6 +4,7 @@ import argparse
 import pdfplumber
 import csv
 import json
+import difflib
 from collections import defaultdict
 
 BRANCH_KEYWORDS = {
@@ -37,12 +38,20 @@ BRANCH_KEYWORDS = {
 }
 
 ALL_CATS = {
+    # ROK (Rest of Karnataka)
     "1G","1K","1R",
     "2AG","2AK","2AR","2BG","2BK","2BR",
     "3AG","3AK","3AR","3BG","3BK","3BR",
-    "GM","GMK","GMR",
+    "GM","GMK","GMR","GMP",
     "SCG","SCK","SCR",
     "STG","STK","STR",
+    # HK (Hyderabad-Karnataka)
+    "1H","1KH","1RH",
+    "2AH","2AKH","2ARH","2BH","2BKH","2BRH",
+    "3AH","3AKH","3ARH","3BH","3BKH","3BRH",
+    "GMH","GMKH","GMRH","GMPH",
+    "SCH","SCKH","SCRH",
+    "STH","STKH","STRH",
 }
 
 # ── 2024 abbreviated course name → canonical full name ───────────────────────
@@ -135,10 +144,19 @@ def extract_ranks(pdf_path, target_branches, target_categories):
     results = []
     want_all_branches = not target_branches
     want_all_cats = not target_categories
-    target_cats_norm = {c.upper().strip() for c in target_categories}
 
     college_code = ""
     college_name = ""
+    course_name = ""
+
+    # Load Smart Mapping
+    smart_mapping = {}
+    if os.path.exists("college_mapping.json"):
+        try:
+            with open("college_mapping.json", "r", encoding="utf-8") as f:
+                smart_mapping = json.load(f)
+        except Exception:
+            pass
 
     with pdfplumber.open(pdf_path) as pdf:
         total = len(pdf.pages)
@@ -152,22 +170,36 @@ def extract_ranks(pdf_path, target_branches, target_categories):
             college_positions = []
 
             for line in text.splitlines():
-                stripped = line.strip()
-
                 # ── 2025 format: "College: E001 Name..." ─────────────────────
-                m = re.match(r"College:\s*([A-Z]\d{3,4})\s+(.*)", stripped, re.IGNORECASE)
-
+                # Modified regex to make college code optional
+                m = re.match(r"College:\s*(?:([A-Z]\d{3,4})\s+)?(.*)", line.strip(), re.IGNORECASE)
+                
                 # ── 2024 format: "1 E001 Name..." (serial number prefix) ─────
                 if not m:
-                    m = re.match(r"^\d+\s+([A-Z]\d{3,4})\s+(.+)", stripped)
+                    m = re.match(r"^\d+\s+([A-Z]\d{3,4})\s+(.+)", line.strip())
 
                 # ── Fallback: "E001  Name..." (2+ spaces, no prefix) ──────────
                 if not m:
-                    m = re.match(r"^([A-Z]\d{3,4})\s{2,}(.+)", stripped)
+                    m = re.match(r"^([A-Z]\d{3,4})\s{2,}(.+)", line.strip())
 
                 if m:
-                    college_code = m.group(1).upper()
-                    college_name = m.group(2).strip()
+                    c_code = m.group(1).upper() if m.group(1) else ""
+                    c_name = m.group(2).strip()
+                    
+                    if not c_code:
+                        lookup_key = re.sub(r'[^a-z0-9]', '', c_name.lower())
+                        if lookup_key in smart_mapping:
+                            c_code = smart_mapping[lookup_key]
+                        else:
+                            # Try fuzzy match
+                            matches = difflib.get_close_matches(lookup_key, smart_mapping.keys(), n=1, cutoff=0.85)
+                            if matches:
+                                c_code = smart_mapping[matches[0]]
+                            else:
+                                c_code = "UNKNOWN_CODE"
+                            
+                    college_code = c_code
+                    college_name = c_name
                     college_positions.append((college_code, college_name))
 
             tables = page.extract_tables({

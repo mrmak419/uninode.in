@@ -59,16 +59,19 @@ export default function SearchForm({
     const q = branchInput.toLowerCase()
     const isSelected = selectedBranches.includes(pb.name)
     if (isSelected) return false // Don't show already selected in dropdown
+    if (!q) return true // Show all if input is empty
     return pb.name.toLowerCase().includes(q) || pb.alias?.toLowerCase().includes(q)
-  }).slice(0, 50)
+  }).slice(0, branchInput ? 50 : parentBranchesList.length)
 
   const filteredColleges = colleges.filter(c => {
-    if (!collegeQuery) return false
+    if (!collegeQuery) return true // Show all if input is empty
     const q = collegeQuery.toLowerCase()
     return c.college_name.toLowerCase().includes(q) || 
            c.college_code.toLowerCase().includes(q) || 
            (c.search_terms && c.search_terms.toLowerCase().includes(q))
-  }).slice(0, 50)
+  })
+  .sort((a, b) => a.college_code.localeCompare(b.college_code))
+  .slice(0, collegeQuery ? 50 : colleges.length)
 
   function handleKey(e) {
     if (e.key === 'Enter') onSearch()
@@ -92,7 +95,7 @@ export default function SearchForm({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
         {/* Rank */}
-        {mode === 'predictor' && (
+        {mode === 'analyzer' && (
           <div className="lg:col-span-1">
             <label htmlFor="search-rank" className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
               Your Rank
@@ -152,7 +155,7 @@ export default function SearchForm({
         {/* College search */}
         <div className="relative" ref={collegeRef}>
           <label htmlFor="search-college" className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5 flex items-center justify-between">
-            <span>College {mode === 'predictor' && <span className="text-muted/60 normal-case font-normal ml-1">(Optional)</span>}</span>
+            <span>College {mode === 'analyzer' && <span className="text-muted/60 normal-case font-normal ml-1">(Optional)</span>}</span>
           </label>
           <input
             id="search-college"
@@ -189,7 +192,7 @@ export default function SearchForm({
       {/* Multi-Branch Row */}
       <div className="mt-4" ref={branchRef}>
         <label htmlFor="search-branch" className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5 flex items-center justify-between">
-          <span>Branches {mode === 'predictor' && <span className="text-muted/60 normal-case font-normal ml-1">(Optional)</span>}</span>
+          <span>Branches {mode === 'analyzer' && <span className="text-muted/60 normal-case font-normal ml-1">(Optional)</span>}</span>
         </label>
         
         <div className="relative border border-border rounded-lg bg-paper focus-within:ring-2 focus-within:ring-accent/30 focus-within:border-accent transition-colors">
@@ -242,9 +245,9 @@ export default function SearchForm({
       {/* Bottom Row: Variation & Buttons */}
       <div className="mt-6 pt-4 sm:pt-0 border-t border-border/40 sm:border-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         
-        {/* Left side: Variation (only in predictor mode) */}
+        {/* Left side: Variation (only in analyzer mode) */}
         <div>
-          {mode === 'predictor' && (
+          {mode === 'analyzer' && (
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-muted uppercase tracking-wider shrink-0">
                 ± Variation
@@ -316,7 +319,7 @@ export default function SearchForm({
               if (navigator.share) {
                 try {
                   await navigator.share({
-                    title: 'KCET College Predictor',
+                    title: 'KCET College Analyzer',
                     text: 'Check out these KCET cutoffs!',
                     url: url
                   })

@@ -1,8 +1,13 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, useContext } from 'react'
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import SearchForm from './components/SearchForm.jsx'
 import ResultsTable from './components/ResultsTable.jsx'
 import Analytics from './components/Analytics.jsx'
+import Footer from './components/Footer.jsx'
+import { Menu } from 'lucide-react'
+import { SidebarContext } from './components/Layout.jsx'
+import TabTitle from './components/TabTitle.jsx'
 
 const ALL_CATEGORIES = [
   '1G','1K','1R',
@@ -16,6 +21,10 @@ const ALL_CATEGORIES = [
 // DB aliases will handle this dynamically now.
 
 export default function App() {
+  const { stream } = useParams()
+  const formattedStreamName = stream ? stream.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Stream'
+  const navigate = useNavigate()
+
   // Parse initial URL parameters for shared links
   const searchParams = new URLSearchParams(window.location.search)
 
@@ -26,9 +35,10 @@ export default function App() {
   const [seatType,   setSeatType]   = useState(searchParams.get('seat') || 'ROK')
   const [selectedBranches, setSelectedBranches] = useState(searchParams.get('branches') ? searchParams.get('branches').split(',') : [])
   const [collegeQuery, setCollegeQuery] = useState(searchParams.get('college') || '')
-  const [mode, setMode] = useState(searchParams.get('mode') || 'predictor') // 'predictor' | 'explorer'
+  const [mode, setMode] = useState(searchParams.get('mode') || 'analyzer') // 'analyzer' | 'explorer'
 
   const [hasAutoSearched, setHasAutoSearched] = useState(false)
+  const { toggleSidebar } = useContext(SidebarContext)
 
   // Data state
   const [rounds,     setRounds]     = useState([])   // [{year, round}]
@@ -37,50 +47,56 @@ export default function App() {
   const [results,    setResults]    = useState(null) // null = not searched yet
   const [loading,    setLoading]    = useState(false)
   const [error,      setError]      = useState(null)
+  const prevStreamRef = useRef(stream)
+  
+  // Stream metadata
+  const [availableStreams, setAvailableStreams] = useState([])
 
-  // Load available rounds and branch list on mount
+  // Fetch available streams list
   useEffect(() => {
+    fetch('/streams.json')
+      .then(res => res.json())
+      .then(data => setAvailableStreams(data))
+      .catch(err => console.error("Failed to load streams index:", err))
+  }, [])
+
+  // Load stream-specific metadata (colleges, branches, rounds) instantly via CDN JSON
+  useEffect(() => {
+    const isStreamSwitch = prevStreamRef.current !== stream;
+    prevStreamRef.current = stream;
+
     async function loadMeta() {
-      // Get all distinct (year, round, seat_type) combos from the view
-      const { data: roundData } = await supabase
-        .from('latest_rounds')
-        .select('year, round, seat_type')
-        .order('year',  { ascending: false })
-        .order('round', { ascending: false })
-
-      if (roundData) {
-        const seen = new Set()
-        const unique = []
-        for (const r of roundData) {
-          const key = r.year + '-' + r.round + '-' + r.seat_type
-          if (!seen.has(key)) {
-            seen.add(key)
-            unique.push(r)
-          }
+      try {
+        const res = await fetch(`/meta_${stream}.json`)
+        if (!res.ok) throw new Error(`Stream metadata not found for ${stream}`)
+        const data = await res.json()
+        
+        setColleges(data.colleges || [])
+        setBranches(data.branches || [])
+        
+        const uniqueRounds = data.rounds || []
+        uniqueRounds.sort((a,b) => {
+          if (a.year !== b.year) return b.year - a.year;
+          return b.round - a.round;
+        })
+        setRounds(uniqueRounds)
+        
+        // Clear previous results on stream switch
+        if (isStreamSwitch) {
+          setResults(null)
+          setSelectedBranches([])
+          setCollegeQuery('')
         }
-        setRounds(unique)
+      } catch (err) {
+        console.error("Failed to load stream metadata:", err)
       }
-
-      // Get unique branch names with parent + specialisation for autocomplete
-      const { data: branchData } = await supabase
-        .from('branches')
-        .select('raw_name, parent_branches(name, alias), specialisations(name)')
-        .order('raw_name')
-      if (branchData) setBranches(branchData)
-
-      // Get all colleges for autocomplete dropdown
-      const { data: collegeData } = await supabase
-        .from('colleges')
-        .select('college_code, college_name, search_terms')
-        .order('college_code')
-      if (collegeData) setColleges(collegeData)
     }
     loadMeta()
-  }, [])
+  }, [stream])
 
   const search = useCallback(async () => {
     let rankNum;
-    if (mode === 'predictor') {
+    if (mode === 'analyzer') {
       rankNum = parseInt(rank, 10)
       if (!rank || isNaN(rankNum) || rankNum < 1) {
         setError('Please enter a valid rank.')
@@ -105,12 +121,12 @@ export default function App() {
     try {
       // ── Smart Branch Matching ──
       let query = supabase
-        .from('cutoffs_matrix')
+        .from(`cutoffs_matrix_${stream}`)
         .select('college_code, college_name, course_name, category, seat_type, rounds')
         .eq('category', category)
         .eq('seat_type', seatType)
 
-      if (mode === 'predictor') {
+      if (mode === 'analyzer') {
         const safeVariation = Math.min(50000, Math.max(0, variation))
         const lo = Math.max(1, rankNum - safeVariation)
         const hi = rankNum + safeVariation
@@ -152,8 +168,8 @@ export default function App() {
           if (window.gtag) {
             window.gtag('event', 'search', {
               mode: mode,
-              rank_entered: mode === 'predictor' ? rankNum : 'N/A',
-              variation: mode === 'predictor' ? variation : 'N/A',
+              rank_entered: mode === 'analyzer' ? rankNum : 'N/A',
+              variation: mode === 'analyzer' ? variation : 'N/A',
               category: category,
               seat_type: seatType,
               college_query: collegeQuery.trim() || 'N/A',
@@ -176,8 +192,8 @@ export default function App() {
       // Update URL with current search parameters so it's easily shareable
       const params = new URLSearchParams()
       params.set('mode', mode)
-      if (mode === 'predictor' && rankNum) params.set('rank', rankNum)
-      if (mode === 'predictor') params.set('variation', variation)
+      if (mode === 'analyzer' && rankNum) params.set('rank', rankNum)
+      if (mode === 'analyzer') params.set('variation', variation)
       params.set('cat', category)
       params.set('seat', seatType)
       if (collegeQuery) params.set('college', collegeQuery)
@@ -188,8 +204,8 @@ export default function App() {
       if (window.gtag) {
         window.gtag('event', 'search', {
           mode: mode,
-          rank_entered: mode === 'predictor' ? rankNum : 'N/A',
-          variation: mode === 'predictor' ? variation : 'N/A',
+          rank_entered: mode === 'analyzer' ? rankNum : 'N/A',
+          variation: mode === 'analyzer' ? variation : 'N/A',
           category: category,
           seat_type: seatType,
           college_query: collegeQuery.trim() || 'N/A',
@@ -203,7 +219,7 @@ export default function App() {
     } finally {
       setLoading(false)
     }
-  }, [mode, rank, variation, category, seatType, selectedBranches, collegeQuery, branches, colleges])
+  }, [mode, rank, variation, category, seatType, selectedBranches, collegeQuery, branches, colleges, stream])
 
   // Auto-trigger search if URL params are present (shared link)
   useEffect(() => {
@@ -247,52 +263,59 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-paper">
+    <div className="min-h-screen bg-paper flex flex-col">
       <Analytics />
-      
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <img src="/logo.png" alt="KCET Logo" className="w-12 h-12 rounded-xl shadow-sm" />
-              <div>
-                <h1 className="text-3xl md:text-4xl font-display font-bold text-ink">
-                  KCET {mode === 'predictor' ? 'Predictor' : 'Explorer'}
-                </h1>
-                <p className="text-muted mt-1 font-body">
-                  Historical cut-off analysis ({yearsText})
-                </p>
-              </div>
-            </div>
+      <TabTitle 
+        title={`${formattedStreamName} Cutoffs | Uninode KCET Cutoff Analyzer`} 
+        description={`Analyze historical KCET cutoff trends for ${formattedStreamName}. Find eligible colleges and predict your rank with the Uninode KCET Cutoff Analyzer.`}
+      />
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6 md:py-8 flex flex-col">
+        {/* Top Header Row for Branding */}
+        <div className="flex items-center gap-2 text-left mb-6">
+            <button 
+              onClick={toggleSidebar}
+              className="p-2 -ml-2 text-muted hover:text-ink rounded-xl hover:bg-gray-100 transition-colors"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <Link to="/" className="font-display font-bold text-xl tracking-tight text-ink flex items-center">
+              Uninode<span className="text-blue-600 ml-1">KCET</span>
+            </Link>
+        </div>
 
-            {/* Mode Toggle */}
-            <div className="flex bg-border/50 p-1 rounded-full w-full md:w-auto self-start md:self-center shrink-0 border border-border/80">
-              <button 
-                onClick={() => {
-                  setMode('predictor')
-                  if (window.gtag) window.gtag('event', 'mode_switch', { new_mode: 'predictor' })
-                }}
-                className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${mode === 'predictor' ? 'bg-white shadow-sm text-ink' : 'text-muted hover:text-ink'}`}
-              >
-                Predictor
-              </button>
-              <button 
-                onClick={() => {
-                  setMode('explorer')
-                  if (window.gtag) window.gtag('event', 'mode_switch', { new_mode: 'explorer' })
-                }}
-                className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${mode === 'explorer' ? 'bg-white shadow-sm text-ink' : 'text-muted hover:text-ink'}`}
-              >
-                Explorer
-              </button>
-            </div>
+        {/* Page Title & Toggle Container */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b border-border/50 pb-6">
+          <div>
+            <h1 className="text-3xl font-display font-bold text-ink mb-1 flex items-center gap-3">
+              {stream.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            </h1>
+            <p className="text-muted font-body text-sm">
+              Historical cut-off analysis ({yearsText})
+            </p>
+          </div>
+
+          {/* Mode Toggle */}
+          <div className="flex bg-border/50 p-1 rounded-full w-full md:w-auto shrink-0 border border-border/80">
+            <button 
+              onClick={() => {
+                setMode('analyzer')
+                if (window.gtag) window.gtag('event', 'mode_switch', { new_mode: 'analyzer' })
+              }}
+              className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${mode === 'analyzer' ? 'bg-white shadow-sm text-ink' : 'text-muted hover:text-ink'}`}
+            >
+              Analyzer
+            </button>
+            <button 
+              onClick={() => {
+                setMode('explorer')
+                if (window.gtag) window.gtag('event', 'mode_switch', { new_mode: 'explorer' })
+              }}
+              className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${mode === 'explorer' ? 'bg-white shadow-sm text-ink' : 'text-muted hover:text-ink'}`}
+            >
+              Explorer
+            </button>
           </div>
         </div>
-      </header>
-
-      {/* Search */}
-      <main className="max-w-7xl mx-auto px-4 py-6 md:py-8">
         <SearchForm
           mode={mode}
           rank={rank}           setRank={setRank}
@@ -335,7 +358,7 @@ export default function App() {
             <div className="text-center py-16">
               <p className="text-ink font-body font-medium">No results found</p>
               <p className="mt-1 text-muted font-body text-sm">
-                {mode === 'predictor' 
+                {mode === 'analyzer' 
                   ? 'Try increasing your ± variation or changing the branch filter.' 
                   : 'Try changing the college or branch filter.'}
               </p>
@@ -349,30 +372,18 @@ export default function App() {
                   <span className="font-semibold text-ink">{groupedResults.length}</span>
                   {' '}college–course combinations found
                 </p>
-                <Legend rank={parseInt(rank, 10)} />
+                {mode === 'analyzer' && <Legend rank={parseInt(rank, 10)} />}
               </div>
               <ResultsTable
                 rows={groupedResults}
                 rounds={rounds}
-                userRank={parseInt(rank, 10)}
+                userRank={mode === 'analyzer' ? parseInt(rank, 10) : null}
               />
             </>
           )}
         </div>
+        <Footer />
       </main>
-
-      {/* Footer */}
-      <footer className="mt-16 border-t border-border">
-        <div className="max-w-7xl mx-auto px-4 py-6 text-center text-muted text-xs font-body space-y-2">
-          <p>Cut-off ranks are from previous counselling rounds and are for reference only.</p>
-          <p>Always verify on the official <a href="https://cetonline.karnataka.gov.in" target="_blank" rel="noreferrer" className="underline hover:text-ink">KEA website</a>.</p>
-          <div className="pt-4 flex items-center justify-center gap-4 text-gray-500">
-            <a href="/privacy-policy" className="hover:text-ink transition-colors">Privacy Policy</a>
-            <span>&bull;</span>
-            <a href="/terms-of-service" className="hover:text-ink transition-colors">Terms of Service</a>
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }

@@ -1,0 +1,17 @@
+[
+  {
+    "college_code": "E001",
+    "course_name": "CS Computers",
+    "category": "2BG",
+    "expected_rank": "8757"
+  },
+  {
+    "file": "r3hk.csv",
+    "college_code": "N001",
+    "course_name": "B.TECH (BIOTECHNOLOGY)",
+    "category": "2BG",
+    "expected_rank": "--",
+    "actual_extracted": null,
+    "match": []
+  }
+]

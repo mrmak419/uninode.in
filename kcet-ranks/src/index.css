@@ -4,8 +4,9 @@
 
 @layer base {
   body {
-    @apply bg-paper text-ink font-body;
+    @apply bg-paper text-ink font-body overflow-x-hidden;
     -webkit-font-smoothing: antialiased;
+    width: 100%;
   }
 
   * {

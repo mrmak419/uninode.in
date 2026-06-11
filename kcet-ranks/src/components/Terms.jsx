@@ -8,7 +8,7 @@ export default function Terms() {
         <section className="space-y-3">
           <h2 className="text-xl font-bold">1. Nature of the Service</h2>
           <p>
-            The KCET College Predictor is an informational tool designed to help students analyze historical KCET cut-off data. The predictions and historical cut-offs provided on this website are for reference purposes only.
+            The KCET College Analyzer is an informational tool designed to help students analyze historical KCET cut-off data. The analysis and historical cut-offs provided on this website are for reference purposes only.
           </p>
         </section>
 

@@ -1,16 +1,17 @@
 import React, { Suspense, lazy } from 'react'
 import ReactDOM from 'react-dom/client'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import './index.css'
 
 const App = lazy(() => import('./App.jsx'))
+const Home = lazy(() => import('./components/Home.jsx'))
 const AdminApp = lazy(() => import('./admin/AdminApp.jsx'))
 const Privacy = lazy(() => import('./components/Privacy.jsx'))
 const Terms = lazy(() => import('./components/Terms.jsx'))
+const Layout = lazy(() => import('./components/Layout.jsx'))
 
 const path = window.location.pathname
 const isAdmin = path.startsWith('/system/hq/portal/admin/secure/99x/mak')
-const isPrivacy = path === '/privacy-policy' || path === '/privacy-policy/'
-const isTerms = path === '/terms-of-service' || path === '/terms-of-service/'
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -77,10 +78,18 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
       <Suspense fallback={<LoadingFallback />}>
-        {isAdmin ? <AdminApp /> : 
-         isPrivacy ? <Privacy /> : 
-         isTerms ? <Terms /> : 
-         <App />}
+        <BrowserRouter>
+          <Layout>
+            <Routes>
+              {isAdmin && <Route path="/system/hq/portal/admin/secure/99x/mak/*" element={<AdminApp />} />}
+              <Route path="/privacy-policy" element={<Privacy />} />
+              <Route path="/terms-of-service" element={<Terms />} />
+              <Route path="/:stream" element={<App />} />
+              <Route path="/" element={<Home />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Layout>
+        </BrowserRouter>
       </Suspense>
     </ErrorBoundary>
   </React.StrictMode>

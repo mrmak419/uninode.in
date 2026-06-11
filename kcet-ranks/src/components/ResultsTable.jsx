@@ -2,8 +2,13 @@ import { useState } from 'react'
 
 export default function ResultsTable({ rows, rounds, userRank }) {
   // Determine unique years and rounds for the matrix
-  // Only keep the top 3 recent years
-  const uniqueYears = Array.from(new Set(rounds.map(r => r.year))).sort((a, b) => b - a).slice(0, 3)
+  // Only keep the top 4 recent years (x, x-1, x-2, x-3)
+  const uniqueYears = Array.from(new Set(rounds.map(r => r.year))).sort((a, b) => b - a).slice(0, 4)
+  
+  // Create mapping of round number to round_name
+  const roundMap = new Map()
+  rounds.forEach(r => roundMap.set(r.round, r.round_name || r.round.toString()))
+  
   const uniqueRoundNums = Array.from(new Set(rounds.map(r => r.round))).sort((a, b) => a - b)
 
   const [expandedKeys, setExpandedKeys] = useState(new Set())
@@ -32,7 +37,7 @@ export default function ResultsTable({ rows, rounds, userRank }) {
       const rank = row.rounds[key]
       if (rank != null) {
         return {
-          label: `${r.year} R${r.round}`,
+          label: `${r.year} - ${r.round_name || r.round}`,
           rank: rank
         }
       }
@@ -123,30 +128,36 @@ export default function ResultsTable({ rows, rounds, userRank }) {
                       <table className="w-full text-sm text-left border-collapse">
                         <thead>
                           <tr className="bg-[#fafaf7] border-b border-border/50 text-xs text-muted uppercase tracking-wider">
-                            <th className="px-4 py-2 font-semibold border-r border-border/50 w-24">Year</th>
+                            <th className="px-4 py-2 font-semibold border-r border-border/50 w-24 sticky left-0 z-10 bg-[#fafaf7]">Year</th>
                             {uniqueRoundNums.map(roundNum => (
-                              <th key={roundNum} className="px-4 py-2 font-semibold text-center border-r border-border/50 last:border-r-0 min-w-[90px]">
-                                Round {roundNum}
+                              <th key={roundNum} className="px-4 py-2 font-semibold text-center border-r border-border/50 last:border-r-0 min-w-[90px] whitespace-nowrap">
+                                {roundMap.get(roundNum)}
                               </th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
-                          {uniqueYears.map((year, idx) => (
-                            <tr key={year} className={`${idx !== uniqueYears.length - 1 ? 'border-b border-border/30' : ''}`}>
-                              <td className="px-4 py-2.5 font-semibold text-ink border-r border-border/50 bg-[#fafaf7] text-xs">
-                                {year}
-                              </td>
-                              {uniqueRoundNums.map(roundNum => {
-                                const rank = row.rounds[`${year}_R${roundNum}`]
-                                return (
-                                  <td key={roundNum} className="px-4 py-2.5 text-center border-r border-border/50 last:border-r-0">
-                                    <RankCell rank={rank} userRank={userRank} />
-                                  </td>
-                                )
-                              })}
-                            </tr>
-                          ))}
+                          {uniqueYears.map((year, idx) => {
+                            // Check if this specific year has any data for this row
+                            const hasData = uniqueRoundNums.some(roundNum => row.rounds[`${year}_R${roundNum}`] != null)
+                            if (!hasData) return null;
+                            
+                            return (
+                              <tr key={year} className={`${idx !== uniqueYears.length - 1 ? 'border-b border-border/30' : ''}`}>
+                                <td className="px-4 py-2.5 font-semibold text-ink border-r border-border/50 bg-white sticky left-0 z-10 text-xs shadow-[1px_0_0_0_#f4f4f5]">
+                                  {year}
+                                </td>
+                                {uniqueRoundNums.map(roundNum => {
+                                  const rank = row.rounds[`${year}_R${roundNum}`]
+                                  return (
+                                    <td key={roundNum} className="px-4 py-2.5 text-center border-r border-border/50 last:border-r-0 whitespace-nowrap">
+                                      <RankCell rank={rank} userRank={userRank} />
+                                    </td>
+                                  )
+                                })}
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -166,15 +177,27 @@ function RankCell({ rank, userRank }) {
     return <span className="text-muted/40 font-mono text-xs">—</span>
   }
 
+  // Handle explicit '--' or other non-numeric string flags from DB
+  if (typeof rank === 'string' && isNaN(Number(rank))) {
+    return <span className="font-mono text-xs md:text-sm px-2 py-0.5 rounded-md inline-block bg-gray-50 text-muted border border-border">{rank}</span>
+  }
+
+  const numericRank = Number(rank)
+
+  // Neutral styling for Explorer mode (userRank is null)
+  if (!userRank || isNaN(userRank)) {
+    return <span className="font-mono text-xs md:text-sm px-2 py-0.5 rounded-md inline-block bg-gray-50 text-ink border border-border">{numericRank.toLocaleString('en-IN')}</span>
+  }
+
   // userRank ≤ cutoff → student qualifies (lower rank number = better student)
-  const qualifies  = userRank <= rank
+  const qualifies  = userRank <= numericRank
   // within 20% of cut-off above the student's rank
-  const borderline = !qualifies && rank >= userRank * 0.85
+  const borderline = !qualifies && numericRank >= userRank * 0.85
 
   let cls = 'font-mono text-xs md:text-sm px-2 py-0.5 rounded-md inline-block '
   if (qualifies)       cls += 'bg-green-100 text-green-800 border border-green-200'
   else if (borderline) cls += 'bg-yellow-100 text-yellow-800 border border-yellow-200'
   else                 cls += 'bg-red-50 text-red-700 border border-red-100'
 
-  return <span className={cls}>{rank.toLocaleString('en-IN')}</span>
+  return <span className={cls}>{numericRank.toLocaleString('en-IN')}</span>
 }
