@@ -194,7 +194,30 @@ def main():
                 print(f"  ❌ Upload failed for {csv_path}")
                 
         print("\n✅ All Uploads Complete!")
-        print("Remember to run 'npm run build' inside the 'kcet-ranks' folder to update the frontend metadata!")
+        
+        # Refresh Materialized Views
+        print("\n[Step 3] Refreshing materialized views in Supabase...")
+        try:
+            refresh_cmd = [sys.executable, os.path.join("scratch", "refresh_views.py")]
+            subprocess.run(refresh_cmd, check=True)
+            print("  ✅ Views refreshed successfully.")
+        except Exception as e:
+            print(f"  ❌ Failed to refresh views: {e}")
+            print("  Please run 'python scratch/refresh_views.py' manually.")
+        
+        # Trigger Cloudflare Webhook
+        print("\n[Step 4] Triggering Cloudflare build...")
+        webhook_url = "https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/273a19ae-c512-44c6-bcb9-e40ee7677bc6"
+        try:
+            response = requests.post(webhook_url)
+            if response.status_code == 200:
+                print("  🚀 Cloudflare is now building the site with the new data!")
+                print("  The sitemap and SEO data will be automatically updated.")
+            else:
+                print(f"  ⚠️ Triggered webhook but got status {response.status_code}")
+        except Exception as e:
+            print(f"  ❌ Failed to trigger webhook: {e}")
+            print("  Remember to run 'npm run build' inside the 'kcet-ranks' folder instead.")
     else:
         print("\nUpload cancelled. The extracted data is safely saved in the CSV folder.")
 
