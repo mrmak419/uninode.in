@@ -229,10 +229,7 @@ export default function App() {
       const searchParams = new URLSearchParams(window.location.search)
       if (searchParams.has('cat') || searchParams.has('rank') || searchParams.has('college') || searchParams.has('branches')) {
         setHasAutoSearched(true)
-        // Set a tiny timeout to ensure React has finished committing all state updates
-        setTimeout(() => {
-          search()
-        }, 50)
+        search()
       } else {
         setHasAutoSearched(true) // No params, so just mark as done
       }

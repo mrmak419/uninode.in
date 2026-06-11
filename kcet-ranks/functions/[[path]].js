@@ -16,7 +16,14 @@ export async function onRequest(context) {
   }
 
   // Get the static asset response from the Pages asset server
-  const response = await context.next();
+  let response = await context.next();
+  
+  // If static asset is not found (e.g., /engineering), manually fallback to index.html for SPA routing.
+  // This ensures local `wrangler pages dev` behaves exactly like the live Cloudflare environment.
+  if (response.status === 404) {
+    const fallbackUrl = new URL('/index.html', context.request.url);
+    response = await context.env.ASSETS.fetch(new Request(fallbackUrl));
+  }
   
   // Only modify HTML responses
   const contentType = response.headers.get("content-type");
@@ -86,6 +93,24 @@ export async function onRequest(context) {
         element.append(`<meta name="twitter:card" content="summary_large_image" />\n`, { html: true });
         element.append(`<meta name="twitter:title" content="${safeTitle}" />\n`, { html: true });
         element.append(`<meta name="twitter:description" content="${safeDescription}" />\n`, { html: true });
+        
+        // Edge Preloading for meta json to eliminate React waterfall delay
+        const preloadStream = streamRaw || 'engineering';
+        element.append(`<link rel="preload" href="/meta_${preloadStream}.json" as="fetch" crossorigin="anonymous" />\n`, { html: true });
+        
+        // JSON-LD Structured Data Schema for Rich Snippets
+        const jsonLd = {
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          "name": pageTitle,
+          "applicationCategory": "EducationalApplication",
+          "description": pageDescription,
+          "offers": {
+            "@type": "Offer",
+            "price": "0"
+          }
+        };
+        element.append(`<script type="application/ld+json">\n${JSON.stringify(jsonLd)}\n</script>\n`, { html: true });
       }
     })
     .transform(response);
