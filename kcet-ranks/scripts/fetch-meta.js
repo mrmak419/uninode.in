@@ -63,7 +63,7 @@ async function fetchMetadata() {
       continue;
     }
 
-    streams[stream] = { colleges: new Map(), branches: new Map(), rounds: roundData };
+    streams[stream] = { colleges: new Map(), branches: new Map(), rounds: roundData, combinations: new Set() };
 
     // Fetch matrix data to discover active colleges and branches for this stream
     let allMatrixData = [];
@@ -93,6 +93,11 @@ async function fetchMetadata() {
         if (branch && !streams[stream].branches.has(row.course_name)) {
           streams[stream].branches.set(row.course_name, branch);
         }
+        // Add valid combination
+        if (col && branch && col.college_name) {
+          const bName = branch.parent_branches ? branch.parent_branches.name : branch.raw_name;
+          streams[stream].combinations.add(`${col.college_name}::${bName}`);
+        }
       });
     }
 
@@ -114,10 +119,13 @@ async function fetchMetadata() {
     streamSummaries.push({ id: stream, yearSummary: yearsArray });
   }
 
-  // Convert Maps back to arrays
+  // Convert Maps/Sets back to arrays
   for (const streamKey of Object.keys(streams)) {
     streams[streamKey].colleges = Array.from(streams[streamKey].colleges.values());
     streams[streamKey].branches = Array.from(streams[streamKey].branches.values());
+    if (streams[streamKey].combinations) {
+      streams[streamKey].combinations = Array.from(streams[streamKey].combinations);
+    }
   }
 
   // Write files to public folder
@@ -197,8 +205,9 @@ async function fetchMetadata() {
     // Branch pages
     if (streamData && streamData.branches) {
       for (const b of streamData.branches) {
-        if (!b.name) continue;
-        const bUrl = `${domain}/${sId}?mode=explorer&amp;branches=${encodeURIComponent(b.name).replace(/%20/g, '+')}`;
+        const bName = b.parent_branches ? b.parent_branches.name : b.raw_name;
+        if (!bName) continue;
+        const bUrl = `${domain}/${sId}?mode=explorer&amp;branches=${encodeURIComponent(bName).replace(/%20/g, '+')}`;
         sitemapXml += `  <url>\n    <loc>${bUrl}</loc>\n    <lastmod>${currentDate}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
         branchCount++;
       }
@@ -213,12 +222,27 @@ async function fetchMetadata() {
         collegeCount++;
       }
     }
+
+    // Combinations (College + Branch)
+    if (streamData && streamData.combinations) {
+      for (const combo of streamData.combinations) {
+        const [cName, bName] = combo.split('::');
+        if (!cName || !bName) continue;
+        const comboUrl = `${domain}/${sId}?mode=explorer&amp;college=${encodeURIComponent(cName).replace(/%20/g, '+').replace(/&/g, '%26')}&amp;branches=${encodeURIComponent(bName).replace(/%20/g, '+')}`;
+        sitemapXml += `  <url>\n    <loc>${comboUrl}</loc>\n    <lastmod>${currentDate}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.5</priority>\n  </url>\n`;
+      }
+    }
   }
   
   sitemapXml += `</urlset>`;
   
+  let totalCombos = 0;
+  for (const s of Object.keys(streams)) {
+    if (streams[s].combinations) totalCombos += streams[s].combinations.length;
+  }
+  
   fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemapXml);
-  console.log(`✅ Wrote sitemap.xml (1 home + ${streamSummaries.length} streams + ${branchCount} branches + ${collegeCount} colleges)`);
+  console.log(`✅ Wrote sitemap.xml (1 home + ${streamSummaries.length} streams + ${branchCount} branches + ${collegeCount} colleges + ${totalCombos} combinations)`);
 
   console.log('Metadata generation complete!');
 }
