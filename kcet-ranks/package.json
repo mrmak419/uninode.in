@@ -7,7 +7,7 @@
     "predev": "node scripts/fetch-meta.js",
     "dev": "vite",
     "prebuild": "node scripts/fetch-meta.js",
-    "build": "node scripts/fetch-meta.js && vite build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {

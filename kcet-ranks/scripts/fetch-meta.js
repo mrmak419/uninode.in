@@ -202,7 +202,7 @@ async function fetchMetadata() {
     sitemapXml += `  </url>\n`;
 
     // Strategic Rank Buckets for Analyzer mode
-    const rankBuckets = [1000, 5000, 10000, 25000, 50000, 100000];
+    const rankBuckets = Array.from({ length: 200 }, (_, i) => (i + 1) * 1000);
     for (const rb of rankBuckets) {
       sitemapXml += `  <url>\n    <loc>${domain}/${sId}?mode=analyzer&amp;rank=${rb}</loc>\n    <lastmod>${currentDate}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
       rankBucketCount++;
