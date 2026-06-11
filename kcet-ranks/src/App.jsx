@@ -263,7 +263,7 @@ export default function App() {
   }
 
   let pageTitle = `${formattedStreamName} Cutoffs | Uninode KCET Cutoff Analyzer`
-  let pageDescription = `Analyze historical KCET cutoff trends for ${formattedStreamName}. Find eligible colleges and predict your rank with the Uninode KCET Cutoff Analyzer.`
+  let pageDescription = `Analyze historical KCET cutoff trends for ${formattedStreamName}. Discover eligible colleges for your rank with the Uninode KCET Cutoff Analyzer.`
 
   if (collegeQuery || selectedBranches.length > 0) {
     let prefixParts = [];
