@@ -189,6 +189,7 @@ async function fetchMetadata() {
   // Stream pages, Branch pages, and College pages
   let branchCount = 0;
   let collegeCount = 0;
+  let rankBucketCount = 0;
 
   for (const streamObj of streamSummaries) {
     const sId = streamObj.id;
@@ -199,6 +200,13 @@ async function fetchMetadata() {
     sitemapXml += `    <changefreq>weekly</changefreq>\n`;
     sitemapXml += `    <priority>0.8</priority>\n`;
     sitemapXml += `  </url>\n`;
+
+    // Strategic Rank Buckets for Analyzer mode
+    const rankBuckets = [1000, 5000, 10000, 25000, 50000, 100000];
+    for (const rb of rankBuckets) {
+      sitemapXml += `  <url>\n    <loc>${domain}/${sId}?mode=analyzer&amp;rank=${rb}</loc>\n    <lastmod>${currentDate}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
+      rankBucketCount++;
+    }
 
     const streamData = streams[sId];
     
@@ -242,7 +250,7 @@ async function fetchMetadata() {
   }
   
   fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemapXml);
-  console.log(`✅ Wrote sitemap.xml (1 home + ${streamSummaries.length} streams + ${branchCount} branches + ${collegeCount} colleges + ${totalCombos} combinations)`);
+  console.log(`✅ Wrote sitemap.xml (1 home + ${streamSummaries.length} streams + ${rankBucketCount} rank buckets + ${branchCount} branches + ${collegeCount} colleges + ${totalCombos} combinations)`);
 
   console.log('Metadata generation complete!');
 }

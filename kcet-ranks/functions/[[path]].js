@@ -24,8 +24,6 @@ export async function onRequest(context) {
     return response;
   }
 
-  const url = new URL(context.request.url);
-  
   // Extract stream from pathname (e.g. "/engineering" -> "Engineering")
   const streamRaw = url.pathname.replace(/^\/|\/$/g, ''); 
   const stream = streamRaw 
@@ -34,13 +32,19 @@ export async function onRequest(context) {
     
   const college = url.searchParams.get('college');
   const branchesStr = url.searchParams.get('branches');
+  const rank = url.searchParams.get('rank');
+  const mode = url.searchParams.get('mode');
 
   // Default metadata
   let pageTitle = `${stream} Cutoffs | Uninode KCET Cutoff Analyzer`;
   let pageDescription = `Analyze historical KCET cutoff trends for ${stream}. Discover eligible colleges for your rank with the Uninode KCET Cutoff Analyzer.`;
 
   // Dynamic override for URL parameters
-  if (college || branchesStr) {
+  if (rank && mode === 'analyzer') {
+    const formattedRank = parseInt(rank).toLocaleString('en-IN');
+    pageTitle = `Top ${stream} Colleges for ${formattedRank} Rank | KCET Cutoffs`;
+    pageDescription = `Discover the best ${stream} colleges you can get with a KCET rank of ${formattedRank}. Check category-wise and historical cutoff trends.`;
+  } else if (college || branchesStr) {
     let prefixParts = [];
     if (college) {
       prefixParts.push(college.trim());
