@@ -8,6 +8,13 @@ function escapeHtml(unsafe) {
 }
 
 export async function onRequest(context) {
+  const url = new URL(context.request.url);
+
+  // Quick bypass for static assets to prevent routing issues with query params
+  if (url.pathname.match(/\.(xml|json|txt|png|jpg|jpeg|svg|css|js|ico)$/i)) {
+    return context.next();
+  }
+
   // Get the static asset response from the Pages asset server
   const response = await context.next();
   
