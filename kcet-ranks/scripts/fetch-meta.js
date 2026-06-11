@@ -41,11 +41,11 @@ async function fetchMetadata() {
     process.exit(1);
   }
 
-  // 3. Known streams in the database
-  const KNOWN_STREAMS = [
-    'engineering', 'architecture', 'b_pharma', 'bpt', 
-    'food_science', 'nursing', 'pharma_d', 'agri_bsc', 'bpo'
-  ];
+  // 3. Dynamically determine all streams available in the database
+  const uniqueStreamsSet = new Set();
+  collegeData.forEach(c => { if (c.stream) uniqueStreamsSet.add(c.stream); });
+  branchData.forEach(b => { if (b.stream) uniqueStreamsSet.add(b.stream); });
+  const KNOWN_STREAMS = Array.from(uniqueStreamsSet);
 
   const streams = {};
   const streamSummaries = [];
