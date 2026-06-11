@@ -262,12 +262,31 @@ export default function App() {
     else yearsText = `${uniqueYears.slice(0, -1).join(', ')} & ${uniqueYears[uniqueYears.length - 1]}`
   }
 
+  let pageTitle = `${formattedStreamName} Cutoffs | Uninode KCET Cutoff Analyzer`
+  let pageDescription = `Analyze historical KCET cutoff trends for ${formattedStreamName}. Find eligible colleges and predict your rank with the Uninode KCET Cutoff Analyzer.`
+
+  if (collegeQuery || selectedBranches.length > 0) {
+    let prefixParts = [];
+    if (collegeQuery) {
+      prefixParts.push(collegeQuery.trim());
+    }
+    if (selectedBranches.length === 1) {
+      prefixParts.push(selectedBranches[0]);
+    } else if (selectedBranches.length > 1) {
+      prefixParts.push(`${selectedBranches.length} Branches`);
+    }
+
+    const prefix = prefixParts.join(' - ');
+    pageTitle = `${prefix} KCET Cutoffs | ${formattedStreamName}`
+    pageDescription = `Check the latest KCET cutoff ranks for ${prefix} in ${formattedStreamName}. Compare historical cutoff trends and find your perfect college match.`
+  }
+
   return (
     <div className="min-h-screen bg-paper flex flex-col">
       <Analytics />
       <TabTitle 
-        title={`${formattedStreamName} Cutoffs | Uninode KCET Cutoff Analyzer`} 
-        description={`Analyze historical KCET cutoff trends for ${formattedStreamName}. Find eligible colleges and predict your rank with the Uninode KCET Cutoff Analyzer.`}
+        title={pageTitle} 
+        description={pageDescription}
       />
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6 md:py-8 flex flex-col">
         {/* Top Header Row for Branding */}

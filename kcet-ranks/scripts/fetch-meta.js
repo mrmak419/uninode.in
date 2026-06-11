@@ -178,20 +178,47 @@ async function fetchMetadata() {
     sitemapXml += `  </url>\n`;
   }
 
-  // Stream pages
+  // Stream pages, Branch pages, and College pages
+  let branchCount = 0;
+  let collegeCount = 0;
+
   for (const streamObj of streamSummaries) {
+    const sId = streamObj.id;
+    // Main stream page
     sitemapXml += `  <url>\n`;
-    sitemapXml += `    <loc>${domain}/${streamObj.id}</loc>\n`;
+    sitemapXml += `    <loc>${domain}/${sId}</loc>\n`;
     sitemapXml += `    <lastmod>${currentDate}</lastmod>\n`;
     sitemapXml += `    <changefreq>weekly</changefreq>\n`;
     sitemapXml += `    <priority>0.8</priority>\n`;
     sitemapXml += `  </url>\n`;
+
+    const streamData = streams[sId];
+    
+    // Branch pages
+    if (streamData && streamData.branches) {
+      for (const b of streamData.branches) {
+        if (!b.name) continue;
+        const bUrl = `${domain}/${sId}?mode=explorer&amp;branches=${encodeURIComponent(b.name).replace(/%20/g, '+')}`;
+        sitemapXml += `  <url>\n    <loc>${bUrl}</loc>\n    <lastmod>${currentDate}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
+        branchCount++;
+      }
+    }
+
+    // College pages
+    if (streamData && streamData.colleges) {
+      for (const c of streamData.colleges) {
+        if (!c.college_name) continue;
+        const cUrl = `${domain}/${sId}?mode=explorer&amp;college=${encodeURIComponent(c.college_name).replace(/%20/g, '+').replace(/&/g, '%26')}`;
+        sitemapXml += `  <url>\n    <loc>${cUrl}</loc>\n    <lastmod>${currentDate}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
+        collegeCount++;
+      }
+    }
   }
   
   sitemapXml += `</urlset>`;
   
   fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemapXml);
-  console.log(`✅ Wrote sitemap.xml (1 home + ${streamSummaries.length} streams)`);
+  console.log(`✅ Wrote sitemap.xml (1 home + ${streamSummaries.length} streams + ${branchCount} branches + ${collegeCount} colleges)`);
 
   console.log('Metadata generation complete!');
 }
