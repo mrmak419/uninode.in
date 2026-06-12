@@ -243,18 +243,18 @@ async function fetchMetadata() {
   }
   
   // Intelligent Semantic Chunking by Feature
-  const CHUNK_SIZE = 40000;
+  const URLS_PER_SITEMAP = 10000;
   let sitemapIndexXml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
   
   function processCategory(prefix, urls) {
     if (urls.length === 0) return;
-    const numChunks = Math.ceil(urls.length / CHUNK_SIZE);
+    const numChunks = Math.ceil(urls.length / URLS_PER_SITEMAP);
     
     for (let i = 0; i < numChunks; i++) {
       const filename = numChunks === 1 ? `sitemap-${prefix}.xml` : `sitemap-${prefix}-${i + 1}.xml`;
       sitemapIndexXml += `  <sitemap>\n    <loc>${domain}/${filename}</loc>\n    <lastmod>${currentDate}</lastmod>\n  </sitemap>\n`;
       
-      const chunk = urls.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+      const chunk = urls.slice(i * URLS_PER_SITEMAP, (i + 1) * URLS_PER_SITEMAP);
       let chunkXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
       chunk.forEach(u => {
         chunkXml += `  <url>\n    <loc>${u.loc}</loc>\n    <lastmod>${currentDate}</lastmod>\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>\n`;
