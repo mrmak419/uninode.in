@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback, useRef, useContext } from 'react'
+import { useState, useEffect, useCallback, useRef, useContext, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import SearchForm from './components/SearchForm.jsx'
 import ResultsTable from './components/ResultsTable.jsx'
-import Analytics from './components/Analytics.jsx'
 import Footer from './components/Footer.jsx'
 import { Menu } from 'lucide-react'
 import { SidebarContext } from './components/Layout.jsx'
@@ -26,7 +25,7 @@ export default function App() {
   const navigate = useNavigate()
 
   // Parse initial URL parameters for shared links
-  const searchParams = new URLSearchParams(window.location.search)
+  const [searchParams, setSearchParams] = useSearchParams()
 
   // Search state
   const [rank,       setRank]       = useState(searchParams.get('rank') || '')
@@ -198,7 +197,7 @@ export default function App() {
       params.set('seat', seatType)
       if (collegeQuery) params.set('college', collegeQuery)
       if (selectedBranches.length > 0) params.set('branches', selectedBranches.join(','))
-      window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
+      setSearchParams(params, { replace: true })
 
       // Send event to Google Analytics
       if (window.gtag) {
@@ -245,11 +244,13 @@ export default function App() {
     setCollegeQuery('')
     setResults(null)
     setError(null)
-    window.history.replaceState({}, '', window.location.pathname)
+    setSearchParams({}, { replace: true })
   }, [])
 
   // Group results by college + course for the pivot table
-  const groupedResults = results ? groupByCourseCollege(results, rounds) : null
+  const groupedResults = useMemo(() => {
+    return results ? groupByCourseCollege(results, rounds) : null
+  }, [results, rounds])
 
   // Dynamic years for subtitle
   const uniqueYears = Array.from(new Set(rounds.map(r => r.year))).sort((a,b) => a-b)
@@ -281,7 +282,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-paper flex flex-col">
-      <Analytics />
       <TabTitle 
         title={pageTitle} 
         description={pageDescription}
@@ -292,6 +292,7 @@ export default function App() {
             <button 
               onClick={toggleSidebar}
               className="p-2 -ml-2 text-muted hover:text-ink rounded-xl hover:bg-gray-100 transition-colors"
+              aria-label="Toggle Sidebar"
             >
               <Menu className="w-6 h-6" />
             </button>

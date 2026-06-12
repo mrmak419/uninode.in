@@ -52,6 +52,7 @@ export default function Home() {
             <button 
               onClick={toggleSidebar}
               className="p-2 -ml-2 text-muted hover:text-ink rounded-xl hover:bg-gray-50 transition-colors"
+              aria-label="Toggle Sidebar"
             >
               <Menu className="w-6 h-6" />
             </button>
@@ -77,7 +78,7 @@ export default function Home() {
       </div>
 
       {/* Grid Section */}
-      <div className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full">
+      <main className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {streams.filter(s => {
             const streamId = typeof s === 'string' ? s : s.id;
@@ -139,7 +140,7 @@ export default function Home() {
             )
           })}
         </div>
-      </div>
+      </main>
 
       {/* Footer */}
       <LegalFooter />

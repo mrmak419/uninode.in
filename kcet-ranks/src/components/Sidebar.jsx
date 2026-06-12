@@ -21,7 +21,7 @@ export default function Sidebar({ onClose }) {
           <img src="/logo.png" alt="KCET Logo" className="w-10 h-10 rounded-lg shadow-sm shrink-0" />
           <span className="font-display font-bold text-ink text-sm tracking-tight leading-tight">Uninode KCET Cutoff Analyzer</span>
         </Link>
-        <button onClick={onClose} className="p-1 text-muted hover:text-ink lg:hidden">
+        <button onClick={onClose} aria-label="Close Sidebar" className="p-1 text-muted hover:text-ink lg:hidden">
           <X className="w-5 h-5" />
         </button>
       </div>

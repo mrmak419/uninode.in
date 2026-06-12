@@ -41,6 +41,8 @@ export async function onRequest(context) {
   const branchesStr = url.searchParams.get('branches');
   const rank = url.searchParams.get('rank');
   const mode = url.searchParams.get('mode');
+  const cat = url.searchParams.get('cat');
+  const seat = url.searchParams.get('seat');
 
   // Default metadata
   let pageTitle = `${stream} Cutoffs | Uninode KCET Cutoff Analyzer`;
@@ -49,8 +51,9 @@ export async function onRequest(context) {
   // Dynamic override for URL parameters
   if (rank && mode === 'analyzer') {
     const formattedRank = parseInt(rank).toLocaleString('en-IN');
-    pageTitle = `Top ${stream} Colleges for ${formattedRank} Rank | KCET Cutoffs`;
-    pageDescription = `Discover the best ${stream} colleges you can get with a KCET rank of ${formattedRank}. Check category-wise and historical cutoff trends.`;
+    const catSuffix = cat ? ` in ${cat} Category` : '';
+    pageTitle = `Top ${stream} Colleges for ${formattedRank} Rank${catSuffix} | KCET Cutoffs`;
+    pageDescription = `Discover the best ${stream} colleges you can get with a KCET rank of ${formattedRank}${catSuffix}. Check category-wise and historical cutoff trends.`;
   } else if (college || branchesStr) {
     let prefixParts = [];
     if (college) {
@@ -110,7 +113,18 @@ export async function onRequest(context) {
             "price": "0"
           }
         };
-        element.append(`<script type="application/ld+json">\n${JSON.stringify(jsonLd)}\n</script>\n`, { html: true });
+        const safeJsonLd = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
+        element.append(`<script type="application/ld+json">\n${safeJsonLd}\n</script>\n`, { html: true });
+        
+        // SEO: Canonical URL to prevent duplicate content penalties
+        const canonicalUrl = new URL(url.origin + url.pathname);
+        if (mode) canonicalUrl.searchParams.set('mode', mode);
+        if (rank) canonicalUrl.searchParams.set('rank', rank);
+        if (cat) canonicalUrl.searchParams.set('cat', cat);
+        if (seat) canonicalUrl.searchParams.set('seat', seat);
+        if (college) canonicalUrl.searchParams.set('college', college);
+        if (branchesStr) canonicalUrl.searchParams.set('branches', branchesStr);
+        element.append(`<link rel="canonical" href="${canonicalUrl.toString()}" />\n`, { html: true });
       }
     })
     .transform(response);

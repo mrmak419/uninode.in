@@ -1,7 +1,14 @@
 import { useEffect } from 'react'
 
+let isInitialLoad = true
+
 export default function TabTitle({ title, description }) {
   useEffect(() => {
+    if (isInitialLoad) {
+      isInitialLoad = false
+      return // Skip initial hydration to preserve Edge Worker SEO metadata
+    }
+    
     // Update the document title
     if (title) {
       document.title = title

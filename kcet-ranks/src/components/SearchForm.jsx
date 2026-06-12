@@ -123,6 +123,7 @@ export default function SearchForm({
           </label>
           <select
             id="search-category"
+            aria-label="Category"
             value={category}
             onChange={e => setCategory(e.target.value)}
             className="w-full px-3.5 py-2.5 border border-border rounded-lg font-mono text-sm text-ink
@@ -141,6 +142,7 @@ export default function SearchForm({
           </label>
           <select
             id="search-seattype"
+            aria-label="Seat Type"
             value={seatType}
             onChange={e => setSeatType(e.target.value)}
             className="w-full px-3.5 py-2.5 border border-border rounded-lg text-sm text-ink
@@ -155,7 +157,7 @@ export default function SearchForm({
         {/* College search */}
         <div className="relative" ref={collegeRef}>
           <label htmlFor="search-college" className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5 flex items-center justify-between">
-            <span>College {mode === 'analyzer' && <span className="text-muted/60 normal-case font-normal ml-1">(Optional)</span>}</span>
+            <span>College {mode === 'analyzer' && <span className="text-muted/80 normal-case font-normal ml-1">(Optional)</span>}</span>
           </label>
           <input
             id="search-college"
@@ -167,7 +169,7 @@ export default function SearchForm({
             onKeyDown={handleKey}
             className="w-full px-3.5 py-2.5 border border-border rounded-lg text-sm text-ink
                        focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent
-                       placeholder:text-muted/40 bg-paper"
+                       placeholder:text-muted/70 bg-paper"
           />
           {collegeOpen && filteredColleges.length > 0 && (
             <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto scrollbar-thin">
@@ -192,7 +194,7 @@ export default function SearchForm({
       {/* Multi-Branch Row */}
       <div className="mt-4" ref={branchRef}>
         <label htmlFor="search-branch" className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5 flex items-center justify-between">
-          <span>Branches {mode === 'analyzer' && <span className="text-muted/60 normal-case font-normal ml-1">(Optional)</span>}</span>
+          <span>Branches {mode === 'analyzer' && <span className="text-muted normal-case font-normal ml-1">(Optional)</span>}</span>
         </label>
         
         <div className="relative border border-border rounded-lg bg-paper focus-within:ring-2 focus-within:ring-accent/30 focus-within:border-accent transition-colors">
@@ -202,6 +204,7 @@ export default function SearchForm({
                 {branchName}
                 <button 
                   onClick={() => removeBranch(branchName)}
+                  aria-label={`Remove branch ${branchName}`}
                   className="hover:bg-accent/20 rounded-full p-0.5 transition-colors focus:outline-none"
                 >
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -219,7 +222,7 @@ export default function SearchForm({
               onChange={e => { setBranchInput(e.target.value); setBranchOpen(true) }}
               onFocus={() => setBranchOpen(true)}
               onKeyDown={handleKey}
-              className="flex-1 min-w-[150px] bg-transparent text-sm text-ink focus:outline-none placeholder:text-muted/40 py-0.5"
+              className="flex-1 min-w-[150px] bg-transparent text-sm text-ink focus:outline-none placeholder:text-muted/70 py-0.5"
             />
           </div>
 
@@ -256,6 +259,7 @@ export default function SearchForm({
                 {VARIATION_PRESETS.map(v => (
                   <button
                     key={v}
+                    aria-label={`Set variation to ${v}`}
                     onClick={(e) => { e.preventDefault(); setVariation(v) }}
                     className={
                       'px-2.5 py-1 rounded-md text-xs font-mono transition-colors ' +
@@ -268,6 +272,8 @@ export default function SearchForm({
                   </button>
                 ))}
                 <input
+                  id="variation-input"
+                  aria-label="Custom Variation Amount"
                   type="number"
                   min="0"
                   max="50000"
@@ -298,6 +304,7 @@ export default function SearchForm({
           {/* Share button */}
           <button
             type="button"
+            aria-label="Share Results"
             onClick={async () => {
               if (window.gtag) {
                 window.gtag('event', 'share_clicked', {

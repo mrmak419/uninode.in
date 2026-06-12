@@ -63,7 +63,7 @@ async function fetchMetadata() {
       continue;
     }
 
-    streams[stream] = { colleges: new Map(), branches: new Map(), rounds: roundData, combinations: new Set() };
+    streams[stream] = { colleges: new Map(), branches: new Map(), rounds: roundData, combinations: new Set(), maxRankByCategory: {} };
 
     // Fetch matrix data to discover active colleges and branches for this stream
     let allMatrixData = [];
@@ -72,7 +72,7 @@ async function fetchMetadata() {
     while(true) {
       const { data: matrixData, error: matrixError } = await supabase
         .from(`cutoffs_matrix_${stream}`)
-        .select('college_code, course_name')
+        .select('college_code, course_name, max_rank, category')
         .range(start, start + step - 1);
 
       if (matrixError || !matrixData || matrixData.length === 0) break;
@@ -83,6 +83,16 @@ async function fetchMetadata() {
 
     if (allMatrixData.length > 0) {
       allMatrixData.forEach(row => {
+        // Track absolute maximum rank per category for precise SEO sitemap buckets
+        if (row.category && row.max_rank) {
+          if (!streams[stream].maxRankByCategory[row.category]) {
+            streams[stream].maxRankByCategory[row.category] = 0;
+          }
+          if (row.max_rank > streams[stream].maxRankByCategory[row.category]) {
+            streams[stream].maxRankByCategory[row.category] = row.max_rank;
+          }
+        }
+
         // Add college
         const col = collegeData.find(c => c.college_code === row.college_code);
         if (col && !streams[stream].colleges.has(row.college_code)) {
@@ -158,57 +168,47 @@ async function fetchMetadata() {
     const filePath = path.join(publicDir, `meta_${stream}.json`);
     fs.writeFileSync(filePath, JSON.stringify(data));
     console.log(`✅ Wrote meta_${stream}.json (${data.colleges.length} colleges, ${data.branches.length} branches)`);
-  }
-
-  // Generate sitemap.xml
+  }  // Generate sitemap.xml
   const domain = process.env.VITE_APP_DOMAIN || 'https://kcet.uninode.in';
   const currentDate = new Date().toISOString();
   
-  let sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-  sitemapXml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+  const mainUrls = [];
+  const analyzerUrls = [];
+  const explorerUrls = [];
+  const cutoffUrls = [];
   
   // Home page
-  sitemapXml += `  <url>\n`;
-  sitemapXml += `    <loc>${domain}/</loc>\n`;
-  sitemapXml += `    <lastmod>${currentDate}</lastmod>\n`;
-  sitemapXml += `    <changefreq>daily</changefreq>\n`;
-  sitemapXml += `    <priority>1.0</priority>\n`;
-  sitemapXml += `  </url>\n`;
+  mainUrls.push({ loc: `${domain}/`, changefreq: 'daily', priority: '1.0' });
 
-  // Static Legal Pages
-  const staticPages = ['privacy', 'terms'];
-  for (const page of staticPages) {
-    sitemapXml += `  <url>\n`;
-    sitemapXml += `    <loc>${domain}/${page}</loc>\n`;
-    sitemapXml += `    <lastmod>${currentDate}</lastmod>\n`;
-    sitemapXml += `    <changefreq>monthly</changefreq>\n`;
-    sitemapXml += `    <priority>0.5</priority>\n`;
-    sitemapXml += `  </url>\n`;
-  }
-
-  // Stream pages, Branch pages, and College pages
+  // Stream pages, Branch pages, College pages, and Rank Buckets
   let branchCount = 0;
   let collegeCount = 0;
   let rankBucketCount = 0;
 
   for (const streamObj of streamSummaries) {
     const sId = streamObj.id;
+    
     // Main stream page
-    sitemapXml += `  <url>\n`;
-    sitemapXml += `    <loc>${domain}/${sId}</loc>\n`;
-    sitemapXml += `    <lastmod>${currentDate}</lastmod>\n`;
-    sitemapXml += `    <changefreq>weekly</changefreq>\n`;
-    sitemapXml += `    <priority>0.8</priority>\n`;
-    sitemapXml += `  </url>\n`;
-
-    // Strategic Rank Buckets for Analyzer mode
-    const rankBuckets = Array.from({ length: 200 }, (_, i) => (i + 1) * 1000);
-    for (const rb of rankBuckets) {
-      sitemapXml += `  <url>\n    <loc>${domain}/${sId}?mode=analyzer&amp;rank=${rb}</loc>\n    <lastmod>${currentDate}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
-      rankBucketCount++;
-    }
+    mainUrls.push({ loc: `${domain}/${sId}`, changefreq: 'weekly', priority: '0.8' });
 
     const streamData = streams[sId];
+    
+    // Strategic Rank Buckets for Analyzer mode
+    const maxRankByCategory = streamData ? streamData.maxRankByCategory : {};
+    
+    for (const [cat, maxRank] of Object.entries(maxRankByCategory)) {
+      if (!maxRank || maxRank <= 0) continue;
+      
+      const bucketLimit = Math.min(maxRank, 400000); // Hard cap at 400k
+      const numOf1kBuckets = Math.floor(bucketLimit / 1000);
+      
+      const rankBuckets = Array.from({ length: numOf1kBuckets }, (_, i) => (i + 1) * 1000);
+      
+      for (const rb of rankBuckets) {
+        analyzerUrls.push({ loc: `${domain}/${sId}?mode=analyzer&amp;rank=${rb}&amp;cat=${encodeURIComponent(cat)}`, changefreq: 'weekly', priority: '0.7' });
+        rankBucketCount++;
+      }
+    }
     
     // Branch pages
     if (streamData && streamData.branches) {
@@ -216,7 +216,7 @@ async function fetchMetadata() {
         const bName = b.parent_branches ? b.parent_branches.name : b.raw_name;
         if (!bName) continue;
         const bUrl = `${domain}/${sId}?mode=explorer&amp;branches=${encodeURIComponent(bName).replace(/%20/g, '+')}`;
-        sitemapXml += `  <url>\n    <loc>${bUrl}</loc>\n    <lastmod>${currentDate}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
+        explorerUrls.push({ loc: bUrl, changefreq: 'weekly', priority: '0.6' });
         branchCount++;
       }
     }
@@ -226,7 +226,7 @@ async function fetchMetadata() {
       for (const c of streamData.colleges) {
         if (!c.college_name) continue;
         const cUrl = `${domain}/${sId}?mode=explorer&amp;college=${encodeURIComponent(c.college_name).replace(/%20/g, '+').replace(/&/g, '%26')}`;
-        sitemapXml += `  <url>\n    <loc>${cUrl}</loc>\n    <lastmod>${currentDate}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>\n`;
+        explorerUrls.push({ loc: cUrl, changefreq: 'weekly', priority: '0.6' });
         collegeCount++;
       }
     }
@@ -237,22 +237,43 @@ async function fetchMetadata() {
         const [cName, bName] = combo.split('::');
         if (!cName || !bName) continue;
         const comboUrl = `${domain}/${sId}?mode=explorer&amp;college=${encodeURIComponent(cName).replace(/%20/g, '+').replace(/&/g, '%26')}&amp;branches=${encodeURIComponent(bName).replace(/%20/g, '+')}`;
-        sitemapXml += `  <url>\n    <loc>${comboUrl}</loc>\n    <lastmod>${currentDate}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.5</priority>\n  </url>\n`;
+        cutoffUrls.push({ loc: comboUrl, changefreq: 'weekly', priority: '0.5' });
       }
     }
   }
   
-  sitemapXml += `</urlset>`;
+  // Intelligent Semantic Chunking by Feature
+  const CHUNK_SIZE = 40000;
+  let sitemapIndexXml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
   
-  let totalCombos = 0;
-  for (const s of Object.keys(streams)) {
-    if (streams[s].combinations) totalCombos += streams[s].combinations.length;
+  function processCategory(prefix, urls) {
+    if (urls.length === 0) return;
+    const numChunks = Math.ceil(urls.length / CHUNK_SIZE);
+    
+    for (let i = 0; i < numChunks; i++) {
+      const filename = numChunks === 1 ? `sitemap-${prefix}.xml` : `sitemap-${prefix}-${i + 1}.xml`;
+      sitemapIndexXml += `  <sitemap>\n    <loc>${domain}/${filename}</loc>\n    <lastmod>${currentDate}</lastmod>\n  </sitemap>\n`;
+      
+      const chunk = urls.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+      let chunkXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+      chunk.forEach(u => {
+        chunkXml += `  <url>\n    <loc>${u.loc}</loc>\n    <lastmod>${currentDate}</lastmod>\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>\n`;
+      });
+      chunkXml += `</urlset>`;
+      fs.writeFileSync(path.join(publicDir, filename), chunkXml);
+    }
   }
-  
-  fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemapXml);
-  console.log(`✅ Wrote sitemap.xml (1 home + ${streamSummaries.length} streams + ${rankBucketCount} rank buckets + ${branchCount} branches + ${collegeCount} colleges + ${totalCombos} combinations)`);
 
-  console.log('Metadata generation complete!');
+  processCategory('main', mainUrls);
+  processCategory('analyzer', analyzerUrls);
+  processCategory('explorer', explorerUrls);
+  processCategory('cutoffs', cutoffUrls);
+
+  sitemapIndexXml += `</sitemapindex>`;
+  fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemapIndexXml);
+  
+  const totalUrls = mainUrls.length + analyzerUrls.length + explorerUrls.length + cutoffUrls.length;
+  console.log(`✅ Wrote feature-specific sitemaps (${totalUrls} total URLs)`);
 }
 
 fetchMetadata();
