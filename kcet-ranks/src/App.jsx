@@ -188,6 +188,12 @@ export default function App() {
 
       setResults(data || [])
 
+      // Scroll to results to skip inputs if user came from a link
+      setTimeout(() => {
+        const el = document.getElementById('results-container');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+
       // Update URL with current search parameters so it's easily shareable
       const params = new URLSearchParams()
       params.set('mode', mode)
@@ -357,7 +363,7 @@ export default function App() {
         )}
 
         {/* Results */}
-        <div className="mt-8">
+        <div id="results-container" className="mt-8 scroll-mt-6">
           {loading && (
             <div className="text-center py-16 text-muted font-body text-sm">
               Searching across {rounds.length} rounds…

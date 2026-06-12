@@ -9,6 +9,8 @@ const AdminApp = lazy(() => import('./admin/AdminApp.jsx'))
 const Privacy = lazy(() => import('./components/Privacy.jsx'))
 const Terms = lazy(() => import('./components/Terms.jsx'))
 const Layout = lazy(() => import('./components/Layout.jsx'))
+const ArticleContainer = lazy(() => import('./components/article/ArticleContainer.jsx'))
+const ArticlesIndex = lazy(() => import('./components/article/ArticlesIndex.jsx'))
 
 const path = window.location.pathname
 const isAdmin = path.startsWith('/system/hq/portal/admin/secure/99x/mak')
@@ -84,6 +86,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               {isAdmin && <Route path="/system/hq/portal/admin/secure/99x/mak/*" element={<AdminApp />} />}
               <Route path="/privacy-policy" element={<Privacy />} />
               <Route path="/terms-of-service" element={<Terms />} />
+              <Route path="/articles" element={<ArticlesIndex />} />
+              <Route path="/article" element={<ArticleContainer />} />
               <Route path="/:stream" element={<App />} />
               <Route path="/" element={<Home />} />
               <Route path="*" element={<Navigate to="/" replace />} />

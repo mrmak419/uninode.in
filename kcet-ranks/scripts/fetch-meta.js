@@ -63,7 +63,7 @@ async function fetchMetadata() {
       continue;
     }
 
-    streams[stream] = { colleges: new Map(), branches: new Map(), rounds: roundData, combinations: new Set(), maxRankByCategory: {} };
+    streams[stream] = { colleges: new Map(), branches: new Map(), rounds: roundData, combinations: new Set(), articleCombinations: new Set(), maxRankByCategory: {} };
 
     // Fetch matrix data to discover active colleges and branches for this stream
     let allMatrixData = [];
@@ -72,7 +72,7 @@ async function fetchMetadata() {
     while(true) {
       const { data: matrixData, error: matrixError } = await supabase
         .from(`cutoffs_matrix_${stream}`)
-        .select('college_code, course_name, max_rank, category')
+        .select('college_code, course_name, max_rank, category, seat_type')
         .range(start, start + step - 1);
 
       if (matrixError || !matrixData || matrixData.length === 0) break;
@@ -107,6 +107,9 @@ async function fetchMetadata() {
         if (col && branch && col.college_name) {
           const bName = branch.parent_branches ? branch.parent_branches.name : branch.raw_name;
           streams[stream].combinations.add(`${col.college_name}::${bName}`);
+          if (row.category && row.max_rank > 0) {
+            streams[stream].articleCombinations.add(`${col.college_name}::${bName}::${row.category}::${row.seat_type || 'G'}`);
+          }
         }
       });
     }
@@ -133,8 +136,49 @@ async function fetchMetadata() {
   for (const streamKey of Object.keys(streams)) {
     streams[streamKey].colleges = Array.from(streams[streamKey].colleges.values());
     streams[streamKey].branches = Array.from(streams[streamKey].branches.values());
+
+    const nameToCode = new Map();
+    for (const c of streams[streamKey].colleges) {
+      nameToCode.set(c.college_name, c.college_code);
+    }
+
+    const sortFn = (a, b) => {
+      const partsA = a.split('::');
+      const partsB = b.split('::');
+      const collegeA = partsA[0];
+      const collegeB = partsB[0];
+      const branchA = partsA[1];
+      const branchB = partsB[1];
+      const catA = partsA[2];
+      const catB = partsB[2];
+
+      // 1. Sort by Category: GM first, then alphabetical
+      if (catA && catB && catA !== catB) {
+         if (catA === 'GM') return -1;
+         if (catB === 'GM') return 1;
+         return catA.localeCompare(catB);
+      }
+
+      // 2. Sort by College Code
+      const codeA = nameToCode.get(collegeA) || '';
+      const codeB = nameToCode.get(collegeB) || '';
+      if (codeA !== codeB) {
+        return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
+      }
+
+      // 3. Sort by Branch
+      if (branchA && branchB && branchA !== branchB) {
+         return branchA.localeCompare(branchB);
+      }
+
+      return a.localeCompare(b);
+    };
+
     if (streams[streamKey].combinations) {
-      streams[streamKey].combinations = Array.from(streams[streamKey].combinations);
+      streams[streamKey].combinations = Array.from(streams[streamKey].combinations).sort(sortFn);
+    }
+    if (streams[streamKey].articleCombinations) {
+      streams[streamKey].articleCombinations = Array.from(streams[streamKey].articleCombinations).sort(sortFn);
     }
   }
 
@@ -176,6 +220,8 @@ async function fetchMetadata() {
   const analyzerUrls = [];
   const explorerUrls = [];
   const cutoffUrls = [];
+  const articleUrls = [];
+  const paginationUrls = [];
   
   // Home page
   mainUrls.push({ loc: `${domain}/`, changefreq: 'daily', priority: '1.0' });
@@ -240,6 +286,23 @@ async function fetchMetadata() {
         cutoffUrls.push({ loc: comboUrl, changefreq: 'weekly', priority: '0.5' });
       }
     }
+
+    // Article URLs and Pagination
+    if (streamData && streamData.articleCombinations) {
+      const perPage = 24;
+      const totalPages = Math.ceil(streamData.articleCombinations.length / perPage);
+      
+      for (let p = 1; p <= totalPages; p++) {
+        paginationUrls.push({ loc: `${domain}/articles?stream=${sId}&amp;page=${p}`, changefreq: 'weekly', priority: '0.6' });
+      }
+
+      for (const combo of streamData.articleCombinations) {
+        const [cName, bName, cat, st] = combo.split('::');
+        if (!cName || !bName || !cat) continue;
+        const articleUrl = `${domain}/article?stream=${sId}&amp;college=${encodeURIComponent(cName).replace(/%20/g, '+').replace(/&/g, '%26')}&amp;branch=${encodeURIComponent(bName).replace(/%20/g, '+')}&amp;cat=${encodeURIComponent(cat)}`;
+        articleUrls.push({ loc: articleUrl, changefreq: 'weekly', priority: '0.6' });
+      }
+    }
   }
   
   // Intelligent Semantic Chunking by Feature
@@ -268,11 +331,13 @@ async function fetchMetadata() {
   processCategory('analyzer', analyzerUrls);
   processCategory('explorer', explorerUrls);
   processCategory('cutoffs', cutoffUrls);
+  processCategory('articles', articleUrls);
+  processCategory('pagination', paginationUrls);
 
   sitemapIndexXml += `</sitemapindex>`;
   fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemapIndexXml);
   
-  const totalUrls = mainUrls.length + analyzerUrls.length + explorerUrls.length + cutoffUrls.length;
+  const totalUrls = mainUrls.length + analyzerUrls.length + explorerUrls.length + cutoffUrls.length + articleUrls.length + paginationUrls.length;
   console.log(`✅ Wrote feature-specific sitemaps (${totalUrls} total URLs)`);
 }
 

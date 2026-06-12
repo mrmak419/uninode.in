@@ -85,6 +85,17 @@
     ]
   },
   {
+    "id": "bsc_ahs",
+    "yearSummary": [
+      {
+        "year": 2025,
+        "rounds": [
+          "3"
+        ]
+      }
+    ]
+  },
+  {
     "id": "food_science",
     "yearSummary": [
       {
@@ -92,6 +103,17 @@
         "rounds": [
           "1",
           "2",
+          "3"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "medical_record_technology",
+    "yearSummary": [
+      {
+        "year": 2025,
+        "rounds": [
           "3"
         ]
       }
@@ -118,6 +140,28 @@
         "rounds": [
           "1",
           "2",
+          "3"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "veterinary_science",
+    "yearSummary": [
+      {
+        "year": 2025,
+        "rounds": [
+          "3"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "yoga_and_naturopathy",
+    "yearSummary": [
+      {
+        "year": 2025,
+        "rounds": [
           "3"
         ]
       }

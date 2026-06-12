@@ -41,6 +41,19 @@ export default function Sidebar({ onClose }) {
           Home
         </Link>
         
+        <Link
+          to="/articles"
+          onClick={() => {
+            if (window.innerWidth < 1024) onClose()
+          }}
+          className={`
+            block px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-4
+            ${location.pathname === '/articles' ? 'bg-ink text-white shadow-sm' : 'text-blue-600 hover:bg-blue-50'}
+          `}
+        >
+          Articles
+        </Link>
+        
         {streams.map(s => {
           const streamId = typeof s === 'string' ? s : s.id;
           const displayName = streamId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());

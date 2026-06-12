@@ -2,38 +2,58 @@
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap>
     <loc>https://kcet.uninode.in/sitemap-main.xml</loc>
-    <lastmod>2026-06-12T07:43:16.433Z</lastmod>
+    <lastmod>2026-06-12T17:26:01.112Z</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://kcet.uninode.in/sitemap-analyzer-1.xml</loc>
-    <lastmod>2026-06-12T07:43:16.433Z</lastmod>
+    <lastmod>2026-06-12T17:26:01.112Z</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://kcet.uninode.in/sitemap-analyzer-2.xml</loc>
-    <lastmod>2026-06-12T07:43:16.433Z</lastmod>
+    <lastmod>2026-06-12T17:26:01.112Z</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://kcet.uninode.in/sitemap-analyzer-3.xml</loc>
-    <lastmod>2026-06-12T07:43:16.433Z</lastmod>
+    <lastmod>2026-06-12T17:26:01.112Z</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://kcet.uninode.in/sitemap-analyzer-4.xml</loc>
-    <lastmod>2026-06-12T07:43:16.433Z</lastmod>
+    <lastmod>2026-06-12T17:26:01.112Z</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://kcet.uninode.in/sitemap-analyzer-5.xml</loc>
-    <lastmod>2026-06-12T07:43:16.433Z</lastmod>
+    <lastmod>2026-06-12T17:26:01.112Z</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://kcet.uninode.in/sitemap-analyzer-6.xml</loc>
-    <lastmod>2026-06-12T07:43:16.433Z</lastmod>
+    <lastmod>2026-06-12T17:26:01.112Z</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://kcet.uninode.in/sitemap-explorer.xml</loc>
-    <lastmod>2026-06-12T07:43:16.433Z</lastmod>
+    <lastmod>2026-06-12T17:26:01.112Z</lastmod>
   </sitemap>
   <sitemap>
     <loc>https://kcet.uninode.in/sitemap-cutoffs.xml</loc>
-    <lastmod>2026-06-12T07:43:16.433Z</lastmod>
+    <lastmod>2026-06-12T17:26:01.112Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://kcet.uninode.in/sitemap-articles-1.xml</loc>
+    <lastmod>2026-06-12T17:26:01.112Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://kcet.uninode.in/sitemap-articles-2.xml</loc>
+    <lastmod>2026-06-12T17:26:01.112Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://kcet.uninode.in/sitemap-articles-3.xml</loc>
+    <lastmod>2026-06-12T17:26:01.112Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://kcet.uninode.in/sitemap-articles-4.xml</loc>
+    <lastmod>2026-06-12T17:26:01.112Z</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://kcet.uninode.in/sitemap-pagination.xml</loc>
+    <lastmod>2026-06-12T17:26:01.112Z</lastmod>
   </sitemap>
 </sitemapindex>
