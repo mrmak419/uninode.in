@@ -19,15 +19,25 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 async function fetchMetadata() {
   console.log('Fetching multi-stream metadata from Supabase...');
 
-  // 1. Fetch colleges
-  const { data: collegeData, error: collegeError } = await supabase
-    .from('colleges')
-    .select('college_code, college_name, search_terms, stream')
-    .order('college_code');
+  // 1. Fetch colleges (bypassing 1000 row limit)
+  let collegeData = [];
+  let colStart = 0;
+  const colStep = 1000;
+  while(true) {
+    const { data: colBatch, error: colError } = await supabase
+      .from('colleges')
+      .select('college_code, college_name, search_terms, stream')
+      .order('college_code')
+      .range(colStart, colStart + colStep - 1);
 
-  if (collegeError) {
-    console.error('Failed to fetch colleges:', collegeError);
-    process.exit(1);
+    if (colError) {
+      console.error('Failed to fetch colleges:', colError);
+      process.exit(1);
+    }
+    if (!colBatch || colBatch.length === 0) break;
+    collegeData.push(...colBatch);
+    if (colBatch.length < colStep) break;
+    colStart += colStep;
   }
 
   // 2. Fetch branches
