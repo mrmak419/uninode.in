@@ -54,7 +54,7 @@ export async function onRequest(context) {
       Marketplace: "www.amazon.in"
     };
 
-    const apiResponse = await fetch('https://creatorsapi.amazon.com/catalog/v1/getItems', {
+    const apiResponse = await fetch('https://creatorsapi.amazon/catalog/v1/getItems', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,

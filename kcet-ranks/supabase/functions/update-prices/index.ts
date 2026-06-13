@@ -111,7 +111,7 @@ export default {
         Marketplace: "www.amazon.in",
       };
 
-      const apiRes = await fetch("https://creatorsapi.amazon.com/catalog/v1/getItems", {
+      const apiRes = await fetch("https://creatorsapi.amazon/catalog/v1/getItems", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${access_token}`,
