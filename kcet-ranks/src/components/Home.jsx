@@ -33,6 +33,24 @@ export default function Home() {
     }
   }, [searchParams, navigate])
 
+  // Eagerly prefetch engineering metadata and chunks into the browser cache
+  useEffect(() => {
+    // Run after a short delay so it doesn't block the initial render thread
+    const timer = setTimeout(() => {
+      fetch('/meta_engineering.json')
+        .then(res => res.json())
+        .then(data => {
+          if (data.numChunks) {
+            for (let i = 0; i < data.numChunks; i++) {
+              fetch(`/data_engineering_${i}.json`);
+            }
+          }
+        })
+        .catch(err => console.log('Prefetch failed:', err));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="min-h-screen bg-paper flex flex-col">
       <TabTitle 

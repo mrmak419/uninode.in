@@ -9,7 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'inline',
       workbox: {
-        navigateFallbackDenylist: [/^\/sitemap.*\.xml$/, /^\/robots\.txt$/]
+        navigateFallbackDenylist: [/^\/sitemap.*\.xml$/, /^\/robots\.txt$/],
+        globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js', 'assets/AdminApp-*.js', 'assets/GearAdmin-*.js', 'assets/supabase-*.js']
       },
       manifest: {
         name: 'KCET College Predictor',

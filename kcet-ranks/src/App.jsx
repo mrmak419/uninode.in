@@ -62,6 +62,7 @@ export default function App() {
   const [error,      setError]      = useState(null)
   const prevStreamRef = useRef(stream)
   const [fullMatrixData, setFullMatrixData] = useState(null)
+  const [pendingSearch, setPendingSearch] = useState(false)
   
   // Stream metadata
   const [availableStreams, setAvailableStreams] = useState(streamsData)
@@ -73,7 +74,7 @@ export default function App() {
 
     async function loadMeta() {
       try {
-        const res = await fetch(`/meta_${stream}.json?v=${__BUILD_HASH__}`)
+        const res = await fetch(`/meta_${stream}.json`)
         if (!res.ok) throw new Error(`Stream metadata not found for ${stream}`)
         const data = await res.json()
         
@@ -101,7 +102,7 @@ export default function App() {
           const fetchPromises = [];
           for (let i = 0; i < data.numChunks; i++) {
             fetchPromises.push(
-              fetch(`/data_${stream}_${i}.json?v=${__BUILD_HASH__}`)
+              fetch(`/data_${stream}_${i}.json`)
                 .then(r => r.ok ? r.json() : [])
             );
           }
@@ -109,7 +110,7 @@ export default function App() {
           matrixData = chunkResults.flat();
         } else {
           // Fallback just in case some streams don't have chunks yet
-          const dataRes = await fetch(`/data_${stream}.json?v=${__BUILD_HASH__}`);
+          const dataRes = await fetch(`/data_${stream}.json`);
           if (dataRes.ok) {
             matrixData = await dataRes.json();
           }
@@ -148,7 +149,8 @@ export default function App() {
 
     try {
       if (!fullMatrixData) {
-        setError('Data is still loading, please wait a moment...')
+        setError('Data is downloading, please wait...')
+        setPendingSearch(true)
         setLoading(false)
         return
       }
@@ -283,6 +285,14 @@ export default function App() {
       }
     }
   }, [branches, colleges, rounds, fullMatrixData, hasAutoSearched, search, isAnalyzerRoute, isExplorerRoute])
+
+  // Auto-trigger pending search when matrix data finishes downloading
+  useEffect(() => {
+    if (pendingSearch && fullMatrixData) {
+      setPendingSearch(false)
+      search()
+    }
+  }, [pendingSearch, fullMatrixData, search])
 
   const handleClear = useCallback(() => {
     setRank('')
