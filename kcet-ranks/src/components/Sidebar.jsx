@@ -64,7 +64,7 @@ export default function Sidebar({ onClose }) {
             ${location.pathname.startsWith('/gear') ? 'bg-accent text-white shadow-sm' : 'text-orange-600 hover:bg-orange-50'}
           `}
         >
-          List of College Must Haves
+          Student Essentials
         </Link>
         
         {streams.map(s => {

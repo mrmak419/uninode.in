@@ -100,19 +100,34 @@ export default function SearchForm({
             <label htmlFor="search-rank" className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
               Your Rank
             </label>
-            <input
-              id="search-rank"
-              type="number"
-              min="1"
-              max="300000"
-              placeholder="e.g. 8500"
-              value={rank}
-              onChange={e => setRank(e.target.value.replace(/-/g, ''))}
-              onKeyDown={handleKey}
-              className="w-full px-3.5 py-2.5 border border-border rounded-lg font-mono text-base text-ink
-                         focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent
-                         placeholder:text-muted/40 bg-paper"
-            />
+            <div className="relative">
+              <input
+                id="search-rank"
+                type="number"
+                min="1"
+                max="300000"
+                placeholder="e.g. 8500"
+                value={rank}
+                onChange={e => setRank(e.target.value.replace(/-/g, ''))}
+                onFocus={e => e.target.select()}
+                onKeyDown={handleKey}
+                className="w-full pl-3.5 pr-10 py-2.5 border border-border rounded-lg font-mono text-base text-ink
+                           focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent
+                           placeholder:text-muted/40 bg-paper"
+              />
+              {rank && (
+                <button
+                  type="button"
+                  onClick={() => setRank('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-ink p-1 rounded-full hover:bg-gray-100"
+                  aria-label="Clear rank"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -159,18 +174,32 @@ export default function SearchForm({
           <label htmlFor="search-college" className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5 flex items-center justify-between">
             <span>College {mode === 'analyzer' && <span className="text-muted/80 normal-case font-normal ml-1">(Optional)</span>}</span>
           </label>
-          <input
-            id="search-college"
-            type="text"
-            placeholder="e.g. RV College"
-            value={collegeQuery}
-            onChange={e => { setCollegeQuery(e.target.value); setCollegeOpen(true) }}
-            onFocus={() => setCollegeOpen(true)}
-            onKeyDown={handleKey}
-            className="w-full px-3.5 py-2.5 border border-border rounded-lg text-sm text-ink
-                       focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent
-                       placeholder:text-muted/70 bg-paper"
-          />
+          <div className="relative">
+            <input
+              id="search-college"
+              type="text"
+              placeholder="e.g. RV College"
+              value={collegeQuery}
+              onChange={e => { setCollegeQuery(e.target.value); setCollegeOpen(true) }}
+              onFocus={e => { setCollegeOpen(true); e.target.select(); }}
+              onKeyDown={handleKey}
+              className="w-full pl-3.5 pr-10 py-2.5 border border-border rounded-lg text-sm text-ink
+                         focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent
+                         placeholder:text-muted/70 bg-paper"
+            />
+            {collegeQuery && (
+              <button
+                type="button"
+                onClick={() => { setCollegeQuery(''); setCollegeOpen(false); document.getElementById('search-college')?.focus(); }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-ink p-1 rounded-full hover:bg-gray-100"
+                aria-label="Clear college search"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
           {collegeOpen && filteredColleges.length > 0 && (
             <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto scrollbar-thin">
               {filteredColleges.map(c => (
@@ -214,16 +243,30 @@ export default function SearchForm({
               </span>
             ))}
             
-            <input
-              id="search-branch"
-              type="text"
-              placeholder={selectedBranches.length === 0 ? "e.g. Computer Science" : "Add another branch..."}
-              value={branchInput}
-              onChange={e => { setBranchInput(e.target.value); setBranchOpen(true) }}
-              onFocus={() => setBranchOpen(true)}
-              onKeyDown={handleKey}
-              className="flex-1 min-w-[150px] bg-transparent text-sm text-ink focus:outline-none placeholder:text-muted/70 py-0.5"
-            />
+            <div className="relative flex-1 min-w-[150px]">
+              <input
+                id="search-branch"
+                type="text"
+                placeholder={selectedBranches.length === 0 ? "e.g. Computer Science" : "Add another branch..."}
+                value={branchInput}
+                onChange={e => { setBranchInput(e.target.value); setBranchOpen(true) }}
+                onFocus={e => { setBranchOpen(true); e.target.select(); }}
+                onKeyDown={handleKey}
+                className="w-full bg-transparent text-sm text-ink focus:outline-none placeholder:text-muted/70 py-0.5 pr-8"
+              />
+              {branchInput && (
+                <button
+                  type="button"
+                  onClick={() => { setBranchInput(''); setBranchOpen(false); document.getElementById('search-branch')?.focus(); }}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 text-muted hover:text-ink p-1 rounded-full hover:bg-gray-100"
+                  aria-label="Clear branch search"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
 
           {branchOpen && filteredBranches.length > 0 && (

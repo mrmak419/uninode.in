@@ -11,6 +11,8 @@ import ArticleNarrative from './ArticleNarrative'
 import ArticleCTABlocks from './ArticleCTABlocks'
 import ArticleFAQ from './ArticleFAQ'
 import ArticleSuggestions from './ArticleSuggestions'
+import Footer from '../Footer'
+import LegalFooter from '../LegalFooter'
 
 const articleCache = {}
 
@@ -57,7 +59,7 @@ export default function ArticleContainer() {
     try {
       setLoading(true)
       
-      const res = await fetch(`/meta_${stream}.json`)
+      const res = await fetch(`/meta_${stream}.json?v=${__BUILD_HASH__}`)
       if (!res.ok) throw new Error("Metadata not found")
       const meta = await res.json()
       
@@ -81,15 +83,17 @@ export default function ArticleContainer() {
         return
       }
 
-      const { data, error: qErr } = await supabase
-        .from(`cutoffs_matrix_${stream}`)
-        .select('college_code, college_name, course_name, category, seat_type, rounds')
-        .eq('category', category)
-        .in('course_name', matchingRawNames)
-      
-      const matchedRow = (data || []).find(r => r.college_name.toLowerCase().includes(college.toLowerCase()))
-      
-      if (qErr || !matchedRow) {
+      const dataRes = await fetch(`/data_${stream}.json?v=${__BUILD_HASH__}`)
+      if (!dataRes.ok) throw new Error("Data not found")
+      const allData = await dataRes.json()
+
+      const matchedRow = allData.find(r => 
+        r.category === category && 
+        matchingRawNames.includes(r.course_name) && 
+        r.college_name.toLowerCase().includes(college.toLowerCase())
+      )
+
+      if (!matchedRow) {
         setError("Article Not Found")
         setLoading(false)
         return
@@ -263,7 +267,9 @@ export default function ArticleContainer() {
           latestRoundRank={latestRoundRank}
         />
       </div>
+      <Footer />
     </main>
+    <LegalFooter />
     </div>
   )
 }

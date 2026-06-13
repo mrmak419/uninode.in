@@ -31,13 +31,13 @@ export default function GearIndex() {
         <div className="flex items-center gap-3 mb-3">
           <button 
             onClick={toggleSidebar}
-            className="p-2 -ml-2 text-ink hover:bg-gray-100 rounded-lg lg:hidden"
+            className="p-2 -ml-2 text-ink hover:bg-gray-100 rounded-lg"
             aria-label="Toggle Sidebar"
           >
             <Menu className="w-6 h-6" />
           </button>
           <h1 className="text-3xl md:text-4xl font-display font-extrabold text-ink tracking-tight">
-            College Essentials Store
+            Student Essentials
           </h1>
         </div>
         <p className="text-muted text-lg">

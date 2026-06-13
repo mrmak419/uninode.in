@@ -7,6 +7,7 @@ import Footer from './components/Footer.jsx'
 import { Menu } from 'lucide-react'
 import { SidebarContext } from './components/Layout.jsx'
 import TabTitle from './components/TabTitle.jsx'
+import streamsData from '../public/streams.json'
 
 const ALL_CATEGORIES = [
   '1G','1K','1R',
@@ -60,17 +61,10 @@ export default function App() {
   const [loading,    setLoading]    = useState(false)
   const [error,      setError]      = useState(null)
   const prevStreamRef = useRef(stream)
+  const [fullMatrixData, setFullMatrixData] = useState(null)
   
   // Stream metadata
-  const [availableStreams, setAvailableStreams] = useState([])
-
-  // Fetch available streams list
-  useEffect(() => {
-    fetch('/streams.json')
-      .then(res => res.json())
-      .then(data => setAvailableStreams(data))
-      .catch(err => console.error("Failed to load streams index:", err))
-  }, [])
+  const [availableStreams, setAvailableStreams] = useState(streamsData)
 
   // Load stream-specific metadata (colleges, branches, rounds) instantly via CDN JSON
   useEffect(() => {
@@ -79,7 +73,7 @@ export default function App() {
 
     async function loadMeta() {
       try {
-        const res = await fetch(`/meta_${stream}.json`)
+        const res = await fetch(`/meta_${stream}.json?v=${__BUILD_HASH__}`)
         if (!res.ok) throw new Error(`Stream metadata not found for ${stream}`)
         const data = await res.json()
         
@@ -98,9 +92,17 @@ export default function App() {
           setResults(null)
           setSelectedBranches([])
           setCollegeQuery('')
+          setFullMatrixData(null)
+        }
+
+        // Also fetch the full matrix data for client-side search
+        const dataRes = await fetch(`/data_${stream}.json?v=${__BUILD_HASH__}`)
+        if (dataRes.ok) {
+          const matrixData = await dataRes.json()
+          setFullMatrixData(matrixData)
         }
       } catch (err) {
-        console.error("Failed to load stream metadata:", err)
+        console.error("Failed to load stream metadata/data:", err)
       }
     }
     loadMeta()
@@ -131,18 +133,20 @@ export default function App() {
     setResults(null)
 
     try {
+      if (!fullMatrixData) {
+        setError('Data is still loading, please wait a moment...')
+        setLoading(false)
+        return
+      }
+
       // ── Smart Branch Matching ──
-      let query = supabase
-        .from(`cutoffs_matrix_${stream}`)
-        .select('college_code, college_name, course_name, category, seat_type, rounds')
-        .eq('category', category)
-        .eq('seat_type', seatType)
+      let filteredData = fullMatrixData.filter(row => row.category === category && row.seat_type === seatType)
 
       if (mode === 'analyzer') {
         const safeVariation = Math.min(50000, Math.max(0, variation))
         const lo = Math.max(1, rankNum - safeVariation)
         const hi = rankNum + safeVariation
-        query = query.gte('max_rank', lo).lte('min_rank', hi)
+        filteredData = filteredData.filter(row => row.max_rank >= lo && row.min_rank <= hi)
       }
 
       // ── Filter by College Name or Code ──
@@ -159,7 +163,7 @@ export default function App() {
           setLoading(false)
           return
         }
-        query = query.in('college_code', matchedCodes)
+        filteredData = filteredData.filter(row => matchedCodes.includes(row.college_code))
       }
 
       // ── Filter by Multiple Branches ──
@@ -193,13 +197,10 @@ export default function App() {
         }
 
         // Only query the matching raw branches
-        query = query.in('course_name', matchingRawNames)
+        filteredData = filteredData.filter(row => matchingRawNames.includes(row.course_name))
       }
 
-      const { data, error: qErr } = await query
-      if (qErr) throw qErr
-
-      setResults(data || [])
+      setResults(filteredData || [])
 
       // Scroll to results to skip inputs if user came from a link
       setTimeout(() => {
@@ -243,7 +244,7 @@ export default function App() {
           seat_type: seatType,
           college_query: collegeQuery.trim() || 'N/A',
           search_term: selectedBranches.length > 0 ? selectedBranches.join(',') : 'All Branches',
-          results_count: data ? data.length : 0
+          results_count: filteredData ? filteredData.length : 0
         })
       }
 
@@ -253,12 +254,12 @@ export default function App() {
     } finally {
       setLoading(false)
     }
-  }, [mode, rank, variation, category, seatType, selectedBranches, collegeQuery, branches, colleges, stream])
+  }, [mode, rank, variation, category, seatType, selectedBranches, collegeQuery, branches, colleges, stream, fullMatrixData])
 
   // Auto-trigger search if URL params are present (shared link)
   useEffect(() => {
     // Only auto-search once all metadata has successfully loaded
-    if (branches.length > 0 && colleges.length > 0 && rounds.length > 0 && !hasAutoSearched) {
+    if (branches.length > 0 && colleges.length > 0 && rounds.length > 0 && fullMatrixData && !hasAutoSearched) {
       const searchParams = new URLSearchParams(window.location.search)
       if (isAnalyzerRoute || isExplorerRoute || searchParams.has('cat') || searchParams.has('rank') || searchParams.has('college') || searchParams.has('branches')) {
         setHasAutoSearched(true)
@@ -267,7 +268,7 @@ export default function App() {
         setHasAutoSearched(true) // No params, so just mark as done
       }
     }
-  }, [branches, colleges, rounds, hasAutoSearched, search, isAnalyzerRoute, isExplorerRoute])
+  }, [branches, colleges, rounds, fullMatrixData, hasAutoSearched, search, isAnalyzerRoute, isExplorerRoute])
 
   const handleClear = useCallback(() => {
     setRank('')

@@ -5,6 +5,7 @@ import LegalFooter from './LegalFooter'
 import { SidebarContext } from './Layout'
 
 import TabTitle from './TabTitle'
+import streamsData from '../../public/streams.json'
 
 const STREAM_INFO = {
   engineering: { title: 'Engineering', desc: 'B.E. / B.Tech cutoffs across all branches.', icon: Laptop, color: 'from-blue-500 to-indigo-600' },
@@ -19,7 +20,7 @@ const STREAM_INFO = {
 }
 
 export default function Home() {
-  const [streams, setStreams] = useState([])
+  const [streams, setStreams] = useState(streamsData)
   const [searchQuery, setSearchQuery] = useState('')
   const { toggleSidebar } = useContext(SidebarContext)
   const [searchParams] = useSearchParams()
@@ -31,13 +32,6 @@ export default function Home() {
       navigate(`/engineering?${searchParams.toString()}`, { replace: true })
     }
   }, [searchParams, navigate])
-
-  useEffect(() => {
-    fetch('/streams.json')
-      .then(res => res.json())
-      .then(data => setStreams(data))
-      .catch(err => console.error("Failed to load streams index:", err))
-  }, [])
 
   return (
     <div className="min-h-screen bg-paper flex flex-col">

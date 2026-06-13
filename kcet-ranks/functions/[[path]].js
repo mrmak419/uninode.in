@@ -31,46 +31,72 @@ export async function onRequest(context) {
     return response;
   }
 
-  // Extract stream from pathname (e.g. "/engineering" -> "Engineering")
-  const streamRaw = url.pathname.replace(/^\/|\/$/g, ''); 
-  const stream = streamRaw 
-    ? streamRaw.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-    : 'KCET';
+  const pathParts = url.pathname.replace(/^\/|\/$/g, '').split('/').filter(Boolean);
+  
+  let streamRaw = 'engineering';
+  let stream = 'KCET';
+  let pageTitle = `KCET Cutoffs | Uninode KCET Cutoff Analyzer`;
+  let pageDescription = `Analyze historical KCET cutoff trends. Discover eligible colleges for your rank with the Uninode KCET Cutoff Analyzer.`;
+
+  // Helper to format slugs like 'computer-science' to 'Computer Science'
+  const formatSlug = (slug) => {
+    if (!slug) return '';
+    return slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
+  const formatStream = (slug) => {
+    if (!slug) return 'KCET';
+    return slug.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
+  if (pathParts.length > 0) {
+    const section = pathParts[0].toLowerCase();
     
-  const college = url.searchParams.get('college');
-  const branchesStr = url.searchParams.get('branches');
-  const rank = url.searchParams.get('rank');
-  const mode = url.searchParams.get('mode');
-  const cat = url.searchParams.get('cat');
-  const seat = url.searchParams.get('seat');
-
-  // Default metadata
-  let pageTitle = `${stream} Cutoffs | Uninode KCET Cutoff Analyzer`;
-  let pageDescription = `Analyze historical KCET cutoff trends for ${stream}. Discover eligible colleges for your rank with the Uninode KCET Cutoff Analyzer.`;
-
-  // Dynamic override for URL parameters
-  if (rank && mode === 'analyzer') {
-    const formattedRank = parseInt(rank).toLocaleString('en-IN');
-    const catSuffix = cat ? ` in ${cat} Category` : '';
-    pageTitle = `Top ${stream} Colleges for ${formattedRank} Rank${catSuffix} | KCET Cutoffs`;
-    pageDescription = `Discover the best ${stream} colleges you can get with a KCET rank of ${formattedRank}${catSuffix}. Check category-wise and historical cutoff trends.`;
-  } else if (college || branchesStr) {
-    let prefixParts = [];
-    if (college) {
-      prefixParts.push(college.trim());
-    }
-    if (branchesStr) {
-      const branches = branchesStr.split(',').filter(Boolean);
-      if (branches.length === 1) {
-        prefixParts.push(branches[0]);
-      } else if (branches.length > 1) {
-        prefixParts.push(`${branches.length} Branches`);
+    if (section === 'articles') {
+      streamRaw = pathParts[1] || 'engineering';
+      stream = formatStream(streamRaw);
+      if (pathParts.length >= 4) {
+        const college = formatSlug(pathParts[2]);
+        const branch = formatSlug(pathParts[3]);
+        const cat = pathParts[4] ? pathParts[4].toUpperCase() : '';
+        pageTitle = `${college} - ${branch} ${cat} Cutoffs | ${stream}`;
+        pageDescription = `Check the latest KCET cutoff ranks for ${branch} at ${college} for ${cat} category. Compare historical trends.`;
+      } else {
+        pageTitle = `${stream} College Articles & Cutoffs | Uninode`;
+        pageDescription = `Browse all colleges and branches for ${stream} cutoffs.`;
       }
+    } else if (section === 'explorer') {
+      streamRaw = pathParts[1] || 'engineering';
+      stream = formatStream(streamRaw);
+      const name = formatSlug(pathParts[3]);
+      pageTitle = `${name} KCET Cutoffs | ${stream} Explorer`;
+      pageDescription = `Explore KCET cutoff trends for ${name} in ${stream}.`;
+    } else if (section === 'analyzer') {
+      streamRaw = pathParts[1] || 'engineering';
+      stream = formatStream(streamRaw);
+      const rank = pathParts[3];
+      const cat = pathParts[4] ? pathParts[4].toUpperCase() : '';
+      const formattedRank = parseInt(rank || '0').toLocaleString('en-IN');
+      const catSuffix = cat ? ` in ${cat} Category` : '';
+      pageTitle = `Top ${stream} Colleges for ${formattedRank} Rank${catSuffix} | KCET Cutoffs`;
+      pageDescription = `Discover the best ${stream} colleges you can get with a KCET rank of ${formattedRank}${catSuffix}.`;
+    } else if (section === 'gear') {
+      streamRaw = 'engineering';
+      const categorySlug = pathParts[1];
+      if (categorySlug) {
+        pageTitle = `Best ${formatSlug(categorySlug)} for Engineering Students | Uninode Gear`;
+        pageDescription = `Top recommended ${formatSlug(categorySlug)} for engineering students in college.`;
+      } else {
+        pageTitle = `Uninode Gear | Recommended Laptops & Tech for College`;
+        pageDescription = `The best laptops, tablets, and accessories recommended for engineering students.`;
+      }
+    } else {
+      // Root stream route (e.g. /engineering)
+      streamRaw = pathParts[0];
+      stream = formatStream(streamRaw);
+      pageTitle = `${stream} Cutoffs | Uninode KCET Cutoff Analyzer`;
+      pageDescription = `Analyze historical KCET cutoff trends for ${stream}. Discover eligible colleges for your rank.`;
     }
-
-    const prefix = prefixParts.join(' - ');
-    pageTitle = `${prefix} KCET Cutoffs | ${stream}`;
-    pageDescription = `Check the latest KCET cutoff ranks for ${prefix} in ${stream}. Compare historical cutoff trends and find your perfect college match.`;
   }
 
   const safeTitle = escapeHtml(pageTitle);

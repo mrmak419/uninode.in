@@ -49,7 +49,7 @@ export default function GearCategory() {
         <div className="flex items-center gap-3 mb-6">
           <button 
             onClick={toggleSidebar}
-            className="p-2 -ml-2 text-ink hover:bg-gray-100 rounded-lg lg:hidden"
+            className="p-2 -ml-2 text-ink hover:bg-gray-100 rounded-lg"
             aria-label="Toggle Sidebar"
           >
             <Menu className="w-6 h-6" />
@@ -70,7 +70,7 @@ export default function GearCategory() {
         <div className="flex items-center gap-3 mb-4 justify-center">
           <button 
             onClick={toggleSidebar}
-            className="p-2 -ml-2 text-ink hover:bg-gray-100 rounded-lg lg:hidden absolute left-4"
+            className="p-2 -ml-2 text-ink hover:bg-gray-100 rounded-lg absolute left-4"
             aria-label="Toggle Sidebar"
           >
             <Menu className="w-6 h-6" />
@@ -87,7 +87,7 @@ export default function GearCategory() {
       <div className="flex items-center gap-4 mb-6">
         <button 
           onClick={toggleSidebar}
-          className="p-2 -ml-2 text-ink hover:bg-gray-100 rounded-lg lg:hidden"
+          className="p-2 -ml-2 text-ink hover:bg-gray-100 rounded-lg"
           aria-label="Toggle Sidebar"
         >
           <Menu className="w-6 h-6" />

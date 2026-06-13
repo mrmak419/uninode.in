@@ -2,6 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import zlib from 'zlib';
+import { promisify } from 'util';
+
+const brotliCompress = promisify(zlib.brotliCompress);
+const gzip = promisify(zlib.gzip);
 
 // Load environment variables from .env
 dotenv.config();
@@ -82,7 +87,7 @@ async function fetchMetadata() {
     while(true) {
       const { data: matrixData, error: matrixError } = await supabase
         .from(`cutoffs_matrix_${stream}`)
-        .select('college_code, course_name, max_rank, category, seat_type')
+        .select('college_code, college_name, course_name, category, seat_type, rounds, min_rank, max_rank')
         .range(start, start + step - 1);
 
       if (matrixError || !matrixData || matrixData.length === 0) break;
@@ -140,6 +145,26 @@ async function fetchMetadata() {
       .map(year => ({ year, rounds: yearSummary[year] }));
     
     streamSummaries.push({ id: stream, yearSummary: yearsArray });
+
+    // --- NEW: EXPORT FULL COMPRESSED DATA ---
+    const publicDir = path.resolve(process.cwd(), 'public');
+    if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
+
+    console.log(`Compressing ${allMatrixData.length} rows for ${stream}...`);
+    const jsonBuffer = Buffer.from(JSON.stringify(allMatrixData));
+    
+    // Write Raw JSON
+    fs.writeFileSync(path.join(publicDir, `data_${stream}.json`), jsonBuffer);
+    
+    // Write Brotli (Level 4 for much faster builds)
+    const brBuffer = await brotliCompress(jsonBuffer, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4 }});
+    fs.writeFileSync(path.join(publicDir, `data_${stream}.json.br`), brBuffer);
+    
+    // Write Gzip
+    const gzBuffer = await gzip(jsonBuffer, { level: 6 });
+    fs.writeFileSync(path.join(publicDir, `data_${stream}.json.gz`), gzBuffer);
+
+    console.log(`✅ Saved data_${stream}.json (Raw: ${(jsonBuffer.length/1024/1024).toFixed(2)}MB, Brotli: ${(brBuffer.length/1024/1024).toFixed(2)}MB)`);
   }
 
   // Convert Maps/Sets back to arrays
@@ -219,8 +244,18 @@ async function fetchMetadata() {
   // Write individual metadata files per stream
   for (const [stream, data] of Object.entries(streams)) {
     delete data._seenRounds;
+    const jsonBuffer = Buffer.from(JSON.stringify(data));
     const filePath = path.join(publicDir, `meta_${stream}.json`);
-    fs.writeFileSync(filePath, JSON.stringify(data));
+    fs.writeFileSync(filePath, jsonBuffer);
+    
+    // Write Brotli (Level 4)
+    const brBuffer = await brotliCompress(jsonBuffer, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4 }});
+    fs.writeFileSync(path.join(publicDir, `meta_${stream}.json.br`), brBuffer);
+    
+    // Write Gzip (Level 6)
+    const gzBuffer = await gzip(jsonBuffer, { level: 6 });
+    fs.writeFileSync(path.join(publicDir, `meta_${stream}.json.gz`), gzBuffer);
+
     console.log(`✅ Wrote meta_${stream}.json (${data.colleges.length} colleges, ${data.branches.length} branches)`);
   }  // Generate sitemap.xml
   const domain = process.env.VITE_APP_DOMAIN || 'https://kcet.uninode.in';
@@ -236,6 +271,7 @@ async function fetchMetadata() {
   // Home page and index pages
   mainUrls.push({ loc: `${domain}/`, changefreq: 'daily', priority: '1.0' });
   mainUrls.push({ loc: `${domain}/articles`, changefreq: 'daily', priority: '0.9' });
+  mainUrls.push({ loc: `${domain}/gear`, changefreq: 'daily', priority: '0.8' });
 
   // Stream pages, Branch pages, College pages, and Rank Buckets
   let branchCount = 0;

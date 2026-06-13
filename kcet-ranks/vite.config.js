@@ -33,6 +33,9 @@ export default defineConfig({
       }
     })
   ],
+  define: {
+    __BUILD_HASH__: JSON.stringify(Date.now().toString())
+  },
   build: {
     rollupOptions: {
       output: {
