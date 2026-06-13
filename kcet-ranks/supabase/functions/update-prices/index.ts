@@ -103,11 +103,11 @@ export default {
 
       // Ping Amazon API
       const payload = {
-        ItemIds: asinsToFetch,
-        ItemIdType: "ASIN",
-        Resources: ["Offers.Listings.Price"],
-        PartnerTag: "kcet_uninode-21",
-        PartnerType: "Associates"
+        itemIds: asinsToFetch,
+        itemIdType: "ASIN",
+        resources: ["Offers.Listings.Price"],
+        partnerTag: "kcet_uninode-21",
+        partnerType: "Associates"
       };
 
       const apiRes = await fetch("https://creatorsapi.amazon/catalog/v1/getItems", {

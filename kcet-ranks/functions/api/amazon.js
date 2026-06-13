@@ -42,15 +42,15 @@ export async function onRequest(context) {
 
     // 2. Fetch Item Details
     const payload = {
-      ItemIds: [asin],
-      ItemIdType: "ASIN",
-      Resources: [
+      itemIds: [asin],
+      itemIdType: "ASIN",
+      resources: [
         "Images.Primary.Large",
         "ItemInfo.Title",
         "Offers.Listings.Price"
       ],
-      PartnerTag: "kcet_uninode-21",
-      PartnerType: "Associates"
+      partnerTag: "kcet_uninode-21",
+      partnerType: "Associates"
     };
 
     const apiResponse = await fetch('https://creatorsapi.amazon/catalog/v1/getItems', {
