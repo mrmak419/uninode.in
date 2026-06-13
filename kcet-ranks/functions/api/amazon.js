@@ -22,6 +22,7 @@ export async function onRequest(context) {
     tokenParams.append('grant_type', 'client_credentials');
     tokenParams.append('client_id', env.AMAZON_CLIENT_ID);
     tokenParams.append('client_secret', env.AMAZON_CLIENT_SECRET);
+    tokenParams.append('scope', 'creatorsapi::default');
 
     const tokenResponse = await fetch('https://api.amazon.com/auth/o2/token', {
       method: 'POST',
