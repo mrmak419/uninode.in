@@ -144,13 +144,10 @@ export async function onRequest(context) {
         
         // SEO: Canonical URL to prevent duplicate content penalties
         const canonicalUrl = new URL(url.origin + url.pathname);
-        if (mode) canonicalUrl.searchParams.set('mode', mode);
-        if (rank) canonicalUrl.searchParams.set('rank', rank);
-        if (cat) canonicalUrl.searchParams.set('cat', cat);
-        if (seat) canonicalUrl.searchParams.set('seat', seat);
-        if (college) canonicalUrl.searchParams.set('college', college);
-        if (branchesStr) canonicalUrl.searchParams.set('branches', branchesStr);
-        element.append(`<link rel="canonical" href="${canonicalUrl.toString()}" />\n`, { html: true });
+        for (const [key, value] of url.searchParams.entries()) {
+          canonicalUrl.searchParams.set(key, value);
+        }
+        element.append(`<link rel="canonical" href="${escapeHtml(canonicalUrl.toString())}" />\n`, { html: true });
       }
     })
     .transform(response);
