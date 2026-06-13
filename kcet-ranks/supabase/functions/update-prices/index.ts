@@ -126,12 +126,13 @@ export default {
       }
 
       const data = await apiRes.json();
-      const items = data?.ItemsResult?.Items || [];
+      const items = data?.itemsResult?.items || data?.ItemsResult?.Items || [];
 
       // Update Database
       for (const item of items) {
-        const asin = item.ASIN;
-        const priceStr = item.Offers?.Listings?.[0]?.Price?.DisplayAmount;
+        const asin = item.asin || item.ASIN;
+        const offers = item.offersV2 || item.OffersV2 || item.offers || item.Offers;
+        const priceStr = offers?.listings?.[0]?.price?.displayAmount || offers?.Listings?.[0]?.Price?.DisplayAmount;
         
         if (asin && priceStr) {
           const productId = asinToProductId[asin];

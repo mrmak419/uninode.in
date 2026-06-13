@@ -40,14 +40,30 @@ export async function onRequest(context) {
     const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access_token;
 
+    async function getAsinFromUrl(url) {
+      try {
+        let finalUrl = url;
+        if (url.includes("amzn.in") || url.includes("amzn.to")) {
+          const headRes = await fetch(url, { method: "HEAD", redirect: "follow" });
+          finalUrl = headRes.url;
+        }
+        const match = finalUrl.match(/(?:dp|o|v|asin|product)\/([a-zA-Z0-9]{10})/i);
+        return match ? match[1].toUpperCase() : url;
+      } catch (err) {
+        return url;
+      }
+    }
+
+    const cleanAsin = await getAsinFromUrl(asin);
+
     // 2. Fetch Item Details
     const payload = {
-      itemIds: [asin],
+      itemIds: [cleanAsin],
       itemIdType: "ASIN",
       resources: [
-        "Images.Primary.Large",
-        "ItemInfo.Title",
-        "Offers.Listings.Price"
+        "images.primary.large",
+        "itemInfo.title",
+        "offersV2.listings.price"
       ],
       partnerTag: "kcet_uninode-21",
       partnerType: "Associates"
@@ -70,17 +86,21 @@ export async function onRequest(context) {
 
     const data = await apiResponse.json();
     
-    // Parse the response
-    const items = data?.ItemsResult?.Items;
+    // Parse the response (Creators API uses camelCase, PA-API used PascalCase)
+    const items = data?.itemsResult?.items || data?.ItemsResult?.Items;
     if (!items || items.length === 0) {
         return new Response(JSON.stringify({ error: 'Item not found on Amazon' }), { status: 404 });
     }
 
     const item = items[0];
-    const title = item.ItemInfo?.Title?.DisplayValue || '';
-    const imageUrl = item.Images?.Primary?.Large?.URL || '';
-    const priceStr = item.Offers?.Listings?.[0]?.Price?.DisplayAmount || '';
-    const affiliateUrl = item.DetailPageURL || `https://www.amazon.in/dp/${asin}?tag=kcet_uninode-21`;
+    const itemInfo = item.itemInfo || item.ItemInfo;
+    const images = item.images || item.Images;
+    const offers = item.offersV2 || item.OffersV2 || item.offers || item.Offers;
+    
+    const title = itemInfo?.title?.displayValue || itemInfo?.Title?.DisplayValue || '';
+    const imageUrl = images?.primary?.large?.url || images?.Primary?.Large?.URL || '';
+    const priceStr = offers?.listings?.[0]?.price?.displayAmount || offers?.Listings?.[0]?.Price?.DisplayAmount || '';
+    const affiliateUrl = item.detailPageURL || item.DetailPageURL || `https://www.amazon.in/dp/${cleanAsin}?tag=kcet_uninode-21`;
 
     return new Response(JSON.stringify({
         title,
