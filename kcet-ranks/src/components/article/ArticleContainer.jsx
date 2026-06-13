@@ -59,7 +59,7 @@ export default function ArticleContainer() {
     try {
       setLoading(true)
       
-      const res = await fetch(`/meta_${stream}.json?v=${__BUILD_HASH__}`)
+      const res = await fetch(`/meta_${stream}.json`)
       if (!res.ok) throw new Error("Metadata not found")
       const meta = await res.json()
       
@@ -83,9 +83,22 @@ export default function ArticleContainer() {
         return
       }
 
-      const dataRes = await fetch(`/data_${stream}.json?v=${__BUILD_HASH__}`)
-      if (!dataRes.ok) throw new Error("Data not found")
-      const allData = await dataRes.json()
+      let allData = [];
+      if (meta.numChunks && meta.numChunks > 0) {
+        const fetchPromises = [];
+        for (let i = 0; i < meta.numChunks; i++) {
+          fetchPromises.push(
+            fetch(`/data_${stream}_${i}.json`)
+              .then(r => r.ok ? r.json() : [])
+          );
+        }
+        const chunkResults = await Promise.all(fetchPromises);
+        allData = chunkResults.flat();
+      } else {
+        const dataRes = await fetch(`/data_${stream}.json`);
+        if (!dataRes.ok) throw new Error("Data not found");
+        allData = await dataRes.json();
+      }
 
       const matchedRow = allData.find(r => 
         r.category === category && 
