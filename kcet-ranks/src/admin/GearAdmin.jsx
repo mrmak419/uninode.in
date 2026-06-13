@@ -156,7 +156,13 @@ function GearManager() {
         throw new Error('Backend returned an empty or invalid response. Are you running the Cloudflare Functions locally? (Try deploying to test!)')
       }
 
-      if (!res.ok) throw new Error(data.error || 'Failed to fetch from Amazon')
+      if (!res.ok) {
+        if (data?.fallbackUrl) {
+          setProdAffiliate(data.fallbackUrl);
+          throw new Error(`Amazon API locked: ${data.error}. BUT we successfully generated your Affiliate Link! It has been pasted in the box below. Just manually add the title and price.`);
+        }
+        throw new Error(data.error || 'Failed to fetch from Amazon')
+      }
 
       setProdName(data.title || '')
       setProdImage(data.imageUrl || '')

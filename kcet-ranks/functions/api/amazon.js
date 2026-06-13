@@ -81,7 +81,11 @@ export async function onRequest(context) {
 
     if (!apiResponse.ok) {
         const errorText = await apiResponse.text();
-        return new Response(JSON.stringify({ error: 'Amazon API Error', details: errorText }), { status: apiResponse.status });
+        return new Response(JSON.stringify({ 
+          error: 'Amazon API Error', 
+          details: errorText,
+          fallbackUrl: `https://www.amazon.in/dp/${cleanAsin}?tag=kcet_uninode-21`
+        }), { status: apiResponse.status });
     }
 
     const data = await apiResponse.json();
