@@ -107,8 +107,7 @@ export default {
         ItemIdType: "ASIN",
         Resources: ["Offers.Listings.Price"],
         PartnerTag: "kcet_uninode-21",
-        PartnerType: "Associates",
-        Marketplace: "www.amazon.in",
+        PartnerType: "Associates"
       };
 
       const apiRes = await fetch("https://creatorsapi.amazon/catalog/v1/getItems", {
@@ -116,6 +115,7 @@ export default {
         headers: {
           Authorization: `Bearer ${access_token}`,
           "Content-Type": "application/json; charset=utf-8",
+          "x-marketplace": "www.amazon.in"
         },
         body: JSON.stringify(payload),
       });

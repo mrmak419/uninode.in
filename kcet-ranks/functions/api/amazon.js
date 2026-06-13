@@ -50,15 +50,15 @@ export async function onRequest(context) {
         "Offers.Listings.Price"
       ],
       PartnerTag: "kcet_uninode-21",
-      PartnerType: "Associates",
-      Marketplace: "www.amazon.in"
+      PartnerType: "Associates"
     };
 
     const apiResponse = await fetch('https://creatorsapi.amazon/catalog/v1/getItems', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json; charset=utf-8'
+        'Content-Type': 'application/json; charset=utf-8',
+        'x-marketplace': 'www.amazon.in'
       },
       body: JSON.stringify(payload)
     });
