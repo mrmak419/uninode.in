@@ -44,7 +44,13 @@ export async function onRequest(context) {
       try {
         let finalUrl = url;
         if (url.includes("amzn.in") || url.includes("amzn.to")) {
-          const headRes = await fetch(url, { method: "HEAD", redirect: "follow" });
+          const headRes = await fetch(url, { 
+            method: "GET", 
+            redirect: "follow",
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+          });
           finalUrl = headRes.url;
         }
         const match = finalUrl.match(/(?:dp|o|v|asin|product)\/([a-zA-Z0-9]{10})/i);
