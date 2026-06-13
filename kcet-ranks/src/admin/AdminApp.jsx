@@ -32,11 +32,18 @@ export default function AdminApp() {
     <div className="min-h-screen bg-paper p-6 relative">
       <div className="absolute top-6 right-6 flex gap-3">
         <a 
-          href={isCategoriesTab ? "/system/hq/portal/admin/secure/99x/mak" : "/system/hq/portal/admin/secure/99x/mak/categories"} 
+          href={isCategoriesTab ? "/system/hq/portal/admin/secure/99x" : "/system/hq/portal/admin/secure/99x/categories"} 
           target="_blank" rel="noreferrer"
           className="text-xs font-semibold px-3 py-1.5 bg-ink text-paper rounded hover:bg-accent transition-colors"
         >
           {isCategoriesTab ? "Open Mapping Matrix ↗" : "Open Categories ↗"}
+        </a>
+        <a 
+          href="/system/hq/portal/admin/secure/99x/gear" 
+          target="_blank" rel="noreferrer"
+          className="text-xs font-semibold px-3 py-1.5 bg-ink text-paper rounded hover:bg-accent transition-colors"
+        >
+          Open Gear Store ↗
         </a>
         <button onClick={() => supabase.auth.signOut()} className="text-xs font-semibold px-3 py-1.5 bg-white border border-border rounded hover:bg-gray-50 transition-colors">
           Sign Out

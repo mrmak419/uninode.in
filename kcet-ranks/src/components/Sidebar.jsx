@@ -47,11 +47,24 @@ export default function Sidebar({ onClose }) {
             if (window.innerWidth < 1024) onClose()
           }}
           className={`
-            block px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-4
+            block px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-2
             ${location.pathname === '/articles' ? 'bg-ink text-white shadow-sm' : 'text-blue-600 hover:bg-blue-50'}
           `}
         >
           Articles
+        </Link>
+        
+        <Link
+          to="/gear"
+          onClick={() => {
+            if (window.innerWidth < 1024) onClose()
+          }}
+          className={`
+            block px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-4
+            ${location.pathname.startsWith('/gear') ? 'bg-accent text-white shadow-sm' : 'text-orange-600 hover:bg-orange-50'}
+          `}
+        >
+          List of College Must Haves
         </Link>
         
         {streams.map(s => {
@@ -76,6 +89,11 @@ export default function Sidebar({ onClose }) {
           )
         })}
 
+      </div>
+      
+      {/* Footer */}
+      <div className="px-4 py-4 border-t border-border mt-auto shrink-0 text-center text-xs text-muted">
+        <p>Made with ❤️ by Ayaan and Shreyas</p>
       </div>
     </div>
   )

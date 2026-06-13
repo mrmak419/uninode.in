@@ -125,11 +125,11 @@ export default function ArchiveGrid({ stream }) {
         {paginated.map(comb => {
           const [c, b, cat, st] = comb.split('::')
           return (
-            <Link 
-              key={comb} 
-              to={`/article?stream=${stream}&college=${encodeURIComponent(c)}&branch=${encodeURIComponent(b)}&cat=${encodeURIComponent(cat)}`}
-              className="group block bg-white border border-gray-200 rounded-xl p-5 hover:border-blue-500 hover:shadow-md transition-all duration-200"
-            >
+              <Link 
+                key={comb} 
+                to={`/articles/${stream}/${encodeURIComponent(c)}/${encodeURIComponent(b)}/${encodeURIComponent(cat)}`}
+                className="group block bg-white border border-gray-200 rounded-xl p-5 hover:border-blue-500 hover:shadow-md transition-all duration-200"
+              >
               <h2 className="text-sm font-bold text-gray-900 mb-1 group-hover:text-blue-600 line-clamp-2">{c}</h2>
               <p className="text-sm text-gray-600 font-medium line-clamp-1">{b}</p>
               <div className="mt-4 flex items-center justify-between">

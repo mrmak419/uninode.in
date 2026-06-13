@@ -34,6 +34,42 @@
     ]
   },
   {
+    "id": "agri_engg_general",
+    "yearSummary": [
+      {
+        "year": 2025,
+        "rounds": [
+          "2",
+          "3"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "agri_engg_practical",
+    "yearSummary": [
+      {
+        "year": 2025,
+        "rounds": [
+          "1",
+          "2",
+          "3"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "agriculture_practical",
+    "yearSummary": [
+      {
+        "year": 2025,
+        "rounds": [
+          "3"
+        ]
+      }
+    ]
+  },
+  {
     "id": "architecture",
     "yearSummary": [
       {
@@ -90,6 +126,8 @@
       {
         "year": 2025,
         "rounds": [
+          "1",
+          "2",
           "3"
         ]
       }
@@ -109,11 +147,25 @@
     ]
   },
   {
+    "id": "food_science_practical",
+    "yearSummary": [
+      {
+        "year": 2025,
+        "rounds": [
+          "2",
+          "3"
+        ]
+      }
+    ]
+  },
+  {
     "id": "medical_record_technology",
     "yearSummary": [
       {
         "year": 2025,
         "rounds": [
+          "1",
+          "2",
           "3"
         ]
       }
@@ -151,7 +203,20 @@
       {
         "year": 2025,
         "rounds": [
+          "1",
+          "2",
           "3"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "veterinary_science_practical",
+    "yearSummary": [
+      {
+        "year": 2025,
+        "rounds": [
+          "2"
         ]
       }
     ]
@@ -162,6 +227,8 @@
       {
         "year": 2025,
         "rounds": [
+          "1",
+          "2",
           "3"
         ]
       }

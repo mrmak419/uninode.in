@@ -113,7 +113,7 @@ export default function ArticleSuggestions({ stream, articleData, category, late
     <div className="mt-12 pt-8 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
       {prevItem ? (
         <Link 
-          to={`/article?stream=${stream}&college=${encodeURIComponent(prevItem.college)}&branch=${encodeURIComponent(prevItem.branch)}&cat=${encodeURIComponent(prevItem.category)}`}
+          to={`/articles/${stream}/${encodeURIComponent(prevItem.college)}/${encodeURIComponent(prevItem.branch)}/${encodeURIComponent(prevItem.category)}`}
           className="group flex flex-col justify-center items-start p-6 bg-white border border-gray-200 rounded-xl hover:border-blue-500 hover:shadow-md transition-all"
         >
           <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1 group-hover:text-blue-600 transition-colors">
@@ -126,7 +126,7 @@ export default function ArticleSuggestions({ stream, articleData, category, late
 
       {nextItem ? (
         <Link 
-          to={`/article?stream=${stream}&college=${encodeURIComponent(nextItem.college)}&branch=${encodeURIComponent(nextItem.branch)}&cat=${encodeURIComponent(nextItem.category)}`}
+          to={`/articles/${stream}/${encodeURIComponent(nextItem.college)}/${encodeURIComponent(nextItem.branch)}/${encodeURIComponent(nextItem.category)}`}
           className="group flex flex-col justify-center items-end text-right p-6 bg-white border border-gray-200 rounded-xl hover:border-blue-500 hover:shadow-md transition-all"
         >
           <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1 group-hover:text-blue-600 transition-colors">

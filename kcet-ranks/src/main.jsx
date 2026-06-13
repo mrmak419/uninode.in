@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import './index.css'
 
 const App = lazy(() => import('./App.jsx'))
@@ -11,9 +11,12 @@ const Terms = lazy(() => import('./components/Terms.jsx'))
 const Layout = lazy(() => import('./components/Layout.jsx'))
 const ArticleContainer = lazy(() => import('./components/article/ArticleContainer.jsx'))
 const ArticlesIndex = lazy(() => import('./components/article/ArticlesIndex.jsx'))
+const GearAdmin = lazy(() => import('./admin/GearAdmin.jsx'))
+const GearIndex = lazy(() => import('./components/gear/GearIndex.jsx'))
+const GearCategory = lazy(() => import('./components/gear/GearCategory.jsx'))
 
 const path = window.location.pathname
-const isAdmin = path.startsWith('/system/hq/portal/admin/secure/99x/mak')
+const isAdmin = path.startsWith('/system/hq/portal/admin/secure/99x')
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -76,6 +79,19 @@ class ErrorBoundary extends React.Component {
 
 const LoadingFallback = () => <div className="min-h-screen flex items-center justify-center text-muted font-mono text-sm">Loading...</div>
 
+function LegacyArticleRedirect() {
+  const [searchParams] = useSearchParams()
+  const stream = searchParams.get('stream') || 'engineering'
+  const college = searchParams.get('college')
+  const branch = searchParams.get('branch')
+  const category = searchParams.get('cat')
+  
+  if (college && branch && category) {
+    return <Navigate to={`/articles/${stream}/${encodeURIComponent(college)}/${encodeURIComponent(branch)}/${encodeURIComponent(category)}`} replace />
+  }
+  return <Navigate to={`/articles/${stream}`} replace />
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
@@ -83,11 +99,29 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <BrowserRouter>
           <Layout>
             <Routes>
-              {isAdmin && <Route path="/system/hq/portal/admin/secure/99x/mak/*" element={<AdminApp />} />}
+              {isAdmin && <Route path="/system/hq/portal/admin/secure/99x/gear/*" element={<GearAdmin />} />}
+              {isAdmin && <Route path="/system/hq/portal/admin/secure/99x/*" element={<AdminApp />} />}
               <Route path="/privacy-policy" element={<Privacy />} />
               <Route path="/terms-of-service" element={<Terms />} />
+              
+              {/* Gear Routes */}
+              <Route path="/gear/:categorySlug" element={<GearCategory />} />
+              <Route path="/gear" element={<GearIndex />} />
+
+              {/* Article Routes */}
+              <Route path="/articles/:stream/:college/:branch/:category" element={<ArticleContainer />} />
+              <Route path="/articles/:stream" element={<ArticleContainer />} />
               <Route path="/articles" element={<ArticlesIndex />} />
-              <Route path="/article" element={<ArticleContainer />} />
+              <Route path="/article" element={<LegacyArticleRedirect />} />
+              
+              {/* Explorer Routes */}
+              <Route path="/explorer/:stream/branch/:branchName" element={<App />} />
+              <Route path="/explorer/:stream/college/:collegeName" element={<App />} />
+              
+              {/* Analyzer Routes */}
+              <Route path="/analyzer/:stream/rank/:rankValue/:category" element={<App />} />
+              
+              {/* Root Stream Route */}
               <Route path="/:stream" element={<App />} />
               <Route path="/" element={<Home />} />
               <Route path="*" element={<Navigate to="/" replace />} />

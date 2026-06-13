@@ -52,7 +52,7 @@ export default function ArticlesIndex() {
             return (
               <Link
                 key={streamId}
-                to={`/article?stream=${streamId}`}
+                to={`/articles/${streamId}`}
                 className="group p-6 bg-white border border-gray-200 rounded-xl hover:border-blue-500 hover:shadow-md transition-all flex flex-col justify-center"
               >
                 <h2 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">

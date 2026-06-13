@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Menu } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { SidebarContext } from '../Layout'
@@ -35,12 +35,9 @@ const TopNavigation = () => {
 }
 
 export default function ArticleContainer() {
-  const [searchParams] = useSearchParams()
-  const stream = searchParams.get('stream') || 'engineering'
-  const college = searchParams.get('college')
-  const branch = searchParams.get('branch')
-  const category = searchParams.get('cat')
-  const seatType = searchParams.get('seat') || 'ROK'
+  const { stream: streamParam, college, branch, category } = useParams()
+  const stream = streamParam || 'engineering'
+  const seatType = 'ROK' // Hardcoded since we only support ROK in articles right now
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -172,7 +169,7 @@ export default function ArticleContainer() {
         <TopNavigation />
         <main className="w-full max-w-4xl mx-auto px-4 py-8 overflow-hidden">
           <div className="mb-6">
-            <Link to={`/article?stream=${stream}`} className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-blue-600 transition-colors uppercase tracking-wider">
+            <Link to={`/articles/${stream}`} className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-blue-600 transition-colors uppercase tracking-wider">
               <ArrowLeft size={16} /> Back to {formattedStream} Articles
             </Link>
           </div>
@@ -207,7 +204,7 @@ export default function ArticleContainer() {
       <TopNavigation />
       <main className="w-full max-w-4xl mx-auto px-4 py-8 overflow-hidden">
         <div className="mb-6">
-          <Link to={`/article?stream=${stream}`} className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-blue-600 transition-colors uppercase tracking-wider">
+          <Link to={`/articles/${stream}`} className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-blue-600 transition-colors uppercase tracking-wider">
             <ArrowLeft size={16} /> Back to {formattedStream} Articles
           </Link>
         </div>

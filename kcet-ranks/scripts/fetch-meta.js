@@ -262,7 +262,7 @@ async function fetchMetadata() {
       const rankBuckets = Array.from({ length: numOf1kBuckets }, (_, i) => (i + 1) * 1000);
       
       for (const rb of rankBuckets) {
-        analyzerUrls.push({ loc: `${domain}/${sId}?mode=analyzer&amp;rank=${rb}&amp;cat=${encodeURIComponent(cat)}`, changefreq: 'weekly', priority: '0.7' });
+        analyzerUrls.push({ loc: `${domain}/analyzer/${sId}/rank/${rb}/${encodeURIComponent(cat)}`, changefreq: 'weekly', priority: '0.7' });
         rankBucketCount++;
       }
     }
@@ -272,7 +272,7 @@ async function fetchMetadata() {
       for (const b of streamData.branches) {
         const bName = b.parent_branches ? b.parent_branches.name : b.raw_name;
         if (!bName) continue;
-        const bUrl = `${domain}/${sId}?mode=explorer&amp;branches=${encodeURIComponent(bName).replace(/%20/g, '+')}`;
+        const bUrl = `${domain}/explorer/${sId}/branch/${encodeURIComponent(bName)}`;
         explorerUrls.push({ loc: bUrl, changefreq: 'weekly', priority: '0.6' });
         branchCount++;
       }
@@ -282,7 +282,7 @@ async function fetchMetadata() {
     if (streamData && streamData.colleges) {
       for (const c of streamData.colleges) {
         if (!c.college_name) continue;
-        const cUrl = `${domain}/${sId}?mode=explorer&amp;college=${encodeURIComponent(c.college_name).replace(/%20/g, '+').replace(/&/g, '%26')}`;
+        const cUrl = `${domain}/explorer/${sId}/college/${encodeURIComponent(c.college_name)}`;
         explorerUrls.push({ loc: cUrl, changefreq: 'weekly', priority: '0.6' });
         collegeCount++;
       }
@@ -293,7 +293,7 @@ async function fetchMetadata() {
       for (const combo of streamData.combinations) {
         const [cName, bName] = combo.split('::');
         if (!cName || !bName) continue;
-        const comboUrl = `${domain}/${sId}?mode=explorer&amp;college=${encodeURIComponent(cName).replace(/%20/g, '+').replace(/&/g, '%26')}&amp;branches=${encodeURIComponent(bName).replace(/%20/g, '+')}`;
+        const comboUrl = `${domain}/explorer/${sId}/branch/${encodeURIComponent(bName)}?college=${encodeURIComponent(cName).replace(/%20/g, '+').replace(/&/g, '%26')}`;
         cutoffUrls.push({ loc: comboUrl, changefreq: 'weekly', priority: '0.5' });
       }
     }
@@ -304,13 +304,13 @@ async function fetchMetadata() {
       const totalPages = Math.ceil(streamData.articleCombinations.length / perPage);
       
       for (let p = 1; p <= totalPages; p++) {
-        paginationUrls.push({ loc: `${domain}/articles?stream=${sId}&amp;page=${p}`, changefreq: 'weekly', priority: '0.6' });
+        paginationUrls.push({ loc: `${domain}/articles/${sId}?page=${p}`, changefreq: 'weekly', priority: '0.6' });
       }
 
       for (const combo of streamData.articleCombinations) {
         const [cName, bName, cat, st] = combo.split('::');
         if (!cName || !bName || !cat) continue;
-        const articleUrl = `${domain}/article?stream=${sId}&amp;college=${encodeURIComponent(cName).replace(/%20/g, '+').replace(/&/g, '%26')}&amp;branch=${encodeURIComponent(bName).replace(/%20/g, '+')}&amp;cat=${encodeURIComponent(cat)}`;
+        const articleUrl = `${domain}/articles/${sId}/${encodeURIComponent(cName)}/${encodeURIComponent(bName)}/${encodeURIComponent(cat)}`;
         articleUrls.push({ loc: articleUrl, changefreq: 'weekly', priority: '0.6' });
       }
     }

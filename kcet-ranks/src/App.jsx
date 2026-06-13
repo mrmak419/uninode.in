@@ -20,21 +20,34 @@ const ALL_CATEGORIES = [
 // DB aliases will handle this dynamically now.
 
 export default function App() {
-  const { stream } = useParams()
+  const { stream, branchName, collegeName, rankValue, category: categoryParam } = useParams()
   const formattedStreamName = stream ? stream.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Stream'
   const navigate = useNavigate()
 
   // Parse initial URL parameters for shared links
   const [searchParams, setSearchParams] = useSearchParams()
 
+  const isAnalyzerRoute = window.location.pathname.startsWith('/analyzer/')
+  const isExplorerRoute = window.location.pathname.startsWith('/explorer/')
+
   // Search state
-  const [rank,       setRank]       = useState(searchParams.get('rank') || '')
+  const [rank,       setRank]       = useState(rankValue || searchParams.get('rank') || '')
   const [variation,  setVariation]  = useState(parseInt(searchParams.get('variation')) || 3000)
-  const [category,   setCategory]   = useState(searchParams.get('cat') || 'GM')
+  const [category,   setCategory]   = useState(categoryParam || searchParams.get('cat') || 'GM')
   const [seatType,   setSeatType]   = useState(searchParams.get('seat') || 'ROK')
-  const [selectedBranches, setSelectedBranches] = useState(searchParams.get('branches') ? searchParams.get('branches').split(',') : [])
-  const [collegeQuery, setCollegeQuery] = useState(searchParams.get('college') || '')
-  const [mode, setMode] = useState(searchParams.get('mode') || 'analyzer') // 'analyzer' | 'explorer'
+  
+  const initialBranches = branchName ? [branchName] : (searchParams.get('branches') ? searchParams.get('branches').split(',') : [])
+  const [selectedBranches, setSelectedBranches] = useState(initialBranches)
+  
+  const initialCollege = collegeName || searchParams.get('college') || ''
+  const [collegeQuery, setCollegeQuery] = useState(initialCollege)
+  
+  let initialMode = 'analyzer'
+  if (isExplorerRoute) initialMode = 'explorer'
+  else if (isAnalyzerRoute) initialMode = 'analyzer'
+  else if (searchParams.get('mode')) initialMode = searchParams.get('mode')
+  
+  const [mode, setMode] = useState(initialMode)
 
   const [hasAutoSearched, setHasAutoSearched] = useState(false)
   const { toggleSidebar } = useContext(SidebarContext)
@@ -196,14 +209,29 @@ export default function App() {
 
       // Update URL with current search parameters so it's easily shareable
       const params = new URLSearchParams()
-      params.set('mode', mode)
-      if (mode === 'analyzer' && rankNum) params.set('rank', rankNum)
       if (mode === 'analyzer') params.set('variation', variation)
-      params.set('cat', category)
       params.set('seat', seatType)
-      if (collegeQuery) params.set('college', collegeQuery)
-      if (selectedBranches.length > 0) params.set('branches', selectedBranches.join(','))
-      setSearchParams(params, { replace: true })
+      if (collegeQuery && mode === 'analyzer') params.set('college', collegeQuery)
+      if (selectedBranches.length > 0 && mode === 'analyzer') params.set('branches', selectedBranches.join(','))
+      if (mode === 'explorer' && collegeQuery && selectedBranches.length > 0) {
+        params.set('college', collegeQuery) // if both are selected, we put one in query param
+      }
+      
+      let newPath = `/${stream}`
+      if (mode === 'analyzer' && rankNum) {
+        newPath = `/analyzer/${stream}/rank/${rankNum}/${encodeURIComponent(category)}`
+      } else if (mode === 'explorer') {
+        if (selectedBranches.length > 0) {
+          newPath = `/explorer/${stream}/branch/${encodeURIComponent(selectedBranches[0])}`
+          params.set('cat', category)
+        } else if (collegeQuery) {
+          newPath = `/explorer/${stream}/college/${encodeURIComponent(collegeQuery)}`
+          params.set('cat', category)
+        }
+      }
+      
+      const queryString = params.toString() ? `?${params.toString()}` : ''
+      navigate(`${newPath}${queryString}`, { replace: true })
 
       // Send event to Google Analytics
       if (window.gtag) {
@@ -232,14 +260,14 @@ export default function App() {
     // Only auto-search once all metadata has successfully loaded
     if (branches.length > 0 && colleges.length > 0 && rounds.length > 0 && !hasAutoSearched) {
       const searchParams = new URLSearchParams(window.location.search)
-      if (searchParams.has('cat') || searchParams.has('rank') || searchParams.has('college') || searchParams.has('branches')) {
+      if (isAnalyzerRoute || isExplorerRoute || searchParams.has('cat') || searchParams.has('rank') || searchParams.has('college') || searchParams.has('branches')) {
         setHasAutoSearched(true)
         search()
       } else {
         setHasAutoSearched(true) // No params, so just mark as done
       }
     }
-  }, [branches, colleges, rounds, hasAutoSearched, search])
+  }, [branches, colleges, rounds, hasAutoSearched, search, isAnalyzerRoute, isExplorerRoute])
 
   const handleClear = useCallback(() => {
     setRank('')
