@@ -12,7 +12,6 @@ import ArticleCTABlocks from './ArticleCTABlocks'
 import ArticleFAQ from './ArticleFAQ'
 import ArticleSuggestions from './ArticleSuggestions'
 import Footer from '../Footer'
-import LegalFooter from '../LegalFooter'
 
 const articleCache = {}
 
@@ -282,7 +281,6 @@ export default function ArticleContainer() {
       </div>
       <Footer />
     </main>
-    <LegalFooter />
     </div>
   )
 }

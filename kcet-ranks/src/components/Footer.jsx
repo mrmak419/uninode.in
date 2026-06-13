@@ -2,8 +2,8 @@ import { Link } from 'react-router-dom'
 
 export default function Footer() {
   return (
-    <footer className="mt-12 py-8 border-t border-border bg-gray-50/50">
-      <div className="max-w-7xl mx-auto px-4 text-center text-muted text-xs font-body flex flex-col items-center space-y-4">
+    <footer className="mt-6 py-4 border-t border-border bg-gray-50/50">
+      <div className="max-w-7xl mx-auto px-4 text-center text-muted text-xs font-body flex flex-col items-center space-y-2">
         
         <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
           <Link to="/gear" className="text-indigo-600 hover:text-indigo-800 transition-colors font-medium underline">Student Essentials</Link>
