@@ -1,3 +1,9 @@
 node_modules
 dist
 .env
+public/data_*.json
+public/data_*.json.br
+public/data_*.json.gz
+public/meta_*.json
+public/meta_*.json.br
+public/meta_*.json.gz

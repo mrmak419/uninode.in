@@ -146,25 +146,36 @@ async function fetchMetadata() {
     
     streamSummaries.push({ id: stream, yearSummary: yearsArray });
 
-    // --- NEW: EXPORT FULL COMPRESSED DATA ---
+    // --- NEW: EXPORT FULL COMPRESSED DATA IN CHUNKS ---
     const publicDir = path.resolve(process.cwd(), 'public');
     if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
 
-    console.log(`Compressing ${allMatrixData.length} rows for ${stream}...`);
-    const jsonBuffer = Buffer.from(JSON.stringify(allMatrixData));
+    const CHUNK_SIZE = 30000;
+    const numChunks = Math.ceil(allMatrixData.length / CHUNK_SIZE);
     
-    // Write Raw JSON
-    fs.writeFileSync(path.join(publicDir, `data_${stream}.json`), jsonBuffer);
-    
-    // Write Brotli (Level 4 for much faster builds)
-    const brBuffer = await brotliCompress(jsonBuffer, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4 }});
-    fs.writeFileSync(path.join(publicDir, `data_${stream}.json.br`), brBuffer);
-    
-    // Write Gzip
-    const gzBuffer = await gzip(jsonBuffer, { level: 6 });
-    fs.writeFileSync(path.join(publicDir, `data_${stream}.json.gz`), gzBuffer);
+    // Store numChunks in the meta object so the frontend knows how many to fetch
+    streams[stream].numChunks = numChunks;
 
-    console.log(`✅ Saved data_${stream}.json (Raw: ${(jsonBuffer.length/1024/1024).toFixed(2)}MB, Brotli: ${(brBuffer.length/1024/1024).toFixed(2)}MB)`);
+    console.log(`Compressing ${allMatrixData.length} rows for ${stream} into ${numChunks} chunks...`);
+    
+    for (let i = 0; i < numChunks; i++) {
+      const chunkData = allMatrixData.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+      const jsonBuffer = Buffer.from(JSON.stringify(chunkData));
+      const chunkName = `data_${stream}_${i}.json`;
+      
+      // Write Raw JSON
+      fs.writeFileSync(path.join(publicDir, chunkName), jsonBuffer);
+      
+      // Write Brotli (Level 4 for much faster builds)
+      const brBuffer = await brotliCompress(jsonBuffer, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4 }});
+      fs.writeFileSync(path.join(publicDir, `${chunkName}.br`), brBuffer);
+      
+      // Write Gzip
+      const gzBuffer = await gzip(jsonBuffer, { level: 6 });
+      fs.writeFileSync(path.join(publicDir, `${chunkName}.gz`), gzBuffer);
+      
+      console.log(`✅ Saved ${chunkName} (Raw: ${(jsonBuffer.length/1024/1024).toFixed(2)}MB, Brotli: ${(brBuffer.length/1024/1024).toFixed(2)}MB)`);
+    }
   }
 
   // Convert Maps/Sets back to arrays

@@ -95,12 +95,26 @@ export default function App() {
           setFullMatrixData(null)
         }
 
-        // Also fetch the full matrix data for client-side search
-        const dataRes = await fetch(`/data_${stream}.json?v=${__BUILD_HASH__}`)
-        if (dataRes.ok) {
-          const matrixData = await dataRes.json()
-          setFullMatrixData(matrixData)
+        // Also fetch the full matrix data in chunks for client-side search
+        let matrixData = [];
+        if (data.numChunks && data.numChunks > 0) {
+          const fetchPromises = [];
+          for (let i = 0; i < data.numChunks; i++) {
+            fetchPromises.push(
+              fetch(`/data_${stream}_${i}.json?v=${__BUILD_HASH__}`)
+                .then(r => r.ok ? r.json() : [])
+            );
+          }
+          const chunkResults = await Promise.all(fetchPromises);
+          matrixData = chunkResults.flat();
+        } else {
+          // Fallback just in case some streams don't have chunks yet
+          const dataRes = await fetch(`/data_${stream}.json?v=${__BUILD_HASH__}`);
+          if (dataRes.ok) {
+            matrixData = await dataRes.json();
+          }
         }
+        setFullMatrixData(matrixData);
       } catch (err) {
         console.error("Failed to load stream metadata/data:", err)
       }
