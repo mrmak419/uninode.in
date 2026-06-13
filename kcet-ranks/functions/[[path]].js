@@ -38,15 +38,17 @@ export async function onRequest(context) {
   let pageTitle = `KCET Cutoffs | Uninode KCET Cutoff Analyzer`;
   let pageDescription = `Analyze historical KCET cutoff trends. Discover eligible colleges for your rank with the Uninode KCET Cutoff Analyzer.`;
 
-  // Helper to format slugs like 'computer-science' to 'Computer Science'
+  // Helper to format slugs like 'computer-science' or 'computer%20science' to 'Computer Science'
   const formatSlug = (slug) => {
     if (!slug) return '';
-    return slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    try { slug = decodeURIComponent(slug); } catch(e) {}
+    return slug.split(/[- ]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
 
   const formatStream = (slug) => {
     if (!slug) return 'KCET';
-    return slug.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    try { slug = decodeURIComponent(slug); } catch(e) {}
+    return slug.split(/[_ ]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
 
   if (pathParts.length > 0) {
