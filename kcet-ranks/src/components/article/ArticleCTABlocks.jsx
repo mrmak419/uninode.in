@@ -19,7 +19,10 @@ export default function ArticleCTABlocks({ stream, branch, category, cleanColleg
           />
         </div>
         <Link 
-          to={`/${stream}?mode=analyzer&branches=${encodeURIComponent(branch).replace(/%20/g, '+')}&cat=${encodeURIComponent(category)}${userRankInput ? '&rank=' + userRankInput : ''}`}
+          to={userRankInput 
+            ? `/analyzer/${stream}/rank/${userRankInput}/${encodeURIComponent(category)}?branches=${encodeURIComponent(branch)}`
+            : `/explorer/${stream}/branch/${encodeURIComponent(branch)}?cat=${encodeURIComponent(category)}`
+          }
           className="inline-block bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow hover:bg-blue-700 hover:shadow-md transition-all"
         >
           Analyze
@@ -32,7 +35,7 @@ export default function ArticleCTABlocks({ stream, branch, category, cleanColleg
           <p className="text-emerald-800 mb-6 text-sm">Discover and compare cutoff ranks for all other branches offered at {cleanCollege}.</p>
         </div>
         <Link 
-          to={`/${stream}?mode=archive&college=${encodeURIComponent(cleanCollege)}&cat=${encodeURIComponent(category)}`}
+          to={`/explorer/${stream}/college/${encodeURIComponent(cleanCollege)}?cat=${encodeURIComponent(category)}`}
           className="inline-block bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg shadow hover:bg-emerald-700 hover:shadow-md transition-all"
         >
           View College
