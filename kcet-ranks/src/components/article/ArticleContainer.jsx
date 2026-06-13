@@ -1,7 +1,6 @@
 import { useState, useEffect, useContext } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Menu } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
 import { SidebarContext } from '../Layout'
 
 import ArchiveGrid from './ArchiveGrid'
@@ -14,6 +13,7 @@ import ArticleSuggestions from './ArticleSuggestions'
 import Footer from '../Footer'
 
 const articleCache = {}
+const allDataCache = {}
 
 const TopNavigation = () => {
   const { toggleSidebar } = useContext(SidebarContext)
@@ -83,20 +83,25 @@ export default function ArticleContainer() {
       }
 
       let allData = [];
-      if (meta.numChunks && meta.numChunks > 0) {
-        const fetchPromises = [];
-        for (let i = 0; i < meta.numChunks; i++) {
-          fetchPromises.push(
-            fetch(`/data_${stream}_${i}.json`)
-              .then(r => r.ok ? r.json() : [])
-          );
-        }
-        const chunkResults = await Promise.all(fetchPromises);
-        allData = chunkResults.flat();
+      if (allDataCache[stream]) {
+        allData = allDataCache[stream];
       } else {
-        const dataRes = await fetch(`/data_${stream}.json`);
-        if (!dataRes.ok) throw new Error("Data not found");
-        allData = await dataRes.json();
+        if (meta.numChunks && meta.numChunks > 0) {
+          const fetchPromises = [];
+          for (let i = 0; i < meta.numChunks; i++) {
+            fetchPromises.push(
+              fetch(`/data_${stream}_${i}.json`)
+                .then(r => r.ok ? r.json() : [])
+            );
+          }
+          const chunkResults = await Promise.all(fetchPromises);
+          allData = chunkResults.flat();
+        } else {
+          const dataRes = await fetch(`/data_${stream}.json`);
+          if (!dataRes.ok) throw new Error("Data not found");
+          allData = await dataRes.json();
+        }
+        allDataCache[stream] = allData;
       }
 
       const matchedRow = allData.find(r => 
@@ -273,10 +278,11 @@ export default function ArticleContainer() {
         />
         
         <ArticleSuggestions 
-          stream={stream}
-          articleData={articleData}
+          stream={stream} 
+          articleData={articleData} 
           category={category}
-          latestRoundRank={latestRoundRank}
+          latestRoundRank={latestRoundRank} 
+          allData={allDataCache[stream]}
         />
       </div>
       <Footer />

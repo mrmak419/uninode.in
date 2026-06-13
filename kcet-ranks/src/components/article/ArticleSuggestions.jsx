@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
 
-export default function ArticleSuggestions({ stream, articleData, category, latestRoundRank }) {
+export default function ArticleSuggestions({ stream, articleData, category, latestRoundRank, allData }) {
   const [suggestions, setSuggestions] = useState({ prev: null, next: null })
   const [isFetching, setIsFetching] = useState(true)
 
   useEffect(() => {
-    if (!articleData || !latestRoundRank) return
+    if (!articleData || !latestRoundRank || !allData) return
 
-    async function getSuggestions() {
+    function getSuggestions() {
       setIsFetching(true)
       try {
         function getLatestRank(roundsObj) {
@@ -32,13 +31,12 @@ export default function ArticleSuggestions({ stream, articleData, category, late
         }
 
         // Find other branches in the same college
-        const { data: sameCollegeData } = await supabase
-          .from(`cutoffs_matrix_${stream}`)
-          .select('course_name, rounds')
-          .eq('college_name', articleData.college_name)
-          .eq('category', category)
-          .eq('seat_type', articleData.seat_type)
-          .neq('course_name', articleData.course_name)
+        const sameCollegeData = allData.filter(d => 
+          d.college_name === articleData.college_name &&
+          d.category === category &&
+          d.seat_type === articleData.seat_type &&
+          d.course_name !== articleData.course_name
+        )
         
         let bestPrev = null;
         let minDiffPrev = Infinity;
@@ -57,13 +55,12 @@ export default function ArticleSuggestions({ stream, articleData, category, late
         }
 
         // Find similar colleges for the same branch
-        const { data: sameBranchData } = await supabase
-          .from(`cutoffs_matrix_${stream}`)
-          .select('college_name, rounds')
-          .eq('course_name', articleData.course_name)
-          .eq('category', category)
-          .eq('seat_type', articleData.seat_type)
-          .neq('college_name', articleData.college_name)
+        const sameBranchData = allData.filter(d => 
+          d.course_name === articleData.course_name &&
+          d.category === category &&
+          d.seat_type === articleData.seat_type &&
+          d.college_name !== articleData.college_name
+        )
         
         let bestNext = null;
         let minDiffNext = Infinity;
@@ -92,8 +89,10 @@ export default function ArticleSuggestions({ stream, articleData, category, late
         setIsFetching(false)
       }
     }
+    
+    // We can run this immediately without async since it's an in-memory array operation
     getSuggestions()
-  }, [stream, articleData, category, latestRoundRank])
+  }, [stream, articleData, category, latestRoundRank, allData])
 
   if (isFetching) {
     return (
