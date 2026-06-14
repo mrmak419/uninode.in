@@ -58,7 +58,7 @@ export default function ArticleContainer() {
     try {
       setLoading(true)
       
-      const res = await fetch(`/meta_${stream}.json`)
+      const res = await fetch(`/meta_${stream}.json?v=1`)
       if (!res.ok) throw new Error("Metadata not found")
       const meta = await res.json()
       
