@@ -9,6 +9,7 @@ import ArticleMatrixTable from './ArticleMatrixTable'
 import ArticleNarrative from './ArticleNarrative'
 import ArticleCTABlocks from './ArticleCTABlocks'
 import ArticleFAQ from './ArticleFAQ'
+import ArticleOtherCategories from './ArticleOtherCategories'
 import ArticleSuggestions from './ArticleSuggestions'
 import Footer from '../Footer'
 
@@ -282,6 +283,15 @@ export default function ArticleContainer() {
           branch={branch}
           category={category}
           cleanCollege={cleanCollege}
+          articleData={articleData}
+        />
+
+        <ArticleOtherCategories
+          stream={stream}
+          college={college}
+          branch={branch}
+          currentCategory={category}
+          collegeDataObj={collegeDataObj}
           articleData={articleData}
         />
         
