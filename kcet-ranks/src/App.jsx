@@ -363,9 +363,12 @@ export default function App() {
         {/* Page Title & Toggle Container */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b border-border/50 pb-6">
           <div>
-            <h1 className="text-3xl font-display font-bold text-ink mb-1 flex items-center gap-3">
-              {stream.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            <h1 className="sr-only">
+              {stream.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} KCET Cutoffs & Rank Analyzer
             </h1>
+            <h2 className="text-3xl font-display font-bold text-ink mb-1 flex items-center gap-3">
+              {stream.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            </h2>
             <p className="text-muted font-body text-sm">
               Historical cut-off analysis ({yearsText})
             </p>

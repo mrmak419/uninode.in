@@ -91,6 +91,7 @@ export default function Home() {
 
       {/* Grid Section */}
       <main className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full">
+        <h1 className="sr-only">Uninode KCET Cutoff Analyzer & College Predictor</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {streams.filter(s => {
             const streamId = typeof s === 'string' ? s : s.id;
