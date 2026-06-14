@@ -255,6 +255,7 @@ async function fetchMetadata() {
   // Write individual metadata files per stream
   for (const [stream, data] of Object.entries(streams)) {
     delete data._seenRounds;
+    data.lastUpdated = Date.now();
     const jsonBuffer = Buffer.from(JSON.stringify(data));
     const filePath = path.join(publicDir, `meta_${stream}.json`);
     fs.writeFileSync(filePath, jsonBuffer);

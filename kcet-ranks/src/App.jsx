@@ -102,7 +102,7 @@ export default function App() {
           const fetchPromises = [];
           for (let i = 0; i < data.numChunks; i++) {
             fetchPromises.push(
-              fetch(`/data_${stream}_${i}.json`)
+              fetch(`/data_${stream}_${i}.json?v=${data.lastUpdated || ''}`)
                 .then(r => r.ok ? r.json() : [])
             );
           }
@@ -110,7 +110,7 @@ export default function App() {
           matrixData = chunkResults.flat();
         } else {
           // Fallback just in case some streams don't have chunks yet
-          const dataRes = await fetch(`/data_${stream}.json`);
+          const dataRes = await fetch(`/data_${stream}.json?v=${data.lastUpdated || ''}`);
           if (dataRes.ok) {
             matrixData = await dataRes.json();
           }

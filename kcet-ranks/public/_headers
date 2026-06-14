@@ -1,4 +1,4 @@
 /data_*.json
   Cache-Control: public, max-age=31536000, immutable
 /meta_*.json
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: public, max-age=3600, must-revalidate

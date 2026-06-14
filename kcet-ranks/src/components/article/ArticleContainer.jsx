@@ -90,14 +90,14 @@ export default function ArticleContainer() {
           const fetchPromises = [];
           for (let i = 0; i < meta.numChunks; i++) {
             fetchPromises.push(
-              fetch(`/data_${stream}_${i}.json`)
+              fetch(`/data_${stream}_${i}.json?v=${meta.lastUpdated || ''}`)
                 .then(r => r.ok ? r.json() : [])
             );
           }
           const chunkResults = await Promise.all(fetchPromises);
           allData = chunkResults.flat();
         } else {
-          const dataRes = await fetch(`/data_${stream}.json`);
+          const dataRes = await fetch(`/data_${stream}.json?v=${meta.lastUpdated || ''}`);
           if (!dataRes.ok) throw new Error("Data not found");
           allData = await dataRes.json();
         }
