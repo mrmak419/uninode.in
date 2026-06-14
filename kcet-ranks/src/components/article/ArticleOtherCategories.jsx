@@ -5,10 +5,13 @@ export default function ArticleOtherCategories({ stream, college, branch, curren
   if (!collegeDataObj || !collegeDataObj.cutoffs || !articleData) return null;
 
   const otherCategories = collegeDataObj.cutoffs
-    .filter(r => 
-      r.course_name === articleData.course_name && 
-      r.category !== currentCategory
-    )
+    .filter(r => {
+      if (r.course_name !== articleData.course_name) return false;
+      if (r.category === currentCategory) return false;
+      // Ensure the category has at least one valid historical rank
+      const hasValidRank = r.rounds && Object.values(r.rounds).some(val => val !== null && val !== undefined && val !== '--');
+      return hasValidRank;
+    })
     .map(r => r.category);
 
   const uniqueCategories = [...new Set(otherCategories)].sort();
