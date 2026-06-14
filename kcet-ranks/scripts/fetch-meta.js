@@ -7,6 +7,7 @@ import { promisify } from 'util';
 
 const brotliCompress = promisify(zlib.brotliCompress);
 const gzip = promisify(zlib.gzip);
+import { processCollegeChunks } from './precompute-suggestions.js';
 
 // Load environment variables from .env
 dotenv.config();
@@ -146,6 +147,22 @@ async function fetchMetadata() {
     
     streamSummaries.push({ id: stream, yearSummary: yearsArray });
 
+    // --- NEW: EXPORT COLLEGE-LEVEL STATIC CHUNKS ---
+    const collegeDataDir = path.resolve(process.cwd(), 'public', 'college_data');
+    if (!fs.existsSync(collegeDataDir)) fs.mkdirSync(collegeDataDir, { recursive: true });
+
+    console.log(`Precomputing suggestions and splitting ${stream} by college...`);
+    const collegeOutputs = processCollegeChunks(allMatrixData);
+    
+    for (const [collegeCode, dataObj] of Object.entries(collegeOutputs)) {
+      const cBuffer = Buffer.from(JSON.stringify(dataObj));
+      const cName = `${stream}_${collegeCode}.json`;
+      fs.writeFileSync(path.join(collegeDataDir, cName), cBuffer);
+      const cBrBuffer = await brotliCompress(cBuffer, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4 }});
+      fs.writeFileSync(path.join(collegeDataDir, `${cName}.br`), cBrBuffer);
+    }
+    console.log(`✅ Saved ${Object.keys(collegeOutputs).length} college-specific files for ${stream}`);
+
     // --- NEW: EXPORT FULL COMPRESSED DATA IN CHUNKS ---
     const publicDir = path.resolve(process.cwd(), 'public');
     if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
@@ -256,19 +273,39 @@ async function fetchMetadata() {
   for (const [stream, data] of Object.entries(streams)) {
     delete data._seenRounds;
     data.lastUpdated = Date.now();
-    const jsonBuffer = Buffer.from(JSON.stringify(data));
+    
+    // Extract articleCombinations to a separate file so meta_*.json stays tiny
+    const archiveData = { 
+      articleCombinations: data.articleCombinations || [] 
+    };
+    
+    const metaData = { ...data };
+    delete metaData.articleCombinations;
+
+    // Write meta_*.json
+    const jsonBuffer = Buffer.from(JSON.stringify(metaData));
     const filePath = path.join(publicDir, `meta_${stream}.json`);
     fs.writeFileSync(filePath, jsonBuffer);
     
-    // Write Brotli (Level 4)
     const brBuffer = await brotliCompress(jsonBuffer, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4 }});
     fs.writeFileSync(path.join(publicDir, `meta_${stream}.json.br`), brBuffer);
     
-    // Write Gzip (Level 6)
     const gzBuffer = await gzip(jsonBuffer, { level: 6 });
     fs.writeFileSync(path.join(publicDir, `meta_${stream}.json.gz`), gzBuffer);
 
+    // Write archive_*.json
+    const archiveBuffer = Buffer.from(JSON.stringify(archiveData));
+    const archivePath = path.join(publicDir, `archive_${stream}.json`);
+    fs.writeFileSync(archivePath, archiveBuffer);
+    
+    const archiveBrBuffer = await brotliCompress(archiveBuffer, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4 }});
+    fs.writeFileSync(path.join(publicDir, `archive_${stream}.json.br`), archiveBrBuffer);
+    
+    const archiveGzBuffer = await gzip(archiveBuffer, { level: 6 });
+    fs.writeFileSync(path.join(publicDir, `archive_${stream}.json.gz`), archiveGzBuffer);
+
     console.log(`✅ Wrote meta_${stream}.json (${data.colleges.length} colleges, ${data.branches.length} branches)`);
+    console.log(`✅ Wrote archive_${stream}.json (${archiveData.articleCombinations.length} combinations)`);
   }  // Generate sitemap.xml
   const domain = process.env.VITE_APP_DOMAIN || 'https://kcet.uninode.in';
   const currentDate = new Date().toISOString();

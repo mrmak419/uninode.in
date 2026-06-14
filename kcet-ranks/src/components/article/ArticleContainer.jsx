@@ -38,11 +38,11 @@ const TopNavigation = () => {
 export default function ArticleContainer() {
   const { stream: streamParam, college, branch, category } = useParams()
   const stream = streamParam || 'engineering'
-  const seatType = 'ROK' // Hardcoded since we only support ROK in articles right now
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [articleData, setArticleData] = useState(null)
+  const [collegeDataObj, setCollegeDataObj] = useState(null)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -75,52 +75,59 @@ export default function ArticleContainer() {
         return
       }
 
-      const cacheKey = `${stream}_${college}_${branch}_${category}_${seatType}`
+      const cacheKey = `${stream}_${college}_${branch}_${category}`
       if (articleCache[cacheKey]) {
         setArticleData(articleCache[cacheKey])
         setLoading(false)
         return
       }
 
-      let allData = [];
-      if (allDataCache[stream]) {
-        allData = allDataCache[stream];
-      } else {
-        if (meta.numChunks && meta.numChunks > 0) {
-          const fetchPromises = [];
-          for (let i = 0; i < meta.numChunks; i++) {
-            fetchPromises.push(
-              fetch(`/data_${stream}_${i}.json?v=${meta.lastUpdated || ''}`)
-                .then(r => r.ok ? r.json() : [])
-            );
+      // Find ALL college codes that match the name (e.g., BMS College has E003 and E048)
+      const matchedColleges = meta.colleges.filter(c => c.college_name.toLowerCase().includes(college.toLowerCase()));
+      if (matchedColleges.length === 0) {
+        setError("College Not Found (Code mismatch)")
+        setLoading(false);
+        return;
+      }
+      
+      let matchedRow = null;
+      let finalCollegeData = null;
+
+      for (const colObj of matchedColleges) {
+        const collegeCode = colObj.college_code;
+        const collegeDataRes = await fetch(`/college_data/${stream}_${collegeCode}.json?v=${meta.lastUpdated || ''}`);
+        
+        if (collegeDataRes.ok) {
+          const collegeData = await collegeDataRes.json();
+          const allData = collegeData.cutoffs;
+
+          const row = allData.find(r => 
+            r.category === category && 
+            matchingRawNames.includes(r.course_name) && 
+            r.college_name.toLowerCase().includes(college.toLowerCase())
+          );
+
+          if (row) {
+            matchedRow = row;
+            finalCollegeData = collegeData;
+            break; // Found it!
           }
-          const chunkResults = await Promise.all(fetchPromises);
-          allData = chunkResults.flat();
-        } else {
-          const dataRes = await fetch(`/data_${stream}.json?v=${meta.lastUpdated || ''}`);
-          if (!dataRes.ok) throw new Error("Data not found");
-          allData = await dataRes.json();
         }
-        allDataCache[stream] = allData;
       }
 
-      const matchedRow = allData.find(r => 
-        r.category === category && 
-        matchingRawNames.includes(r.course_name) && 
-        r.college_name.toLowerCase().includes(college.toLowerCase())
-      )
-
       if (!matchedRow) {
-        setError("Article Not Found")
+        setError("Article Not Found (Row mismatch)")
         setLoading(false)
         return
       }
 
+      setCollegeDataObj(finalCollegeData)
       articleCache[cacheKey] = matchedRow
       setArticleData(matchedRow)
       
     } catch (err) {
-      setError("Article Not Found")
+      console.error("Article load error:", err);
+      setError(`Article Not Found (Fetch Error: ${err.message})`)
     } finally {
       setLoading(false)
     }
@@ -236,7 +243,7 @@ export default function ArticleContainer() {
           category={category} 
           topYears={topYears} 
           articleData={articleData} 
-          seatType={seatType} 
+          seatType={articleData.seat_type} 
         />
         
         <ArticleMatrixTable 
@@ -275,6 +282,7 @@ export default function ArticleContainer() {
           branch={branch}
           category={category}
           cleanCollege={cleanCollege}
+          articleData={articleData}
         />
         
         <ArticleSuggestions 
@@ -282,7 +290,8 @@ export default function ArticleContainer() {
           articleData={articleData} 
           category={category}
           latestRoundRank={latestRoundRank} 
-          allData={allDataCache[stream]}
+          precomputedSuggestions={collegeDataObj?.suggestions}
+
         />
       </div>
       <Footer />

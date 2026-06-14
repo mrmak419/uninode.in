@@ -2,111 +2,16 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 
-export default function ArticleSuggestions({ stream, articleData, category, latestRoundRank, allData }) {
-  const [suggestions, setSuggestions] = useState({ prev: null, next: null })
-  const [isFetching, setIsFetching] = useState(true)
+export default function ArticleSuggestions({ stream, articleData, category, precomputedSuggestions }) {
+  if (!articleData || !precomputedSuggestions) return null;
 
-  useEffect(() => {
-    if (!articleData || !latestRoundRank || !allData) return
+  const suggKey = `${articleData.course_name}|${category}|${articleData.seat_type || 'G'}`;
+  const suggestionsObj = precomputedSuggestions[suggKey] || {};
 
-    function getSuggestions() {
-      setIsFetching(true)
-      try {
-        function getLatestRank(roundsObj) {
-            if (!roundsObj) return null;
-            let latestY = 0;
-            let latestR = 0;
-            let rank = null;
-            for (const key of Object.keys(roundsObj)) {
-                const [y, r] = key.split('_R').map(Number);
-                if (!isNaN(y) && !isNaN(r)) {
-                    if (y > latestY || (y === latestY && r > latestR)) {
-                        latestY = y;
-                        latestR = r;
-                        rank = roundsObj[key];
-                    }
-                }
-            }
-            return rank;
-        }
+  const prevItem = suggestionsObj.similarBranch;
+  const nextItem = suggestionsObj.similarCollege;
 
-        // Find other branches in the same college
-        const sameCollegeData = allData.filter(d => 
-          d.college_name === articleData.college_name &&
-          d.category === category &&
-          d.seat_type === articleData.seat_type &&
-          d.course_name !== articleData.course_name
-        )
-        
-        let bestPrev = null;
-        let minDiffPrev = Infinity;
-        
-        if (sameCollegeData) {
-            sameCollegeData.forEach(row => {
-                const r = getLatestRank(row.rounds);
-                if (r) {
-                    const diff = Math.abs(r - latestRoundRank);
-                    if (diff < minDiffPrev) {
-                        minDiffPrev = diff;
-                        bestPrev = row;
-                    }
-                }
-            })
-        }
-
-        // Find similar colleges for the same branch
-        const sameBranchData = allData.filter(d => 
-          d.course_name === articleData.course_name &&
-          d.category === category &&
-          d.seat_type === articleData.seat_type &&
-          d.college_name !== articleData.college_name
-        )
-        
-        let bestNext = null;
-        let minDiffNext = Infinity;
-
-        if (sameBranchData) {
-            sameBranchData.forEach(row => {
-                const r = getLatestRank(row.rounds);
-                if (r) {
-                    const diff = Math.abs(r - latestRoundRank);
-                    if (diff < minDiffNext) {
-                        minDiffNext = diff;
-                        bestNext = row;
-                    }
-                }
-            })
-        }
-
-        setSuggestions({ 
-            prev: bestPrev ? { college: articleData.college_name, branch: bestPrev.course_name, category } : null, 
-            next: bestNext ? { college: bestNext.college_name, branch: articleData.course_name, category } : null 
-        })
-
-      } catch (err) {
-        console.error("Failed to load suggestions", err)
-      } finally {
-        setIsFetching(false)
-      }
-    }
-    
-    // We can run this immediately without async since it's an in-memory array operation
-    getSuggestions()
-  }, [stream, articleData, category, latestRoundRank, allData])
-
-  if (isFetching) {
-    return (
-      <div className="mt-12 pt-8 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="h-28 bg-gray-100 rounded-xl animate-pulse w-full"></div>
-        <div className="h-28 bg-gray-100 rounded-xl animate-pulse w-full"></div>
-      </div>
-    )
-  }
-
-  if (!suggestions.prev && !suggestions.next) return null
-
-  const prevItem = suggestions.prev
-  const nextItem = suggestions.next
+  if (!prevItem && !nextItem) return null;
 
   return (
     <div className="mt-12 pt-8 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
-export default function ArticleCTABlocks({ stream, branch, category, cleanCollege }) {
+export default function ArticleCTABlocks({ stream, branch, category, cleanCollege, articleData }) {
   const [userRankInput, setUserRankInput] = useState('')
 
   return (
@@ -20,8 +20,8 @@ export default function ArticleCTABlocks({ stream, branch, category, cleanColleg
         </div>
         <Link 
           to={userRankInput 
-            ? `/analyzer/${stream}/rank/${userRankInput}/${encodeURIComponent(category)}?branches=${encodeURIComponent(branch)}`
-            : `/explorer/${stream}/branch/${encodeURIComponent(branch)}?cat=${encodeURIComponent(category)}`
+            ? `/analyzer/${stream}/rank/${userRankInput}/${encodeURIComponent(category)}?branches=${encodeURIComponent(branch)}&seat=${encodeURIComponent(articleData?.seat_type || 'ROK')}`
+            : `/explorer/${stream}/branch/${encodeURIComponent(branch)}?cat=${encodeURIComponent(category)}&seat=${encodeURIComponent(articleData?.seat_type || 'ROK')}`
           }
           className="inline-block bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow hover:bg-blue-700 hover:shadow-md transition-all"
         >
@@ -35,7 +35,7 @@ export default function ArticleCTABlocks({ stream, branch, category, cleanColleg
           <p className="text-emerald-800 mb-6 text-sm">Discover and compare cutoff ranks for all other branches offered at {cleanCollege}.</p>
         </div>
         <Link 
-          to={`/explorer/${stream}/college/${encodeURIComponent(cleanCollege)}?cat=${encodeURIComponent(category)}`}
+          to={`/explorer/${stream}/college/${encodeURIComponent(articleData.college_name)}?cat=${encodeURIComponent(category)}&seat=${encodeURIComponent(articleData?.seat_type || 'ROK')}`}
           className="inline-block bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg shadow hover:bg-emerald-700 hover:shadow-md transition-all"
         >
           View College
