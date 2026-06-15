@@ -5,7 +5,7 @@ export default function ArticleCTABlocks({ stream, branch, category, cleanColleg
   const [userRankInput, setUserRankInput] = useState('')
 
   return (
-    <div className="mt-12 mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="mt-12 mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-8 text-center flex flex-col justify-between">
         <div>
           <h3 className="text-xl font-bold text-blue-900 mb-3">Will you get a seat?</h3>
@@ -39,6 +39,21 @@ export default function ArticleCTABlocks({ stream, branch, category, cleanColleg
           className="inline-block bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg shadow hover:bg-emerald-700 hover:shadow-md transition-all"
         >
           View College
+        </Link>
+      </div>
+
+      <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-8 text-center flex flex-col justify-between">
+        <div>
+          <h3 className="text-xl font-bold text-indigo-900 mb-3">College Essentials</h3>
+          <p className="text-indigo-800 mb-6 text-sm">We made a list of the exact laptops and hostel essentials you'll actually need for college.</p>
+        </div>
+        <Link 
+          to="/gear"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg shadow hover:bg-indigo-700 hover:shadow-md transition-all"
+        >
+          View Gear
         </Link>
       </div>
     </div>
