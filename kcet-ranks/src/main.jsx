@@ -122,7 +122,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/contact" element={<Contact />} />
               
               {/* Gear Routes */}
-              <Route path="/gear/:categorySlug" element={<GearCategory />} />
+              <Route path="/gear/:categorySlug" element={<Navigate to="/gear" replace />} />
               <Route path="/gear" element={<GearIndex />} />
 
               {/* Article Routes */}

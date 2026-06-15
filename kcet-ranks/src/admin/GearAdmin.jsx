@@ -106,6 +106,7 @@ function GearManager() {
   const [catSlug, setCatSlug] = useState('')
   const [catIcon, setCatIcon] = useState('')
   const [catSort, setCatSort] = useState(0)
+  const [editingCategoryId, setEditingCategoryId] = useState(null)
   
   // Product Form
   const [prodName, setProdName] = useState('')
@@ -210,15 +211,33 @@ function GearManager() {
   async function addCategory(e) {
     e.preventDefault()
     setSaving(true)
-    const { error } = await supabase.from('gear_categories').insert([{
-      name: catName, slug: catSlug, icon: catIcon, sort_order: parseInt(catSort)
-    }])
-    if (error) alert("Error: " + error.message)
-    else {
-      setCatName(''); setCatSlug(''); setCatIcon(''); setCatSort(0);
-      loadCategories()
+    const categoryData = { name: catName, slug: catSlug, icon: catIcon, sort_order: parseInt(catSort) }
+    
+    if (editingCategoryId) {
+      const { error } = await supabase.from('gear_categories').update(categoryData).eq('id', editingCategoryId)
+      if (error) alert("Error: " + error.message)
+      else {
+        resetCategoryForm()
+        loadCategories()
+      }
+    } else {
+      const { error } = await supabase.from('gear_categories').insert([categoryData])
+      if (error) alert("Error: " + error.message)
+      else {
+        resetCategoryForm()
+        loadCategories()
+      }
     }
     setSaving(false)
+  }
+
+  function resetCategoryForm() {
+    setCatName(''); setCatSlug(''); setCatIcon(''); setCatSort(0); setEditingCategoryId(null);
+  }
+
+  function editCategory(c) {
+    setCatName(c.name); setCatSlug(c.slug); setCatIcon(c.icon); setCatSort(c.sort_order || 0);
+    setEditingCategoryId(c.id);
   }
 
   async function deleteCategory(id) {
@@ -341,7 +360,16 @@ function GearManager() {
             </div>
           </div>
 
-          <button type="submit" disabled={saving} className="w-full bg-ink text-white py-2 rounded text-sm font-semibold hover:bg-accent disabled:opacity-50">Add Category</button>
+          <div className="flex gap-2">
+            <button type="submit" disabled={saving} className="flex-1 bg-ink text-white py-2 rounded text-sm font-semibold hover:bg-accent disabled:opacity-50">
+              {editingCategoryId ? 'Save Changes' : 'Add Category'}
+            </button>
+            {editingCategoryId && (
+              <button type="button" onClick={resetCategoryForm} className="px-4 py-2 bg-white text-ink border border-border rounded text-sm font-semibold hover:bg-gray-50">
+                Cancel
+              </button>
+            )}
+          </div>
         </form>
 
         <div className="space-y-2">
@@ -357,7 +385,10 @@ function GearManager() {
                   <div className="text-xs text-muted">/{c.slug} (Sort: {c.sort_order})</div>
                 </div>
               </div>
-              <button onClick={(e) => { e.stopPropagation(); deleteCategory(c.id); }} className="text-red-500 hover:text-red-700 p-1">✕</button>
+              <div className="flex gap-2">
+                <button onClick={(e) => { e.stopPropagation(); editCategory(c); }} className="text-blue-500 hover:text-blue-700 text-xs font-semibold">Edit</button>
+                <button onClick={(e) => { e.stopPropagation(); deleteCategory(c.id); }} className="text-red-500 hover:text-red-700 text-xs font-semibold">Delete</button>
+              </div>
             </div>
           ))}
         </div>
