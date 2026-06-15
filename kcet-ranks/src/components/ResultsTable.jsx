@@ -74,18 +74,16 @@ export default function ResultsTable({ rows, rounds, userRank }) {
           return (
             <React.Fragment key={rowKey}>
               {i === transitionIndex && (
-                <div className="bg-blue-50/80 border-b border-border p-5 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4 w-full shadow-inner relative z-10">
+                <div className="bg-blue-50/50 border-b border-border p-5 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4 w-full relative z-10">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-700">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                      </span>
-                      <h3 className="font-display font-bold text-blue-900 text-lg">Colleges in your rank range start here.</h3>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-100 px-2 py-0.5 rounded">Student Guide</span>
+                      <h3 className="font-display font-bold text-blue-900 text-base md:text-lg">College Essentials</h3>
                     </div>
-                    <p className="text-sm text-blue-800 ml-8">We made a list of the exact laptops and hostel essentials you'll actually need for college (based on what we wish we knew as freshers).</p>
+                    <p className="text-sm text-blue-800 mt-1">We made a list of the exact laptops and hostel essentials you'll actually need for college (based on what we wish we knew as freshers).</p>
                   </div>
                   <Link to="/gear" target="_blank" rel="noreferrer" className="shrink-0 bg-white hover:bg-blue-50 text-blue-700 px-6 py-3 rounded-xl font-bold text-sm transition-colors border border-blue-200 shadow-sm w-full sm:w-auto text-center">
-                    View College Essentials
+                    View Essentials
                   </Link>
                 </div>
               )}
