@@ -3,12 +3,17 @@ import { Link } from 'react-router-dom'
 import { Menu } from 'lucide-react'
 import { SidebarContext } from './Layout.jsx'
 import LegalFooter from './LegalFooter.jsx'
+import TabTitle from './TabTitle.jsx'
 
 export default function Contact() {
   const { toggleSidebar } = useContext(SidebarContext)
 
   return (
     <div className="min-h-screen bg-paper flex flex-col">
+      <TabTitle 
+        title="Contact Us | Uninode KCET" 
+        description="Get in touch with the student developers behind the Uninode KCET Cutoff Analyzer. We built this tool to help students navigate KCET counseling."
+      />
       <main className="flex-1 max-w-4xl mx-auto px-4 py-12 w-full">
         <div className="mb-8 flex items-center justify-between border-b border-border/50 pb-6">
             <div className="flex items-center gap-2 text-left">
@@ -42,21 +47,24 @@ export default function Contact() {
           <section className="bg-white border border-border p-6 rounded-2xl shadow-sm">
             <h2 className="text-xl font-bold font-display mb-4">Contact Us</h2>
             <p className="text-muted mb-4">
-              If you found a bug, have a feature request, spotted a data error, or just want to say hi, we'd love to hear from you.
+              If you found a bug, have a feature request, spotted a data error, or just want to say hi, feel free to connect with us on LinkedIn!
             </p>
-            <div className="flex flex-col gap-3">
-              <a href="mailto:ayaan@myuvce.in" className="flex items-center gap-3 text-blue-600 hover:text-blue-800 font-medium bg-blue-50/50 p-3 rounded-xl transition-colors border border-blue-100">
-                <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            <div className="flex flex-col sm:flex-row gap-3">
+              <a href="https://www.linkedin.com/in/mrmak/" target="_blank" rel="noreferrer" className="flex items-center justify-center sm:justify-start gap-3 text-blue-700 hover:text-blue-900 font-medium bg-blue-50/50 hover:bg-blue-100/50 p-3 rounded-xl transition-colors border border-blue-100 flex-1">
+                <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
                 </svg>
-                ayaan@myuvce.in
+                Connect with Ayaan
               </a>
-              <a href="mailto:shreyas.v@myuvce.in" className="flex items-center gap-3 text-blue-600 hover:text-blue-800 font-medium bg-blue-50/50 p-3 rounded-xl transition-colors border border-blue-100">
-                <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              <a href="https://www.linkedin.com/in/ishreyasv/" target="_blank" rel="noreferrer" className="flex items-center justify-center sm:justify-start gap-3 text-blue-700 hover:text-blue-900 font-medium bg-blue-50/50 hover:bg-blue-100/50 p-3 rounded-xl transition-colors border border-blue-100 flex-1">
+                <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
                 </svg>
-                shreyas.v@myuvce.in
+                Connect with Shreyas
               </a>
+            </div>
+            <div className="mt-5 pt-4 border-t border-border/50 text-sm text-muted text-center sm:text-left">
+              Or email us directly at <a href="mailto:ayaan@myuvce.in" className="text-ink hover:underline font-medium">ayaan@myuvce.in</a> and <a href="mailto:shreyas.v@myuvce.in" className="text-ink hover:underline font-medium">shreyas.v@myuvce.in</a>
             </div>
           </section>
 
