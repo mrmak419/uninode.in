@@ -115,6 +115,7 @@ function GearManager() {
   const [prodAffiliate, setProdAffiliate] = useState('')
   const [prodFeatured, setProdFeatured] = useState(false)
   const [prodSort, setProdSort] = useState(0)
+  const [editingProductId, setEditingProductId] = useState(null)
 
   // Auto-generate slug from name
   useEffect(() => {
@@ -231,18 +232,43 @@ function GearManager() {
     e.preventDefault()
     if (!selectedCategory) return
     setSaving(true)
-    const { error } = await supabase.from('gear_products').insert([{
+    
+    const productData = {
       category_id: selectedCategory.id,
       name: prodName, description: prodDesc, price_hint: prodPriceHint,
       image_url: prodImage, affiliate_url: prodAffiliate, is_featured: prodFeatured, sort_order: parseInt(prodSort)
-    }])
-    if (error) alert("Error: " + error.message)
-    else {
-      setProdName(''); setProdDesc(''); setProdPriceHint(''); setProdImage(''); setProdAffiliate(''); setProdFeatured(false); setProdSort(0);
-      loadProducts(selectedCategory.id)
-      setRawUrl('') // Clear raw URL after successful add
+    }
+
+    if (editingProductId) {
+      const { error } = await supabase.from('gear_products').update(productData).eq('id', editingProductId)
+      if (error) alert("Error: " + error.message)
+      else {
+        resetProductForm()
+        loadProducts(selectedCategory.id)
+      }
+    } else {
+      const { error } = await supabase.from('gear_products').insert([productData])
+      if (error) alert("Error: " + error.message)
+      else {
+        resetProductForm()
+        loadProducts(selectedCategory.id)
+      }
     }
     setSaving(false)
+  }
+
+  function resetProductForm() {
+    setProdName(''); setProdDesc(''); setProdPriceHint(''); setProdImage(''); setProdAffiliate(''); setProdFeatured(false); setProdSort(0);
+    setRawUrl('')
+    setEditingProductId(null)
+  }
+
+  function editProduct(p) {
+    setProdName(p.name); setProdDesc(p.description || ''); setProdPriceHint(p.price_hint || ''); 
+    setProdImage(p.image_url || ''); setProdAffiliate(p.affiliate_url || ''); 
+    setProdFeatured(p.is_featured || false); setProdSort(p.sort_order || 0);
+    setEditingProductId(p.id)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function deleteProduct(id) {
@@ -356,7 +382,16 @@ function GearManager() {
                 <input type="checkbox" checked={prodFeatured} onChange={e => setProdFeatured(e.target.checked)} className="w-4 h-4 text-accent" />
                 Featured Product (Show at top)
               </label>
-              <button type="submit" disabled={saving} className="col-span-2 bg-ink text-white py-2 rounded text-sm font-semibold hover:bg-accent disabled:opacity-50">Add Product</button>
+              <div className="col-span-2 flex gap-3">
+                <button type="submit" disabled={saving} className="flex-1 bg-ink text-white py-2 rounded text-sm font-semibold hover:bg-accent disabled:opacity-50">
+                  {editingProductId ? 'Save Changes' : 'Add Product'}
+                </button>
+                {editingProductId && (
+                  <button type="button" onClick={resetProductForm} className="px-4 py-2 bg-white text-ink border border-border rounded text-sm font-semibold hover:bg-gray-50">
+                    Cancel
+                  </button>
+                )}
+              </div>
             </form>
 
             <div className="space-y-3">
@@ -369,7 +404,10 @@ function GearManager() {
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
                       <h3 className="font-bold text-ink">{p.name}</h3>
-                      <button onClick={() => deleteProduct(p.id)} className="text-red-500 hover:text-red-700 text-xs font-semibold">Delete</button>
+                      <div className="flex gap-3">
+                        <button onClick={() => editProduct(p)} className="text-blue-500 hover:text-blue-700 text-xs font-semibold">Edit</button>
+                        <button onClick={() => deleteProduct(p.id)} className="text-red-500 hover:text-red-700 text-xs font-semibold">Delete</button>
+                      </div>
                     </div>
                     {p.price_hint && <div className="text-xs font-semibold text-green-700 bg-green-50 inline-block px-2 py-0.5 rounded mt-1">{p.price_hint}</div>}
                     <p className="text-sm text-muted mt-2">{p.description}</p>

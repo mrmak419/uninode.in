@@ -450,6 +450,16 @@ export default function App() {
 
           {!loading && groupedResults && groupedResults.length > 0 && (
             <>
+              <div className="mb-6 bg-blue-50/50 border border-blue-100 p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-display font-bold text-blue-900">Getting ready for campus?</h3>
+                  <p className="text-sm text-blue-800 mt-1">We made a checklist of things you'll actually need for your hostel and classes, based on what we forgot to bring.</p>
+                </div>
+                <Link to="/gear" className="shrink-0 bg-white hover:bg-blue-50 text-blue-700 px-5 py-2.5 rounded-xl font-medium text-sm transition-colors border border-blue-200 shadow-sm">
+                  View the Hostel Packing List
+                </Link>
+              </div>
+
               <div className="mb-4 flex items-center justify-between">
                 <p className="text-muted text-sm font-body">
                   <span className="font-semibold text-ink">{groupedResults.length}</span>

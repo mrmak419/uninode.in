@@ -36,40 +36,55 @@ class ErrorBoundary extends React.Component {
     if (!sessionStorage.getItem('reloaded_after_crash')) {
       sessionStorage.setItem('reloaded_after_crash', 'true');
       
+      const bustCacheAndReload = () => {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('v', Date.now());
+        window.location.replace(newUrl.toString());
+      };
+
       // Wipe out the broken Service Worker and force a hard reload
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then((registrations) => {
           for (let registration of registrations) {
             registration.unregister();
           }
-          // Force reload the page bypassing cache
-          window.location.reload();
-        });
+          bustCacheAndReload();
+        }).catch(() => bustCacheAndReload());
       } else {
-        window.location.reload();
+        bustCacheAndReload();
       }
     }
+  }
+
+  componentDidMount() {
+    // If the component mounts successfully, clear the crash flag after a few seconds
+    // This allows future updates to trigger the auto-reload again
+    setTimeout(() => {
+      sessionStorage.removeItem('reloaded_after_crash');
+    }, 3000);
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gray-50">
-          <button 
-            onClick={() => {
-              sessionStorage.removeItem('reloaded_after_crash');
-              if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
-              }
-              window.location.reload();
-            }}
-            className="flex items-center justify-center w-12 h-12 bg-white border border-border shadow-sm text-ink rounded-full hover:bg-gray-100 transition-colors"
-            title="Reload"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
+        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-paper">
+          <div className="max-w-sm text-center">
+            <p className="text-muted mb-6 text-sm">The page needs to be refreshed to load properly.</p>
+            <button 
+              onClick={() => {
+                sessionStorage.removeItem('reloaded_after_crash');
+                if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+                }
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.set('v', Date.now());
+                window.location.replace(newUrl.toString());
+              }}
+              className="px-5 py-2.5 bg-gray-100 text-ink text-sm font-medium border border-border rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Refresh Now
+            </button>
+          </div>
         </div>
       );
     }
