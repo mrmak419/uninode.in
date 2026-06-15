@@ -15,6 +15,42 @@ export async function onRequest(context) {
     return context.next();
   }
 
+  // Redirect old parameterized URLs to clean URLs
+  if (url.searchParams.has('mode')) {
+    const mode = url.searchParams.get('mode');
+    const pathStream = url.pathname.slice(1).split('/')[0] || 'engineering';
+    
+    if (mode === 'analyzer') {
+      const rank = url.searchParams.get('rank');
+      const cat = url.searchParams.get('cat') || 'GM';
+      if (rank) {
+        return Response.redirect(`${url.origin}/analyzer/${pathStream}/rank/${rank}/${cat}`, 301);
+      }
+    } else if (mode === 'explorer') {
+      const college = url.searchParams.get('college');
+      const branches = url.searchParams.get('branches');
+      if (college) {
+        return Response.redirect(`${url.origin}/explorer/${pathStream}/college/${encodeURIComponent(college)}`, 301);
+      } else if (branches) {
+        return Response.redirect(`${url.origin}/explorer/${pathStream}/branch/${encodeURIComponent(branches.split(',')[0])}`, 301);
+      }
+    }
+  }
+
+  // Redirect legacy /article?stream=... to /articles/stream/college/branch/cat
+  if (url.pathname === '/article' || url.pathname === '/article/') {
+    const stream = url.searchParams.get('stream') || 'engineering';
+    const college = url.searchParams.get('college');
+    const branch = url.searchParams.get('branch');
+    const cat = url.searchParams.get('cat');
+    
+    if (college && branch && cat) {
+      return Response.redirect(`${url.origin}/articles/${stream}/${encodeURIComponent(college)}/${encodeURIComponent(branch)}/${encodeURIComponent(cat)}`, 301);
+    } else {
+      return Response.redirect(`${url.origin}/articles/${stream}`, 301);
+    }
+  }
+
   // Get the static asset response from the Pages asset server
   let response = await context.next();
   
@@ -145,10 +181,8 @@ export async function onRequest(context) {
         element.append(`<script type="application/ld+json">\n${safeJsonLd}\n</script>\n`, { html: true });
         
         // SEO: Canonical URL to prevent duplicate content penalties
+        // Using clean pathname without search parameters to consolidate SEO juice
         const canonicalUrl = new URL(url.origin + url.pathname);
-        for (const [key, value] of url.searchParams.entries()) {
-          canonicalUrl.searchParams.set(key, value);
-        }
         element.append(`<link rel="canonical" href="${escapeHtml(canonicalUrl.toString())}" />\n`, { html: true });
       }
     })
