@@ -8,6 +8,8 @@ export default function Footer() {
         <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
           <Link to="/gear" className="text-indigo-600 hover:text-indigo-800 transition-colors font-medium underline">Student Essentials</Link>
           <span className="hidden sm:inline text-border">•</span>
+          <Link to="/contact" className="hover:text-ink transition-colors underline">Contact Us</Link>
+          <span className="hidden sm:inline text-border">•</span>
           <Link to="/privacy-policy" className="hover:text-ink transition-colors underline">Privacy Policy</Link>
           <span className="hidden sm:inline text-border">•</span>
           <Link to="/terms-of-service" className="hover:text-ink transition-colors underline">Terms of Service</Link>

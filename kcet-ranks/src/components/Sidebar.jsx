@@ -93,7 +93,9 @@ export default function Sidebar({ onClose }) {
       
       {/* Footer */}
       <div className="px-4 py-4 border-t border-border mt-auto shrink-0 text-center text-xs text-muted">
-        <p>Made with ❤️ by Ayaan and Shreyas</p>
+        <Link to="/contact" className="hover:text-ink transition-colors" onClick={() => { if (window.innerWidth < 1024) onClose() }}>
+          Made with ❤️ by Ayaan and Shreyas
+        </Link>
       </div>
     </div>
   )

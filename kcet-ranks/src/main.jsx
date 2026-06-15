@@ -9,6 +9,7 @@ const AdminApp = lazy(() => import('./admin/AdminApp.jsx'))
 const Privacy = lazy(() => import('./components/Privacy.jsx'))
 const Terms = lazy(() => import('./components/Terms.jsx'))
 const Layout = lazy(() => import('./components/Layout.jsx'))
+const Contact = lazy(() => import('./components/Contact.jsx'))
 const ArticleContainer = lazy(() => import('./components/article/ArticleContainer.jsx'))
 const ArticlesIndex = lazy(() => import('./components/article/ArticlesIndex.jsx'))
 const GearAdmin = lazy(() => import('./admin/GearAdmin.jsx'))
@@ -103,6 +104,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               {isAdmin && <Route path="/system/hq/portal/admin/secure/99x/*" element={<AdminApp />} />}
               <Route path="/privacy-policy" element={<Privacy />} />
               <Route path="/terms-of-service" element={<Terms />} />
+              <Route path="/contact" element={<Contact />} />
               
               {/* Gear Routes */}
               <Route path="/gear/:categorySlug" element={<GearCategory />} />
