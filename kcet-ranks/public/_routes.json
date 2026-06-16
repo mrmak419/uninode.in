@@ -5,6 +5,18 @@
   ],
   "exclude": [
     "/assets/*",
-    "/favicon.ico"
+    "/college_data/*",
+    "/favicon.ico",
+    "/logo.png",
+    "/robots.txt",
+    "/sw.js",
+    "/manifest.webmanifest",
+    "/sitemap*.xml",
+    "/sitemap.xml",
+    "/data_*.json",
+    "/meta_*.json",
+    "/seo_*.json",
+    "/archive_*.json",
+    "/streams.json"
   ]
 }

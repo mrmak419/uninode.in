@@ -247,12 +247,26 @@ export async function onRequest(context) {
             "@type": "Article",
             "headline": pageTitle,
             "description": pageDescription,
-            "author": { "@type": "Organization", "name": "Uninode" },
-            "publisher": { "@type": "Organization", "name": "Uninode" }
+            "image": [
+              url.origin + "/logo.png"
+            ],
+            "author": { 
+              "@type": "Organization", 
+              "name": "Uninode",
+              "url": url.origin
+            },
+            "publisher": { 
+              "@type": "Organization", 
+              "name": "Uninode",
+              "logo": {
+                "@type": "ImageObject",
+                "url": url.origin + "/logo.png"
+              }
+            }
           };
           if (articleSeo) {
-            articleLd.datePublished = `${articleSeo.y}-01-01`;
-            articleLd.dateModified = new Date().toISOString().split('T')[0];
+            articleLd.datePublished = `${articleSeo.y}-01-01T00:00:00+05:30`;
+            articleLd.dateModified = new Date().toISOString();
           }
           const safeArticleLd = JSON.stringify(articleLd).replace(/</g, '\\u003c');
           element.append(`<script type="application/ld+json">\n${safeArticleLd}\n</script>\n`, { html: true });
