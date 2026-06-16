@@ -88,6 +88,7 @@ export async function onRequest(context) {
   let pageDescription = `Analyze historical KCET cutoff trends. Discover eligible colleges for your rank with the Uninode KCET Cutoff Analyzer.`;
   let isArticle = false;
   let articleSeo = null; // Will hold real cutoff data for article pages
+  let seoDataMap = null; // Will hold the parsed seo lookup object
   let articleParts = null; // { college, branch, cat } decoded from URL
 
   // Helper to format slugs like 'computer-science' or 'computer%20science' to 'Computer Science'
@@ -127,9 +128,9 @@ export async function onRequest(context) {
             new Request(new URL(`/seo_${streamRaw}.json`, url.origin))
           );
           if (seoRes.ok) {
-            const seoData = await seoRes.json();
+            seoDataMap = await seoRes.json();
             const lookupKey = `${collegeDec}|${branchDec}|${catDec}`.toLowerCase();
-            articleSeo = seoData[lookupKey] || null;
+            articleSeo = seoDataMap[lookupKey] || null;
           }
         } catch(e) {
           // Graceful fallback — SEO lookup failed, use generic meta
@@ -383,14 +384,27 @@ export async function onRequest(context) {
     })
     .on('body', {
       element(element) {
-        if (isArticle && articleSeo && articleParts) {
+        if (isArticle && articleSeo && articleParts && seoDataMap) {
           const collegeShort = cleanCollegeName(articleParts.college);
           const rank = formatRank(articleSeo.r);
           const year = articleSeo.y;
           const round = articleSeo.rd;
           const r1Rank = formatRank(articleSeo.r1);
           
-          let noscriptHtml = `\n<noscript>\n  <div style="padding: 20px; border: 1px solid #ccc; margin: 20px; font-family: sans-serif; background-color: #fff; border-radius: 8px;">\n    <h2>${escapeHtml(collegeShort)} ${escapeHtml(articleParts.branch)} Cutoff Matrix (${escapeHtml(articleParts.cat)})</h2>\n    <p><strong>Counselling Stream:</strong> ${escapeHtml(stream)}</p>\n    <table border="1" cellpadding="8" style="border-collapse: collapse; margin-top: 10px; width: 100%; text-align: left;">\n      <thead>\n        <tr style="background-color: #f2f2f2;">\n          <th>Year</th>\n          <th>Round 1 Cutoff</th>\n          <th>Closing Cutoff (Round ${round})</th>\n        </tr>\n      </thead>\n      <tbody>\n        <tr>\n          <td>${year}</td>\n          <td>${r1Rank}</td>\n          <td>${rank}</td>\n        </tr>\n`;
+          // Find other categories for the same college and branch
+          const otherCats = [];
+          const prefix = `${articleParts.college}|${articleParts.branch}|`.toLowerCase();
+          for (const key of Object.keys(seoDataMap)) {
+            if (key.startsWith(prefix)) {
+              const catFromKey = key.slice(prefix.length).toUpperCase();
+              if (catFromKey !== articleParts.cat) {
+                otherCats.push(catFromKey);
+              }
+            }
+          }
+          otherCats.sort();
+          
+          let noscriptHtml = `\n<noscript>\n  <div style="padding: 20px; border: 1px solid #ccc; margin: 20px; font-family: sans-serif; background-color: #fff; border-radius: 8px;">\n    <div style="margin-bottom: 15px; font-size: 14px; color: #666;">\n      <a href="/" style="color: #0284c7; text-decoration: none;">Home</a> &raquo; \n      <a href="/articles/${streamRaw}" style="color: #0284c7; text-decoration: none;">${escapeHtml(stream)} Articles</a> &raquo; \n      <a href="/explorer/${streamRaw}/college/${encodeURIComponent(articleParts.college)}" style="color: #0284c7; text-decoration: none;">${escapeHtml(collegeShort)} Explorer</a>\n    </div>\n    <h2 style="margin-top: 10px;">${escapeHtml(collegeShort)} ${escapeHtml(articleParts.branch)} Cutoff Matrix (${escapeHtml(articleParts.cat)})</h2>\n    <p><strong>Counselling Stream:</strong> ${escapeHtml(stream)}</p>\n    <table border="1" cellpadding="8" style="border-collapse: collapse; margin-top: 10px; width: 100%; text-align: left;">\n      <thead>\n        <tr style="background-color: #f2f2f2;">\n          <th>Year</th>\n          <th>Round 1 Cutoff</th>\n          <th>Closing Cutoff (Round ${round})</th>\n        </tr>\n      </thead>\n      <tbody>\n        <tr>\n          <td>${year}</td>\n          <td>${r1Rank}</td>\n          <td>${rank}</td>\n        </tr>\n`;
           
           if (articleSeo.pr && articleSeo.py) {
             noscriptHtml += `        <tr>\n          <td>${articleSeo.py}</td>\n          <td>--</td>\n          <td>${formatRank(articleSeo.pr)}</td>\n        </tr>\n`;
@@ -412,7 +426,18 @@ export async function onRequest(context) {
             noscriptHtml += `      <li><strong>Do cutoffs drop in later rounds for ${escapeHtml(articleParts.branch)} at ${escapeHtml(collegeShort)}?</strong><br/>Yes. In ${year}, the cutoff relaxed from ${r1Rank} in Round 1 to ${rank} in Round ${round}.</li>\n`;
           }
           
-          noscriptHtml += `      <li><strong>Can I get admission for ${escapeHtml(articleParts.branch)} at ${escapeHtml(collegeShort)} if my rank is slightly above the cutoff?</strong><br/>KCET cutoffs vary annually. If your rank is close to ${rank}, you should include ${escapeHtml(collegeShort)} in your option entry list.</li>\n      <li><strong>Which counseling authority handles admissions for ${escapeHtml(stream)} at ${escapeHtml(collegeShort)}?</strong><br/>Admissions are administered by the Karnataka Examinations Authority (KEA) based on KCET rank merit.</li>\n    </ul>\n    <p style="color: #666; font-size: 12px; margin-top: 20px;">This is a crawler-friendly fallback representation. Enable JavaScript to view interactive trend charts, search widgets, and compare other options.</p>\n  </div>\n</noscript>\n`;
+          noscriptHtml += `      <li><strong>Can I get admission for ${escapeHtml(articleParts.branch)} at ${escapeHtml(collegeShort)} if my rank is slightly above the cutoff?</strong><br/>KCET cutoffs vary annually. If your rank is close to ${rank}, you should include ${escapeHtml(collegeShort)} in your option entry list.</li>\n      <li><strong>Which counseling authority handles admissions for ${escapeHtml(stream)} at ${escapeHtml(collegeShort)}?</strong><br/>Admissions are administered by the Karnataka Examinations Authority (KEA) based on KCET rank merit.</li>\n    </ul>\n`;
+          
+          if (otherCats.length > 0) {
+            noscriptHtml += `    <h3 style="margin-top: 20px;">View Cutoffs for Other Categories</h3>\n    <p style="line-height: 1.6;">\n`;
+            noscriptHtml += otherCats.map(cat => {
+              const catUrl = `/articles/${streamRaw}/${encodeURIComponent(articleParts.college)}/${encodeURIComponent(articleParts.branch)}/${encodeURIComponent(cat)}`;
+              return `      <a href="${catUrl}" style="color: #0284c7; text-decoration: none; margin-right: 12px; display: inline-block; font-weight: 600;">${escapeHtml(cat)}</a>`;
+            }).join(', \n');
+            noscriptHtml += `\n    </p>\n`;
+          }
+          
+          noscriptHtml += `    <p style="color: #666; font-size: 12px; margin-top: 20px;">This is a crawler-friendly fallback representation. Enable JavaScript to view interactive trend charts, search widgets, and compare other options.</p>\n  </div>\n</noscript>\n`;
           
           element.append(noscriptHtml, { html: true });
         }
