@@ -382,7 +382,7 @@ export async function onRequest(context) {
         element.append(`<link rel="canonical" href="${escapeHtml(canonicalUrl.toString())}" />\n`, { html: true });
       }
     })
-    .on('body', {
+    .on('div#root', {
       element(element) {
         if (isArticle && articleSeo && articleParts && seoDataMap) {
           const collegeShort = cleanCollegeName(articleParts.college);
@@ -404,13 +404,13 @@ export async function onRequest(context) {
           }
           otherCats.sort();
           
-          let noscriptHtml = `\n<noscript>\n  <div style="padding: 20px; border: 1px solid #ccc; margin: 20px; font-family: sans-serif; background-color: #fff; border-radius: 8px;">\n    <div style="margin-bottom: 15px; font-size: 14px; color: #666;">\n      <a href="/" style="color: #0284c7; text-decoration: none;">Home</a> &raquo; \n      <a href="/articles/${streamRaw}" style="color: #0284c7; text-decoration: none;">${escapeHtml(stream)} Articles</a> &raquo; \n      <a href="/explorer/${streamRaw}/college/${encodeURIComponent(articleParts.college)}" style="color: #0284c7; text-decoration: none;">${escapeHtml(collegeShort)} Explorer</a>\n    </div>\n    <h2 style="margin-top: 10px;">${escapeHtml(collegeShort)} ${escapeHtml(articleParts.branch)} Cutoff Matrix (${escapeHtml(articleParts.cat)})</h2>\n    <p><strong>Counselling Stream:</strong> ${escapeHtml(stream)}</p>\n    <table border="1" cellpadding="8" style="border-collapse: collapse; margin-top: 10px; width: 100%; text-align: left;">\n      <thead>\n        <tr style="background-color: #f2f2f2;">\n          <th>Year</th>\n          <th>Round 1 Cutoff</th>\n          <th>Closing Cutoff (Round ${round})</th>\n        </tr>\n      </thead>\n      <tbody>\n        <tr>\n          <td>${year}</td>\n          <td>${r1Rank}</td>\n          <td>${rank}</td>\n        </tr>\n`;
+          let fallbackHtml = `\n  <div style="padding: 20px; border: 1px solid #ccc; margin: 20px; font-family: sans-serif; background-color: #fff; border-radius: 8px;">\n    <div style="margin-bottom: 15px; font-size: 14px; color: #666;">\n      <a href="/" style="color: #0284c7; text-decoration: none;">Home</a> &raquo; \n      <a href="/articles/${streamRaw}" style="color: #0284c7; text-decoration: none;">${escapeHtml(stream)} Articles</a> &raquo; \n      <a href="/explorer/${streamRaw}/college/${encodeURIComponent(articleParts.college)}" style="color: #0284c7; text-decoration: none;">${escapeHtml(collegeShort)} Explorer</a>\n    </div>\n    <h2 style="margin-top: 10px;">${escapeHtml(collegeShort)} ${escapeHtml(articleParts.branch)} Cutoff Matrix (${escapeHtml(articleParts.cat)})</h2>\n    <p><strong>Counselling Stream:</strong> ${escapeHtml(stream)}</p>\n    <table border="1" cellpadding="8" style="border-collapse: collapse; margin-top: 10px; width: 100%; text-align: left;">\n      <thead>\n        <tr style="background-color: #f2f2f2;">\n          <th>Year</th>\n          <th>Round 1 Cutoff</th>\n          <th>Closing Cutoff (Round ${round})</th>\n        </tr>\n      </thead>\n      <tbody>\n        <tr>\n          <td>${year}</td>\n          <td>${r1Rank}</td>\n          <td>${rank}</td>\n        </tr>\n`;
           
           if (articleSeo.pr && articleSeo.py) {
-            noscriptHtml += `        <tr>\n          <td>${articleSeo.py}</td>\n          <td>--</td>\n          <td>${formatRank(articleSeo.pr)}</td>\n        </tr>\n`;
+            fallbackHtml += `        <tr>\n          <td>${articleSeo.py}</td>\n          <td>--</td>\n          <td>${formatRank(articleSeo.pr)}</td>\n        </tr>\n`;
           }
           
-          noscriptHtml += `      </tbody>\n    </table>\n    <h3 style="margin-top: 20px;">Frequently Asked Questions</h3>\n    <ul>\n      <li><strong>What rank do I need for ${escapeHtml(articleParts.branch)} at ${escapeHtml(collegeShort)} (${escapeHtml(articleParts.cat)})?</strong><br/>Based on ${year} data, you need a rank of ${r1Rank} or better in Round 1. The final Round ${round} cutoff was ${rank}.</li>\n`;
+          fallbackHtml += `      </tbody>\n    </table>\n    <h3 style="margin-top: 20px;">Frequently Asked Questions</h3>\n    <ul>\n      <li><strong>What rank do I need for ${escapeHtml(articleParts.branch)} at ${escapeHtml(collegeShort)} (${escapeHtml(articleParts.cat)})?</strong><br/>Based on ${year} data, you need a rank of ${r1Rank} or better in Round 1. The final Round ${round} cutoff was ${rank}.</li>\n`;
           
           if (articleSeo.pr && articleSeo.py) {
             const trend = articleSeo.r > articleSeo.pr ? 'easing' : articleSeo.r < articleSeo.pr ? 'tightening' : 'stable';
@@ -419,27 +419,27 @@ export async function onRequest(context) {
               : trend === 'tightening'
               ? `More competitive. The cutoff tightened from ${formatRank(articleSeo.pr)} in ${articleSeo.py} to ${rank} in ${year}.`
               : `Stable. The cutoff remained at ${rank} from ${articleSeo.py} to ${year}.`;
-            noscriptHtml += `      <li><strong>Is ${escapeHtml(articleParts.branch)} at ${escapeHtml(collegeShort)} getting easier or harder to get into?</strong><br/>${trendText}</li>\n`;
+            fallbackHtml += `      <li><strong>Is ${escapeHtml(articleParts.branch)} at ${escapeHtml(collegeShort)} getting easier or harder to get into?</strong><br/>${trendText}</li>\n`;
           }
           
           if (articleSeo.r1 && articleSeo.r && articleSeo.r > articleSeo.r1) {
-            noscriptHtml += `      <li><strong>Do cutoffs drop in later rounds for ${escapeHtml(articleParts.branch)} at ${escapeHtml(collegeShort)}?</strong><br/>Yes. In ${year}, the cutoff relaxed from ${r1Rank} in Round 1 to ${rank} in Round ${round}.</li>\n`;
+            fallbackHtml += `      <li><strong>Do cutoffs drop in later rounds for ${escapeHtml(articleParts.branch)} at ${escapeHtml(collegeShort)}?</strong><br/>Yes. In ${year}, the cutoff relaxed from ${r1Rank} in Round 1 to ${rank} in Round ${round}.</li>\n`;
           }
           
-          noscriptHtml += `      <li><strong>Can I get admission for ${escapeHtml(articleParts.branch)} at ${escapeHtml(collegeShort)} if my rank is slightly above the cutoff?</strong><br/>KCET cutoffs vary annually. If your rank is close to ${rank}, you should include ${escapeHtml(collegeShort)} in your option entry list.</li>\n      <li><strong>Which counseling authority handles admissions for ${escapeHtml(stream)} at ${escapeHtml(collegeShort)}?</strong><br/>Admissions are administered by the Karnataka Examinations Authority (KEA) based on KCET rank merit.</li>\n    </ul>\n`;
+          fallbackHtml += `      <li><strong>Can I get admission for ${escapeHtml(articleParts.branch)} at ${escapeHtml(collegeShort)} if my rank is slightly above the cutoff?</strong><br/>KCET cutoffs vary annually. If your rank is close to ${rank}, you should include ${escapeHtml(collegeShort)} in your option entry list.</li>\n      <li><strong>Which counseling authority handles admissions for ${escapeHtml(stream)} at ${escapeHtml(collegeShort)}?</strong><br/>Admissions are administered by the Karnataka Examinations Authority (KEA) based on KCET rank merit.</li>\n    </ul>\n`;
           
           if (otherCats.length > 0) {
-            noscriptHtml += `    <h3 style="margin-top: 20px;">View Cutoffs for Other Categories</h3>\n    <p style="line-height: 1.6;">\n`;
-            noscriptHtml += otherCats.map(cat => {
+            fallbackHtml += `    <h3 style="margin-top: 20px;">View Cutoffs for Other Categories</h3>\n    <p style="line-height: 1.6;">\n`;
+            fallbackHtml += otherCats.map(cat => {
               const catUrl = `/articles/${streamRaw}/${encodeURIComponent(articleParts.college)}/${encodeURIComponent(articleParts.branch)}/${encodeURIComponent(cat)}`;
               return `      <a href="${catUrl}" style="color: #0284c7; text-decoration: none; margin-right: 12px; display: inline-block; font-weight: 600;">${escapeHtml(cat)}</a>`;
             }).join(', \n');
-            noscriptHtml += `\n    </p>\n`;
+            fallbackHtml += `\n    </p>\n`;
           }
           
-          noscriptHtml += `    <p style="color: #666; font-size: 12px; margin-top: 20px;">This is a crawler-friendly fallback representation. Enable JavaScript to view interactive trend charts, search widgets, and compare other options.</p>\n  </div>\n</noscript>\n`;
+          fallbackHtml += `    <p style="color: #666; font-size: 12px; margin-top: 20px;">This is a crawler-friendly fallback representation. Enable JavaScript to view interactive trend charts, search widgets, and compare other options.</p>\n  </div>\n`;
           
-          element.append(noscriptHtml, { html: true });
+          element.setInnerContent(fallbackHtml, { html: true });
         }
       }
     })
