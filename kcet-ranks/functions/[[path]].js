@@ -7,6 +7,19 @@ function escapeHtml(unsafe) {
     .replace(/'/g, "&#039;");
 }
 
+// Truncate long college names to a clean short form for SEO titles
+// e.g., "PES University 100 Feet Ring Road, Banashankari..." → "PES University"
+function cleanCollegeName(name) {
+  if (!name) return '';
+  return name.split('(')[0].split(',')[0].trim();
+}
+
+// Format a rank number with Indian-style commas (1,23,456)
+function formatRank(rank) {
+  if (rank === null || rank === undefined || rank === '--') return '--';
+  return Math.round(Number(rank)).toLocaleString('en-IN');
+}
+
 export async function onRequest(context) {
   const url = new URL(context.request.url);
 
@@ -73,6 +86,9 @@ export async function onRequest(context) {
   let stream = 'KCET';
   let pageTitle = `KCET Cutoffs | Uninode KCET Cutoff Analyzer`;
   let pageDescription = `Analyze historical KCET cutoff trends. Discover eligible colleges for your rank with the Uninode KCET Cutoff Analyzer.`;
+  let isArticle = false;
+  let articleSeo = null; // Will hold real cutoff data for article pages
+  let articleParts = null; // { college, branch, cat } decoded from URL
 
   // Helper to format slugs like 'computer-science' or 'computer%20science' to 'Computer Science'
   const formatSlug = (slug) => {
@@ -93,12 +109,67 @@ export async function onRequest(context) {
     if (section === 'articles') {
       streamRaw = pathParts[1] || 'engineering';
       stream = formatStream(streamRaw);
+      
       if (pathParts.length >= 4) {
-        const college = formatSlug(pathParts[2]);
-        const branch = formatSlug(pathParts[3]);
-        const cat = pathParts[4] ? pathParts[4].toUpperCase() : '';
-        pageTitle = `${college} - ${branch} ${cat} Cutoffs | ${stream}`;
-        pageDescription = `Check the latest KCET cutoff ranks for ${branch} at ${college} for ${cat} category. Compare historical trends.`;
+        isArticle = true;
+        // Decode URL segments
+        let collegeDec = '', branchDec = '', catDec = '';
+        try { collegeDec = decodeURIComponent(pathParts[2]); } catch(e) { collegeDec = pathParts[2]; }
+        try { branchDec = decodeURIComponent(pathParts[3]); } catch(e) { branchDec = pathParts[3]; }
+        catDec = pathParts[4] ? pathParts[4].toUpperCase() : '';
+        
+        articleParts = { college: collegeDec, branch: branchDec, cat: catDec };
+        const collegeShort = cleanCollegeName(collegeDec);
+        
+        // Try to fetch real cutoff data from the pre-built SEO lookup
+        try {
+          const seoRes = await context.env.ASSETS.fetch(
+            new Request(new URL(`/seo_${streamRaw}.json`, url.origin))
+          );
+          if (seoRes.ok) {
+            const seoData = await seoRes.json();
+            const lookupKey = `${collegeDec}|${branchDec}|${catDec}`.toLowerCase();
+            articleSeo = seoData[lookupKey] || null;
+          }
+        } catch(e) {
+          // Graceful fallback — SEO lookup failed, use generic meta
+        }
+
+        if (articleSeo) {
+          // DATA-AWARE: Rich title & description with real rank data
+          const rank = formatRank(articleSeo.r);
+          const year = articleSeo.y;
+          const round = articleSeo.rd;
+          
+          pageTitle = `${collegeShort} ${branchDec} ${catDec} Cutoff ${year} – Rank ${rank} | Uninode KCET`;
+          
+          let descParts = [`The KCET ${catDec} cutoff for ${branchDec} at ${collegeShort} was ${rank} in ${year} (Round ${round}).`];
+          
+          // Add trend info if previous year data exists
+          if (articleSeo.pr && articleSeo.py) {
+            const prevRank = formatRank(articleSeo.pr);
+            const diff = articleSeo.r - articleSeo.pr;
+            if (diff > 0) {
+              descParts.push(`Eased from ${prevRank} in ${articleSeo.py}.`);
+            } else if (diff < 0) {
+              descParts.push(`Tightened from ${prevRank} in ${articleSeo.py}.`);
+            } else {
+              descParts.push(`Stable since ${articleSeo.py}.`);
+            }
+          }
+          
+          // Add round-by-round info
+          if (articleSeo.r1 && articleSeo.r1 !== articleSeo.r) {
+            descParts.push(`Round 1 was ${formatRank(articleSeo.r1)}.`);
+          }
+          
+          descParts.push('Compare all rounds & years.');
+          pageDescription = descParts.join(' ');
+        } else {
+          // FALLBACK: Generic article meta (SEO lookup miss or not available)
+          pageTitle = `${collegeShort} – ${branchDec} ${catDec} Cutoffs | ${stream}`;
+          pageDescription = `Check the latest KCET cutoff ranks for ${branchDec} at ${collegeShort} for ${catDec} category. Compare historical trends.`;
+        }
       } else {
         pageTitle = `${stream} College Articles & Cutoffs | Uninode`;
         pageDescription = `Browse all colleges and branches for ${stream} cutoffs.`;
@@ -156,7 +227,7 @@ export async function onRequest(context) {
       element(element) {
         element.append(`<meta property="og:title" content="${safeTitle}" />\n`, { html: true });
         element.append(`<meta property="og:description" content="${safeDescription}" />\n`, { html: true });
-        element.append(`<meta property="og:type" content="website" />\n`, { html: true });
+        element.append(`<meta property="og:type" content="${isArticle ? 'article' : 'website'}" />\n`, { html: true });
         element.append(`<meta name="twitter:card" content="summary_large_image" />\n`, { html: true });
         element.append(`<meta name="twitter:title" content="${safeTitle}" />\n`, { html: true });
         element.append(`<meta name="twitter:description" content="${safeDescription}" />\n`, { html: true });
@@ -165,25 +236,172 @@ export async function onRequest(context) {
         const preloadStream = streamRaw || 'engineering';
         element.append(`<link rel="preload" href="/meta_${preloadStream}.json" as="fetch" crossorigin="anonymous" />\n`, { html: true });
         
-        // JSON-LD Structured Data Schema for Rich Snippets
-        const jsonLd = {
-          "@context": "https://schema.org",
-          "@type": "WebApplication",
-          "name": pageTitle,
-          "applicationCategory": "EducationalApplication",
-          "description": pageDescription,
-          "offers": {
-            "@type": "Offer",
-            "price": "0"
+        // --- JSON-LD Structured Data ---
+        if (isArticle && articleParts) {
+          // ARTICLE PAGE: Inject Article, FAQPage, and BreadcrumbList schemas
+          const collegeShort = cleanCollegeName(articleParts.college);
+          
+          // 1. Article Schema
+          const articleLd = {
+            "@context": "https://schema.org",
+            "@type": "Article",
+            "headline": pageTitle,
+            "description": pageDescription,
+            "author": { "@type": "Organization", "name": "Uninode" },
+            "publisher": { "@type": "Organization", "name": "Uninode" }
+          };
+          if (articleSeo) {
+            articleLd.datePublished = `${articleSeo.y}-01-01`;
+            articleLd.dateModified = new Date().toISOString().split('T')[0];
           }
-        };
-        const safeJsonLd = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
-        element.append(`<script type="application/ld+json">\n${safeJsonLd}\n</script>\n`, { html: true });
+          const safeArticleLd = JSON.stringify(articleLd).replace(/</g, '\\u003c');
+          element.append(`<script type="application/ld+json">\n${safeArticleLd}\n</script>\n`, { html: true });
+          
+          // 2. FAQPage Schema (bot-visible! was previously only client-side)
+          if (articleSeo) {
+            const faqQuestions = [];
+            
+            // Q1: What rank do I need?
+            faqQuestions.push({
+              "@type": "Question",
+              "name": `What rank do I need for ${articleParts.branch} at ${collegeShort} (${articleParts.cat})?`,
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": `Based on ${articleSeo.y} data, you need a rank of ${formatRank(articleSeo.r1)} or better in Round 1. The final Round ${articleSeo.rd} cutoff was ${formatRank(articleSeo.r)}, meaning students with ranks up to ${formatRank(articleSeo.r)} were admitted by the end of counseling.`
+              }
+            });
+            
+            // Q2: Is it getting easier or harder?
+            if (articleSeo.pr && articleSeo.py) {
+              const trend = articleSeo.r > articleSeo.pr ? 'easing' : articleSeo.r < articleSeo.pr ? 'tightening' : 'stable';
+              const trendText = trend === 'easing' 
+                ? `Easing. The closing rank increased from ${formatRank(articleSeo.pr)} in ${articleSeo.py} to ${formatRank(articleSeo.r)} in ${articleSeo.y}, meaning competition has relaxed.`
+                : trend === 'tightening'
+                ? `More competitive. The cutoff tightened from ${formatRank(articleSeo.pr)} in ${articleSeo.py} to ${formatRank(articleSeo.r)} in ${articleSeo.y}.`
+                : `Perfectly stable. The cutoff remained at ${formatRank(articleSeo.r)} from ${articleSeo.py} to ${articleSeo.y}.`;
+              
+              faqQuestions.push({
+                "@type": "Question",
+                "name": `Is ${articleParts.branch} at ${collegeShort} getting easier or harder to get into?`,
+                "acceptedAnswer": { "@type": "Answer", "text": trendText }
+              });
+            }
+            
+            // Q3: Should I wait for later rounds?
+            if (articleSeo.r1 && articleSeo.r && articleSeo.r > articleSeo.r1) {
+              faqQuestions.push({
+                "@type": "Question",
+                "name": `Do cutoffs drop in later rounds for ${articleParts.branch} at ${collegeShort}?`,
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": `Yes. In ${articleSeo.y}, the cutoff relaxed from ${formatRank(articleSeo.r1)} in Round 1 to ${formatRank(articleSeo.r)} in Round ${articleSeo.rd}. If your rank is close to Round 1, waiting may be viable.`
+                }
+              });
+            }
+            
+            // Q4: Borderline ranks
+            faqQuestions.push({
+              "@type": "Question",
+              "name": `Can I get admission for ${articleParts.branch} at ${collegeShort} if my rank is slightly above the cutoff?`,
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": `KCET cutoffs vary annually based on candidate preferences and seat matrix. If your rank is close to ${formatRank(articleSeo.r)}, you should definitely include ${collegeShort} in your option entry list during counseling.`
+              }
+            });
+            
+            // Q5: Counseling authority
+            faqQuestions.push({
+              "@type": "Question",
+              "name": `Which counseling authority handles admissions for ${stream} at ${collegeShort}?`,
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": `Admissions for ${stream} courses at ${collegeShort} are administered by the Karnataka Examinations Authority (KEA) based on KCET rank merit.`
+              }
+            });
+            
+            if (faqQuestions.length > 0) {
+              const faqLd = {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": faqQuestions
+              };
+              const safeFaqLd = JSON.stringify(faqLd).replace(/</g, '\\u003c');
+              element.append(`<script type="application/ld+json">\n${safeFaqLd}\n</script>\n`, { html: true });
+            }
+          }
+          
+          // 3. BreadcrumbList Schema
+          const breadcrumbLd = {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              { "@type": "ListItem", "position": 1, "name": "Home", "item": url.origin + "/" },
+              { "@type": "ListItem", "position": 2, "name": `${stream} Articles`, "item": url.origin + "/articles/" + streamRaw },
+              { "@type": "ListItem", "position": 3, "name": collegeShort, "item": url.origin + "/explorer/" + streamRaw + "/college/" + encodeURIComponent(articleParts.college) },
+              { "@type": "ListItem", "position": 4, "name": `${articleParts.branch} (${articleParts.cat})`, "item": url.origin + url.pathname }
+            ]
+          };
+          const safeBreadcrumbLd = JSON.stringify(breadcrumbLd).replace(/</g, '\\u003c');
+          element.append(`<script type="application/ld+json">\n${safeBreadcrumbLd}\n</script>\n`, { html: true });
+          
+        } else {
+          // NON-ARTICLE PAGES: Standard WebApplication schema
+          const jsonLd = {
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            "name": pageTitle,
+            "applicationCategory": "EducationalApplication",
+            "description": pageDescription,
+            "offers": {
+              "@type": "Offer",
+              "price": "0"
+            }
+          };
+          const safeJsonLd = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
+          element.append(`<script type="application/ld+json">\n${safeJsonLd}\n</script>\n`, { html: true });
+        }
         
         // SEO: Canonical URL to prevent duplicate content penalties
         // Using clean pathname without search parameters to consolidate SEO juice
         const canonicalUrl = new URL(url.origin + url.pathname);
         element.append(`<link rel="canonical" href="${escapeHtml(canonicalUrl.toString())}" />\n`, { html: true });
+      }
+    })
+    .on('body', {
+      element(element) {
+        if (isArticle && articleSeo && articleParts) {
+          const collegeShort = cleanCollegeName(articleParts.college);
+          const rank = formatRank(articleSeo.r);
+          const year = articleSeo.y;
+          const round = articleSeo.rd;
+          const r1Rank = formatRank(articleSeo.r1);
+          
+          let noscriptHtml = `\n<noscript>\n  <div style="padding: 20px; border: 1px solid #ccc; margin: 20px; font-family: sans-serif; background-color: #fff; border-radius: 8px;">\n    <h2>${escapeHtml(collegeShort)} ${escapeHtml(articleParts.branch)} Cutoff Matrix (${escapeHtml(articleParts.cat)})</h2>\n    <p><strong>Counselling Stream:</strong> ${escapeHtml(stream)}</p>\n    <table border="1" cellpadding="8" style="border-collapse: collapse; margin-top: 10px; width: 100%; text-align: left;">\n      <thead>\n        <tr style="background-color: #f2f2f2;">\n          <th>Year</th>\n          <th>Round 1 Cutoff</th>\n          <th>Closing Cutoff (Round ${round})</th>\n        </tr>\n      </thead>\n      <tbody>\n        <tr>\n          <td>${year}</td>\n          <td>${r1Rank}</td>\n          <td>${rank}</td>\n        </tr>\n`;
+          
+          if (articleSeo.pr && articleSeo.py) {
+            noscriptHtml += `        <tr>\n          <td>${articleSeo.py}</td>\n          <td>--</td>\n          <td>${formatRank(articleSeo.pr)}</td>\n        </tr>\n`;
+          }
+          
+          noscriptHtml += `      </tbody>\n    </table>\n    <h3 style="margin-top: 20px;">Frequently Asked Questions</h3>\n    <ul>\n      <li><strong>What rank do I need for ${escapeHtml(articleParts.branch)} at ${escapeHtml(collegeShort)} (${escapeHtml(articleParts.cat)})?</strong><br/>Based on ${year} data, you need a rank of ${r1Rank} or better in Round 1. The final Round ${round} cutoff was ${rank}.</li>\n`;
+          
+          if (articleSeo.pr && articleSeo.py) {
+            const trend = articleSeo.r > articleSeo.pr ? 'easing' : articleSeo.r < articleSeo.pr ? 'tightening' : 'stable';
+            const trendText = trend === 'easing'
+              ? `Easing. The closing rank increased from ${formatRank(articleSeo.pr)} in ${articleSeo.py} to ${rank} in ${year}.`
+              : trend === 'tightening'
+              ? `More competitive. The cutoff tightened from ${formatRank(articleSeo.pr)} in ${articleSeo.py} to ${rank} in ${year}.`
+              : `Stable. The cutoff remained at ${rank} from ${articleSeo.py} to ${year}.`;
+            noscriptHtml += `      <li><strong>Is ${escapeHtml(articleParts.branch)} at ${escapeHtml(collegeShort)} getting easier or harder to get into?</strong><br/>${trendText}</li>\n`;
+          }
+          
+          if (articleSeo.r1 && articleSeo.r && articleSeo.r > articleSeo.r1) {
+            noscriptHtml += `      <li><strong>Do cutoffs drop in later rounds for ${escapeHtml(articleParts.branch)} at ${escapeHtml(collegeShort)}?</strong><br/>Yes. In ${year}, the cutoff relaxed from ${r1Rank} in Round 1 to ${rank} in Round ${round}.</li>\n`;
+          }
+          
+          noscriptHtml += `      <li><strong>Can I get admission for ${escapeHtml(articleParts.branch)} at ${escapeHtml(collegeShort)} if my rank is slightly above the cutoff?</strong><br/>KCET cutoffs vary annually. If your rank is close to ${rank}, you should include ${escapeHtml(collegeShort)} in your option entry list.</li>\n      <li><strong>Which counseling authority handles admissions for ${escapeHtml(stream)} at ${escapeHtml(collegeShort)}?</strong><br/>Admissions are administered by the Karnataka Examinations Authority (KEA) based on KCET rank merit.</li>\n    </ul>\n    <p style="color: #666; font-size: 12px; margin-top: 20px;">This is a crawler-friendly fallback representation. Enable JavaScript to view interactive trend charts, search widgets, and compare other options.</p>\n  </div>\n</noscript>\n`;
+          
+          element.append(noscriptHtml, { html: true });
+        }
       }
     })
     .transform(response);

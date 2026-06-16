@@ -7,3 +7,12 @@ public/data_*.json.gz
 public/meta_*.json
 public/meta_*.json.br
 public/meta_*.json.gz
+public/seo_*.json
+public/seo_*.json.br
+public/archive_*.json
+public/archive_*.json.br
+public/archive_*.json.gz
+public/sitemap-*.xml
+public/sitemap.xml
+.wrangler/
+

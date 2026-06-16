@@ -10,7 +10,7 @@ export default defineConfig({
       injectRegister: 'inline',
       workbox: {
         navigateFallbackDenylist: [/^\/sitemap.*\.xml$/, /^\/robots\.txt$/],
-        globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js', 'assets/AdminApp-*.js', 'assets/GearAdmin-*.js', 'assets/supabase-*.js', 'data_*.json', 'data_*.json.*', 'meta_*.json', 'streams.json', 'college_data/**/*']
+        globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js', 'assets/AdminApp-*.js', 'assets/GearAdmin-*.js', 'assets/supabase-*.js', 'data_*.json', 'data_*.json.*', 'meta_*.json', 'seo_*.json', 'seo_*.json.*', 'streams.json', 'college_data/**/*']
       },
       manifest: {
         name: 'KCET College Predictor',

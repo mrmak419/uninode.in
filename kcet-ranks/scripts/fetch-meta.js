@@ -9,6 +9,45 @@ const brotliCompress = promisify(zlib.brotliCompress);
 const gzip = promisify(zlib.gzip);
 import { processCollegeChunks } from './precompute-suggestions.js';
 
+function extractSeoData(roundsObj) {
+  if (!roundsObj) return null;
+  // Parse all year+round combos
+  const parsed = [];
+  for (const key of Object.keys(roundsObj)) {
+    const [yStr, rStr] = key.split('_R');
+    const y = Number(yStr);
+    const r = Number(rStr);
+    const val = roundsObj[key];
+    if (!isNaN(y) && !isNaN(r) && val !== null && val !== undefined && val !== '--') {
+      parsed.push({ y, r, val });
+    }
+  }
+  if (parsed.length === 0) return null;
+
+  // Find latest year
+  const years = [...new Set(parsed.map(p => p.y))].sort((a, b) => b - a);
+  const latestYear = years[0];
+  const prevYear = years.length > 1 ? years[1] : null;
+
+  // Latest year: closing rank (highest round) and round 1 rank
+  const latestEntries = parsed.filter(p => p.y === latestYear).sort((a, b) => b.r - a.r);
+  const closingRank = latestEntries[0]?.val;
+  const lastRound = latestEntries[0]?.r;
+  const r1Entry = latestEntries.find(p => p.r === 1) || latestEntries[latestEntries.length - 1];
+  const r1Rank = r1Entry?.val;
+
+  // Previous year closing rank
+  let prevClosing = null;
+  if (prevYear) {
+    const prevEntries = parsed.filter(p => p.y === prevYear).sort((a, b) => b.r - a.r);
+    prevClosing = prevEntries[0]?.val || null;
+  }
+
+  if (closingRank === null || closingRank === undefined) return null;
+
+  return { r: closingRank, y: latestYear, rd: lastRound, r1: r1Rank || null, pr: prevClosing, py: prevYear };
+}
+
 // Load environment variables from .env
 dotenv.config();
 
@@ -162,6 +201,27 @@ async function fetchMetadata() {
       fs.writeFileSync(path.join(collegeDataDir, `${cName}.br`), cBrBuffer);
     }
     console.log(`✅ Saved ${Object.keys(collegeOutputs).length} college-specific files for ${stream}`);
+
+    // --- SEO LOOKUP for Edge Function ---
+    const seoLookup = {};
+    for (const row of allMatrixData) {
+      if (row.seat_type !== 'ROK') continue;
+      const seoData = extractSeoData(row.rounds);
+      if (!seoData) continue;
+      const branch = branchData.find(b => b.raw_name === row.course_name);
+      const bName = branch && branch.parent_branches ? branch.parent_branches.name : row.course_name;
+      const key = `${row.college_name}|${bName}|${row.category}`.toLowerCase();
+      // Keep the core branch (shorter/closer raw name) or first entry
+      if (!seoLookup[key] || row.course_name.toLowerCase() === bName.toLowerCase()) {
+        seoLookup[key] = { ...seoData, code: row.college_code };
+      }
+    }
+    const seoPublicDir = path.resolve(process.cwd(), 'public');
+    const seoBuffer = Buffer.from(JSON.stringify(seoLookup));
+    fs.writeFileSync(path.join(seoPublicDir, `seo_${stream}.json`), seoBuffer);
+    const seoBrBuffer = await brotliCompress(seoBuffer, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4 }});
+    fs.writeFileSync(path.join(seoPublicDir, `seo_${stream}.json.br`), seoBrBuffer);
+    console.log(`✅ Wrote seo_${stream}.json (${Object.keys(seoLookup).length} entries, ${(seoBuffer.length/1024).toFixed(1)}KB)`);
 
     // --- NEW: EXPORT FULL COMPRESSED DATA IN CHUNKS ---
     const publicDir = path.resolve(process.cwd(), 'public');

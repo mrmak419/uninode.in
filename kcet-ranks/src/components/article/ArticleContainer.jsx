@@ -103,7 +103,7 @@ export default function ArticleContainer() {
           const allData = collegeData.cutoffs;
 
           const row = allData.find(r => 
-            r.category === category && 
+            r.category?.toUpperCase() === category?.toUpperCase() && 
             matchingRawNames.includes(r.course_name) && 
             r.college_name.toLowerCase().includes(college.toLowerCase())
           );

@@ -4,7 +4,7 @@ import { Info } from 'lucide-react'
 export default function ArticleHeader({ cleanCollege, branch, category, topYears, articleData, seatType }) {
   const [showSeatInfo, setShowSeatInfo] = useState(false)
 
-  // Inject Title & JSON-LD
+  // Update document title for SPA navigation (edge function handles initial SSR title + JSON-LD)
   useEffect(() => {
     if (!articleData) return;
     
@@ -19,36 +19,7 @@ export default function ArticleHeader({ cleanCollege, branch, category, topYears
     const years = Object.keys(parsedRounds).map(Number).sort((a,b) => a - b);
     const topSEOYears = years.slice(-3);
     
-    const titleString = `${cleanCollege} ${branch} Cutoff (${category}) - ${topSEOYears.join(' & ')} | Uninode`;
-    
-    document.title = titleString;
-    
-    const ldJson = {
-      "@context": "https://schema.org",
-      "@type": "Article",
-      "headline": titleString,
-      "description": `Detailed cutoff analysis for ${branch} at ${cleanCollege} for ${category} category across recent years.`,
-      "author": {
-        "@type": "Organization",
-        "name": "Uninode"
-      }
-    };
-    
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.id = 'article-json-ld';
-    script.text = JSON.stringify(ldJson);
-    
-    const oldScript = document.getElementById('article-json-ld');
-    if (oldScript) oldScript.remove();
-    
-    document.head.appendChild(script);
-    
-    return () => {
-      if (document.getElementById('article-json-ld')) {
-        document.getElementById('article-json-ld').remove();
-      }
-    }
+    document.title = `${cleanCollege} ${branch} Cutoff (${category}) - ${topSEOYears.join(' & ')} | Uninode`;
   }, [articleData, branch, category, cleanCollege])
 
   return (
