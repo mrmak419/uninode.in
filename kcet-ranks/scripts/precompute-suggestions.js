@@ -76,8 +76,8 @@ export function processCollegeChunks(allMatrixData) {
 
         const suggKey = `${r.course_name}|${r.category}|${r.seat_type}`;
         collegeOutputs[r.college_code].suggestions[suggKey] = {
-            similarCollege: bestCollege ? { college: bestCollege.college_name, branch: bestCollege.course_name, category: r.category } : null,
-            similarBranch: bestBranch ? { college: bestBranch.college_name, branch: bestBranch.course_name, category: r.category } : null
+            similarCollege: bestCollege ? { college: bestCollege.college_name, college_code: bestCollege.college_code, branch: bestCollege.course_name, category: r.category } : null,
+            similarBranch: bestBranch ? { college: bestBranch.college_name, college_code: bestBranch.college_code, branch: bestBranch.course_name, category: r.category } : null
         };
     });
 

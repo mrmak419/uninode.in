@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate, useSearchParams, useParams } from 'react-router-dom'
 import './index.css'
 import streamsData from './streams.json'
+import { getArticleUrl } from './lib/url'
 
 const App = lazy(() => import('./App.jsx'))
 const Home = lazy(() => import('./components/Home.jsx'))
@@ -105,7 +106,7 @@ function LegacyArticleRedirect() {
   const category = searchParams.get('cat')
   
   if (college && branch && category) {
-    return <Navigate to={`/articles/${stream}/${encodeURIComponent(college)}/${encodeURIComponent(branch)}/${encodeURIComponent(category)}`} replace />
+    return <Navigate to={getArticleUrl(stream, college, branch, category)} replace />
   }
   return <Navigate to={`/articles/${stream}`} replace />
 }

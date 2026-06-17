@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Tag } from 'lucide-react'
+import { getArticleUrl } from '../../lib/url'
 
 export default function ArticleOtherCategories({ stream, college, branch, currentCategory, collegeDataObj, articleData }) {
   if (!collegeDataObj || !collegeDataObj.cutoffs || !articleData) return null;
@@ -7,7 +8,7 @@ export default function ArticleOtherCategories({ stream, college, branch, curren
   const otherCategories = collegeDataObj.cutoffs
     .filter(r => {
       if (r.course_name !== articleData.course_name) return false;
-      if (r.category === currentCategory) return false;
+      if (r.category.toUpperCase() === currentCategory.toUpperCase()) return false;
       // Ensure the category has at least one valid historical rank
       const hasValidRank = r.rounds && Object.values(r.rounds).some(val => val !== null && val !== undefined && val !== '--');
       return hasValidRank;
@@ -28,7 +29,7 @@ export default function ArticleOtherCategories({ stream, college, branch, curren
         {uniqueCategories.map(cat => (
           <Link
             key={cat}
-            to={`/articles/${stream}/${encodeURIComponent(college)}/${encodeURIComponent(branch)}/${encodeURIComponent(cat)}`}
+            to={getArticleUrl(stream, college, branch, cat)}
             className="px-4 py-2 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 text-sm font-semibold text-gray-700 hover:text-blue-700 rounded-lg transition-colors"
           >
             {cat}

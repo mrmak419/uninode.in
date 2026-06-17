@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { getArticleUrl } from '../lib/url'
 
 export default function ResultsTable({ rows, rounds, userRank, stream, category }) {
   // Determine unique years and rounds for the matrix
@@ -134,7 +135,7 @@ export default function ResultsTable({ rows, rounds, userRank, stream, category 
                     {/* LHS: Article Link - stopPropagation prevents row expansion. TARGET BLANK ADDED HERE */}
                     {stream && category ? (
                       <Link
-                        to={`/articles/${stream}/${encodeURIComponent(row.college_name)}/${encodeURIComponent(row.course_name)}/${encodeURIComponent(category)}`}
+                        to={getArticleUrl(stream, row.college_code, row.course_name, category)}
                         target="_blank"
                         rel="noopener"
                         onClick={(e) => e.stopPropagation()} 

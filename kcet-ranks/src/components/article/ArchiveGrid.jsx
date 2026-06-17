@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { getArticleUrl } from '../../lib/url'
 
 export default function ArchiveGrid({ stream }) {
   const [loading, setLoading] = useState(true)
@@ -41,7 +42,13 @@ export default function ArchiveGrid({ stream }) {
         const cats = new Set()
         combs.forEach(c => {
           const parts = c.split('::')
-          if (parts[2]) cats.add(parts[2])
+          let cat = '';
+          if (parts.length === 5) {
+            cat = parts[3];
+          } else {
+            cat = parts[2];
+          }
+          if (cat) cats.add(cat)
         })
         setAllCategories(Array.from(cats).sort())
         
@@ -57,14 +64,21 @@ export default function ArchiveGrid({ stream }) {
 
   const filteredCombinations = useMemo(() => {
     return articleCombinations.filter(comb => {
-       const [c, b, cat] = comb.split('::')
+       const parts = comb.split('::')
+       let cCode, cName, b, cat;
+       if (parts.length === 5) {
+         [cCode, cName, b, cat] = parts;
+       } else {
+         [cName, b, cat] = parts;
+         cCode = cName;
+       }
        
        let effectiveCat = selectedCatFilter;
        let effectiveSearch = searchQuery.toLowerCase();
 
        if (effectiveCat !== 'All' && cat !== effectiveCat) return false;
        if (effectiveSearch) {
-         if (!c.toLowerCase().includes(effectiveSearch) && !b.toLowerCase().includes(effectiveSearch)) return false;
+         if (!cName.toLowerCase().includes(effectiveSearch) && !b.toLowerCase().includes(effectiveSearch)) return false;
        }
        return true;
     })
@@ -123,14 +137,21 @@ export default function ArchiveGrid({ stream }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {paginated.map(comb => {
-          const [c, b, cat, st] = comb.split('::')
+          const parts = comb.split('::')
+          let cCode, cName, b, cat, st;
+          if (parts.length === 5) {
+            [cCode, cName, b, cat, st] = parts;
+          } else {
+            [cName, b, cat, st] = parts;
+            cCode = cName;
+          }
           return (
               <Link 
                 key={comb} 
-                to={`/articles/${stream}/${encodeURIComponent(c)}/${encodeURIComponent(b)}/${encodeURIComponent(cat)}`}
+                to={getArticleUrl(stream, cCode, b, cat)}
                 className="group block bg-white border border-gray-200 rounded-xl p-5 hover:border-blue-500 hover:shadow-md transition-all duration-200"
               >
-              <h2 className="text-sm font-bold text-gray-900 mb-1 group-hover:text-blue-600 line-clamp-2">{c}</h2>
+              <h2 className="text-sm font-bold text-gray-900 mb-1 group-hover:text-blue-600 line-clamp-2">{cName}</h2>
               <p className="text-sm text-gray-600 font-medium line-clamp-1">{b}</p>
               <div className="mt-4 flex items-center justify-between">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">

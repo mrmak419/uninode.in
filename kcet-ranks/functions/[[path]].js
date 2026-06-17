@@ -14,6 +14,18 @@ function cleanCollegeName(name) {
   return name.split('(')[0].split(',')[0].trim();
 }
 
+function slugify(text) {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/&/g, '-')
+    .replace(/[^\w\-]+/g, '-')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 // Format a rank number with Indian-style commas (1,23,456)
 function formatRank(rank) {
   if (rank === null || rank === undefined || rank === '--') return '--';
@@ -27,6 +39,42 @@ function formatRank(rank) {
 const seoCache = new Map();
 const collegeChunkCache = new Map();
 let knownStreamsCache = null;
+const metaCache = new Map();
+
+async function getStreamMeta(context, stream, origin) {
+  if (metaCache.has(stream)) {
+    return metaCache.get(stream);
+  }
+  try {
+    const res = await context.env.ASSETS.fetch(
+      new Request(new URL(`/meta_${stream}.json`, origin))
+    );
+    if (res.ok) {
+      const meta = await res.json();
+      metaCache.set(stream, meta);
+      return meta;
+    }
+  } catch(e) {
+    console.error("Failed to fetch stream meta:", e);
+  }
+  return null;
+}
+
+async function findCollegeCode(context, stream, collegeQuery, origin) {
+  const meta = await getStreamMeta(context, stream, origin);
+  if (!meta || !meta.colleges) return null;
+  const query = collegeQuery.toLowerCase();
+  
+  // 1. Direct match by college code
+  let match = meta.colleges.find(c => c.college_code.toLowerCase() === query);
+  if (match) return match.college_code;
+  
+  // 2. Substring match on college name
+  match = meta.colleges.find(c => c.college_name.toLowerCase().includes(query) || (c.search_terms && c.search_terms.toLowerCase().includes(query)));
+  if (match) return match.college_code;
+  
+  return null;
+}
 
 async function getKnownStreams(context, origin) {
   if (knownStreamsCache) {
@@ -64,15 +112,17 @@ export async function onRequest(context) {
       const rank = url.searchParams.get('rank');
       const cat = url.searchParams.get('cat') || 'GM';
       if (rank) {
-        return Response.redirect(`${url.origin}/analyzer/${pathStream}/rank/${rank}/${cat}`, 301);
+        return Response.redirect(`${url.origin}/analyzer/${pathStream}/rank/${rank}/${cat.toUpperCase()}`, 301);
       }
     } else if (mode === 'explorer') {
       const college = url.searchParams.get('college');
       const branches = url.searchParams.get('branches');
       if (college) {
-        return Response.redirect(`${url.origin}/explorer/${pathStream}/college/${encodeURIComponent(college)}`, 301);
+        const code = await findCollegeCode(context, pathStream, college, url.origin);
+        const resolvedCollege = code || college;
+        return Response.redirect(`${url.origin}/explorer/${pathStream}/college/${encodeURIComponent(resolvedCollege.toLowerCase())}`, 301);
       } else if (branches) {
-        return Response.redirect(`${url.origin}/explorer/${pathStream}/branch/${encodeURIComponent(branches.split(',')[0])}`, 301);
+        return Response.redirect(`${url.origin}/explorer/${pathStream}/branch/${encodeURIComponent(slugify(branches.split(',')[0]))}`, 301);
       }
     }
   }
@@ -85,9 +135,76 @@ export async function onRequest(context) {
     const cat = url.searchParams.get('cat');
     
     if (college && branch && cat) {
-      return Response.redirect(`${url.origin}/articles/${stream}/${encodeURIComponent(college)}/${encodeURIComponent(branch)}/${encodeURIComponent(cat)}`, 301);
+      const code = await findCollegeCode(context, stream, college, url.origin);
+      const resolvedCollege = code || college;
+      return Response.redirect(`${url.origin}/articles/${stream}/${encodeURIComponent(resolvedCollege.toLowerCase())}/${encodeURIComponent(slugify(branch))}/${encodeURIComponent(cat.toUpperCase())}`, 301);
     } else {
       return Response.redirect(`${url.origin}/articles/${stream}`, 301);
+    }
+  }
+
+  // Detect and redirect old college names/unslugified branches in URLs to clean URLs
+  const tempParts = url.pathname.replace(/^\/|\/$/g, '').split('/').filter(Boolean);
+  if (tempParts.length > 0) {
+    const section = tempParts[0].toLowerCase();
+    const streamRaw = tempParts[1] || 'engineering';
+    
+    if (section === 'articles' && tempParts.length >= 4) {
+      let collegeDec = '', branchDec = '', catDec = '';
+      try { collegeDec = decodeURIComponent(tempParts[2]); } catch(e) { collegeDec = tempParts[2]; }
+      try { branchDec = decodeURIComponent(tempParts[3]); } catch(e) { branchDec = tempParts[3]; }
+      try { catDec = decodeURIComponent(tempParts[4] || ''); } catch(e) { catDec = tempParts[4] || ''; }
+      
+      const isCode = /^[a-zA-Z]\d{3}$/.test(collegeDec);
+      let targetCode = collegeDec;
+      if (!isCode) {
+        const code = await findCollegeCode(context, streamRaw, collegeDec, url.origin);
+        if (code) {
+          targetCode = code;
+        }
+      }
+      targetCode = targetCode.toLowerCase();
+      
+      const targetBranchSlug = slugify(branchDec);
+      const targetCat = catDec.toUpperCase();
+      
+      const expectedPath = `/articles/${streamRaw}/${targetCode}/${targetBranchSlug}/${targetCat}`;
+      if (url.pathname !== expectedPath) {
+        return Response.redirect(`${url.origin}${expectedPath}`, 301);
+      }
+    } else if (section === 'explorer' && tempParts[2] === 'college' && tempParts[3]) {
+      let collegeDec = '';
+      try { collegeDec = decodeURIComponent(tempParts[3]); } catch(e) { collegeDec = tempParts[3]; }
+      const isCode = /^[a-zA-Z]\d{3}$/.test(collegeDec);
+      let targetCode = collegeDec;
+      if (!isCode) {
+        const code = await findCollegeCode(context, streamRaw, collegeDec, url.origin);
+        if (code) {
+          targetCode = code;
+        }
+      }
+      targetCode = targetCode.toLowerCase();
+      const expectedPath = `/explorer/${streamRaw}/college/${targetCode}`;
+      if (url.pathname !== expectedPath) {
+        const queryString = url.search ? url.search : '';
+        return Response.redirect(`${url.origin}${expectedPath}${queryString}`, 301);
+      }
+    } else if (section === 'explorer' && tempParts[2] === 'branch' && tempParts[3]) {
+      let branchDec = '';
+      try { branchDec = decodeURIComponent(tempParts[3]); } catch(e) { branchDec = tempParts[3]; }
+      const targetBranchSlug = slugify(branchDec);
+      const expectedPath = `/explorer/${streamRaw}/branch/${targetBranchSlug}`;
+      if (url.pathname !== expectedPath) {
+        const queryString = url.search ? url.search : '';
+        return Response.redirect(`${url.origin}${expectedPath}${queryString}`, 301);
+      }
+    } else if (section === 'analyzer' && tempParts[2] === 'rank' && tempParts[4]) {
+      const catDec = tempParts[4];
+      if (catDec !== catDec.toUpperCase()) {
+        const expectedPath = `/analyzer/${streamRaw}/rank/${tempParts[3]}/${catDec.toUpperCase()}`;
+        const queryString = url.search ? url.search : '';
+        return Response.redirect(`${url.origin}${expectedPath}${queryString}`, 301);
+      }
     }
   }
 
@@ -146,8 +263,29 @@ export async function onRequest(context) {
         try { branchDec = decodeURIComponent(pathParts[3]); } catch(e) { branchDec = pathParts[3]; }
         catDec = pathParts[4] ? pathParts[4].toUpperCase() : '';
         
-        articleParts = { college: collegeDec, branch: branchDec, cat: catDec };
-        const collegeShort = cleanCollegeName(collegeDec);
+        // Resolve college code to college name
+        let collegeName = collegeDec;
+        const meta = await getStreamMeta(context, streamRaw, url.origin);
+        if (meta && meta.colleges) {
+          const colObj = meta.colleges.find(c => c.college_code.toUpperCase() === collegeDec.toUpperCase());
+          if (colObj) {
+            collegeName = colObj.college_name;
+          }
+        }
+        
+        // Resolve slugified branch to the raw branch name from JSON metadata
+        let branchNameResolved = branchDec;
+        if (meta && meta.branches) {
+          const match = meta.branches.find(b => slugify(b.raw_name) === slugify(branchDec));
+          if (match) {
+            branchNameResolved = match.raw_name;
+          } else {
+            branchNameResolved = formatSlug(branchDec);
+          }
+        }
+        
+        articleParts = { college: collegeDec, collegeName: collegeName, branch: branchNameResolved, cat: catDec };
+        const collegeShort = cleanCollegeName(collegeName);
         
         // Try to fetch real cutoff data from the pre-built SEO lookup
         try {
@@ -164,7 +302,7 @@ export async function onRequest(context) {
             }
           seoDataMap = seoCache.get(streamRaw) || null;
           if (seoDataMap) {
-            const lookupKey = `${collegeDec}|${branchDec}|${catDec}`.toLowerCase();
+            const lookupKey = `${collegeDec}|${slugify(branchNameResolved)}|${catDec}`.toLowerCase();
             articleSeo = seoDataMap[lookupKey] || null;
           }
         } catch(e) {
@@ -177,9 +315,9 @@ export async function onRequest(context) {
           const year = articleSeo.y;
           const round = articleSeo.rd;
           
-          pageTitle = `${collegeShort} ${branchDec} ${catDec} Cutoff ${year} – Rank ${rank} | Uninode KCET`;
+          pageTitle = `${collegeShort} ${branchNameResolved} ${catDec.toUpperCase()} Cutoff ${year} – Rank ${rank} | Uninode KCET`;
           
-          let descParts = [`The KCET ${catDec} cutoff for ${branchDec} at ${collegeShort} was ${rank} in ${year} (Round ${round}).`];
+          let descParts = [`The KCET ${catDec.toUpperCase()} cutoff for ${branchNameResolved} at ${collegeShort} was ${rank} in ${year} (Round ${round}).`];
           
           // Add trend info if previous year data exists
           if (articleSeo.pr && articleSeo.py) {
@@ -203,8 +341,8 @@ export async function onRequest(context) {
           pageDescription = descParts.join(' ');
         } else {
           // FALLBACK: Generic article meta (SEO lookup miss or not available)
-          pageTitle = `${collegeShort} – ${branchDec} ${catDec} Cutoffs | ${stream}`;
-          pageDescription = `Check the latest KCET cutoff ranks for ${branchDec} at ${collegeShort} for ${catDec} category. Compare historical trends.`;
+          pageTitle = `${collegeShort} – ${branchNameResolved} ${catDec.toUpperCase()} Cutoffs | ${stream}`;
+          pageDescription = `Check the latest KCET cutoff ranks for ${branchNameResolved} at ${collegeShort} for ${catDec.toUpperCase()} category. Compare historical trends.`;
         }
       } else {
         pageTitle = `${stream} College Articles & Cutoffs | Uninode`;
@@ -213,7 +351,24 @@ export async function onRequest(context) {
     } else if (section === 'explorer') {
       streamRaw = pathParts[1] || 'engineering';
       stream = formatStream(streamRaw);
-      const name = formatSlug(pathParts[3]);
+      let name = formatSlug(pathParts[3]);
+      if (pathParts[2] === 'college' && pathParts[3]) {
+        const meta = await getStreamMeta(context, streamRaw, url.origin);
+        if (meta && meta.colleges) {
+          const colObj = meta.colleges.find(c => c.college_code.toUpperCase() === pathParts[3].toUpperCase());
+          if (colObj) {
+            name = cleanCollegeName(colObj.college_name);
+          }
+        }
+      } else if (pathParts[2] === 'branch' && pathParts[3]) {
+        const meta = await getStreamMeta(context, streamRaw, url.origin);
+        if (meta && meta.branches) {
+          const match = meta.branches.find(b => slugify(b.raw_name) === slugify(pathParts[3]));
+          if (match) {
+            name = match.raw_name;
+          }
+        }
+      }
       pageTitle = `${name} KCET Cutoffs | ${stream} Explorer`;
       pageDescription = `Explore KCET cutoff trends for ${name} in ${stream}.`;
     } else if (section === 'analyzer') {
@@ -282,7 +437,7 @@ export async function onRequest(context) {
         // --- JSON-LD Structured Data ---
         if (isArticle && articleParts) {
           // ARTICLE PAGE: Inject Article, FAQPage, and BreadcrumbList schemas
-          const collegeShort = cleanCollegeName(articleParts.college);
+          const collegeShort = cleanCollegeName(articleParts.collegeName);
           
           // 1. Article Schema
           const articleLd = {
@@ -427,7 +582,7 @@ export async function onRequest(context) {
     .on('div#root', {
       async element(element) {
         if (isArticle && articleSeo && articleParts && seoDataMap) {
-          const collegeShort = cleanCollegeName(articleParts.college);
+          const collegeShort = cleanCollegeName(articleParts.collegeName);
           const rank = formatRank(articleSeo.r);
           const year = articleSeo.y;
           const round = articleSeo.rd;
@@ -435,7 +590,7 @@ export async function onRequest(context) {
           
           // Find other categories for the same college and branch
           const otherCats = [];
-          const prefix = `${articleParts.college}|${articleParts.branch}|`.toLowerCase();
+          const prefix = `${articleParts.college}|${slugify(articleParts.branch)}|`.toLowerCase();
           for (const key of Object.keys(seoDataMap)) {
             if (key.startsWith(prefix)) {
               const catFromKey = key.slice(prefix.length).toUpperCase();
@@ -446,7 +601,7 @@ export async function onRequest(context) {
           }
           otherCats.sort();
           
-          let fallbackHtml = `\n  <div style="padding: 20px; border: 1px solid #ccc; margin: 20px; font-family: sans-serif; background-color: #fff; border-radius: 8px;">\n    <div style="margin-bottom: 15px; font-size: 14px; color: #666;">\n      <a href="/" style="color: #0284c7; text-decoration: none;">Home</a> &raquo; \n      <a href="/articles/${streamRaw}" style="color: #0284c7; text-decoration: none;">${escapeHtml(stream)} Articles</a> &raquo; \n      <a href="/explorer/${streamRaw}/college/${encodeURIComponent(articleParts.college)}" style="color: #0284c7; text-decoration: none;">${escapeHtml(collegeShort)} Explorer</a>\n    </div>\n    <h2 style="margin-top: 10px;">${escapeHtml(collegeShort)} ${escapeHtml(articleParts.branch)} Cutoff Matrix (${escapeHtml(articleParts.cat)})</h2>\n    <p><strong>Counselling Stream:</strong> ${escapeHtml(stream)}</p>\n    <table border="1" cellpadding="8" style="border-collapse: collapse; margin-top: 10px; width: 100%; text-align: left;">\n      <thead>\n        <tr style="background-color: #f2f2f2;">\n          <th>Year</th>\n          <th>Round 1 Cutoff</th>\n          <th>Closing Cutoff (Round ${round})</th>\n        </tr>\n      </thead>\n      <tbody>\n        <tr>\n          <td>${year}</td>\n          <td>${r1Rank}</td>\n          <td>${rank}</td>\n        </tr>\n`;
+          let fallbackHtml = `\n  <div style="padding: 20px; border: 1px solid #ccc; margin: 20px; font-family: sans-serif; background-color: #fff; border-radius: 8px;">\n    <div style="margin-bottom: 15px; font-size: 14px; color: #666;">\n      <a href="/" style="color: #0284c7; text-decoration: none;">Home</a> &raquo; \n      <a href="/articles/${streamRaw}" style="color: #0284c7; text-decoration: none;">${escapeHtml(stream)} Articles</a> &raquo; \n      <a href="/explorer/${streamRaw}/college/${encodeURIComponent(articleParts.college.toLowerCase())}" style="color: #0284c7; text-decoration: none;">${escapeHtml(collegeShort)} Explorer</a>\n    </div>\n    <h2 style="margin-top: 10px;">${escapeHtml(collegeShort)} ${escapeHtml(articleParts.branch)} Cutoff Matrix (${escapeHtml(articleParts.cat.toUpperCase())})</h2>\n    <p><strong>Counselling Stream:</strong> ${escapeHtml(stream)}</p>\n    <table border="1" cellpadding="8" style="border-collapse: collapse; margin-top: 10px; width: 100%; text-align: left;">\n      <thead>\n        <tr style="background-color: #f2f2f2;">\n          <th>Year</th>\n          <th>Round 1 Cutoff</th>\n          <th>Closing Cutoff (Round ${round})</th>\n        </tr>\n      </thead>\n      <tbody>\n        <tr>\n          <td>${year}</td>\n          <td>${r1Rank}</td>\n          <td>${rank}</td>\n        </tr>\n`;
           
           if (articleSeo.pr && articleSeo.py) {
             fallbackHtml += `        <tr>\n          <td>${articleSeo.py}</td>\n          <td>--</td>\n          <td>${formatRank(articleSeo.pr)}</td>\n        </tr>\n`;
@@ -473,7 +628,7 @@ export async function onRequest(context) {
           if (otherCats.length > 0) {
             fallbackHtml += `    <h3 style="margin-top: 20px;">View Cutoffs for Other Categories</h3>\n    <p style="line-height: 1.6;">\n`;
             fallbackHtml += otherCats.map(cat => {
-              const catUrl = `/articles/${streamRaw}/${encodeURIComponent(articleParts.college)}/${encodeURIComponent(articleParts.branch)}/${encodeURIComponent(cat)}`;
+              const catUrl = `/articles/${streamRaw}/${encodeURIComponent(articleParts.college.toLowerCase())}/${encodeURIComponent(slugify(articleParts.branch))}/${encodeURIComponent(cat.toUpperCase())}`;
               return `      <a href="${catUrl}" style="color: #0284c7; text-decoration: none; margin-right: 12px; display: inline-block; font-weight: 600;">${escapeHtml(cat)}</a>`;
             }).join(', \n');
             fallbackHtml += `\n    </p>\n`;
@@ -481,8 +636,8 @@ export async function onRequest(context) {
           
           // --- CTA Internal Links (mirrors ArticleCTABlocks) ---
           fallbackHtml += `    <h3 style="margin-top: 24px;">Explore More</h3>\n    <ul style="list-style: none; padding: 0;">\n`;
-          fallbackHtml += `      <li style="margin-bottom: 8px;"><a href="/explorer/${streamRaw}/college/${encodeURIComponent(articleParts.college)}?cat=${encodeURIComponent(articleParts.cat)}&seat=ROK" style="color: #0284c7; text-decoration: none; font-weight: 600;">📊 Explore all branches at ${escapeHtml(collegeShort)}</a></li>\n`;
-          fallbackHtml += `      <li style="margin-bottom: 8px;"><a href="/explorer/${streamRaw}/branch/${encodeURIComponent(articleParts.branch)}?cat=${encodeURIComponent(articleParts.cat)}&seat=ROK" style="color: #0284c7; text-decoration: none; font-weight: 600;">🔍 Compare ${escapeHtml(articleParts.branch)} across all colleges</a></li>\n`;
+          fallbackHtml += `      <li style="margin-bottom: 8px;"><a href="/explorer/${streamRaw}/college/${encodeURIComponent(articleParts.college.toLowerCase())}?cat=${encodeURIComponent(articleParts.cat.toUpperCase())}&seat=ROK" style="color: #0284c7; text-decoration: none; font-weight: 600;">📊 Explore all branches at ${escapeHtml(collegeShort)}</a></li>\n`;
+          fallbackHtml += `      <li style="margin-bottom: 8px;"><a href="/explorer/${streamRaw}/branch/${encodeURIComponent(slugify(articleParts.branch))}?cat=${encodeURIComponent(articleParts.cat.toUpperCase())}&seat=ROK" style="color: #0284c7; text-decoration: none; font-weight: 600;">🔍 Compare ${escapeHtml(articleParts.branch)} across all colleges</a></li>\n`;
           fallbackHtml += `      <li style="margin-bottom: 8px;"><a href="/gear" style="color: #0284c7; text-decoration: none; font-weight: 600;">🎒 College essentials & recommended gear</a></li>\n`;
           fallbackHtml += `    </ul>\n`;
           
@@ -500,40 +655,40 @@ export async function onRequest(context) {
             } else {
               console.log(`[CACHE HIT] collegeChunk(${chunkKey})`);
             }
-            const collegeChunk = collegeChunkCache.get(chunkKey);
-            if (collegeChunk) {
-              const suggKey = `${articleParts.branch}|${articleParts.cat}|ROK`;
-              const suggestion = (collegeChunk.suggestions || {})[suggKey];
-              
-              if (suggestion) {
-                const items = [];
-                if (suggestion.similarBranch && suggestion.similarBranch.college && suggestion.similarBranch.branch) {
-                  const sbKey = `${suggestion.similarBranch.college}|${suggestion.similarBranch.branch}|${suggestion.similarBranch.category}`.toLowerCase();
-                  const sbData = seoDataMap[sbKey];
-                  if (sbData && Number(sbData.r) > 0) {
-                    items.push({ label: 'Similar Ranked Branch', college: suggestion.similarBranch.college, branch: suggestion.similarBranch.branch, cat: suggestion.similarBranch.category, rank: sbData.r });
-                  }
-                }
-                if (suggestion.similarCollege && suggestion.similarCollege.college && suggestion.similarCollege.branch) {
-                  const scKey = `${suggestion.similarCollege.college}|${suggestion.similarCollege.branch}|${suggestion.similarCollege.category}`.toLowerCase();
-                  const scData = seoDataMap[scKey];
-                  if (scData && Number(scData.r) > 0) {
-                    items.push({ label: 'Similar Ranked College', college: suggestion.similarCollege.college, branch: suggestion.similarCollege.branch, cat: suggestion.similarCollege.category, rank: scData.r });
-                  }
-                }
-                
-                if (items.length > 0) {
-                  fallbackHtml += `    <h3 style="margin-top: 24px;">Related Articles</h3>\n`;
-                  fallbackHtml += `    <table border="1" cellpadding="8" style="border-collapse: collapse; margin-top: 10px; width: 100%; text-align: left;">\n      <thead><tr style="background-color: #f2f2f2;"><th>Type</th><th>College</th><th>Branch</th><th>Closing Rank (${articleSeo.y})</th></tr></thead>\n      <tbody>\n`;
-                  for (const item of items) {
-                    const displayCollege = item.college.split('(')[0].split(',')[0].trim();
-                    const articleUrl = `/articles/${streamRaw}/${encodeURIComponent(item.college)}/${encodeURIComponent(item.branch)}/${encodeURIComponent(item.cat)}`;
-                    fallbackHtml += `        <tr><td>${escapeHtml(item.label)}</td><td><a href="${articleUrl}" style="color: #0284c7; text-decoration: none; font-weight: 600;">${escapeHtml(displayCollege)}</a></td><td>${escapeHtml(item.branch)}</td><td>${formatRank(item.rank)}</td></tr>\n`;
-                  }
-                  fallbackHtml += `      </tbody>\n    </table>\n`;
-                }
-              }
-            }
+             const collegeChunk = collegeChunkCache.get(chunkKey);
+             if (collegeChunk) {
+               const suggKey = `${articleParts.branch}|${articleParts.cat.toUpperCase()}|ROK`;
+               const suggestion = (collegeChunk.suggestions || {})[suggKey];
+               
+               if (suggestion) {
+                 const items = [];
+                 if (suggestion.similarBranch && suggestion.similarBranch.college_code && suggestion.similarBranch.branch) {
+                   const sbKey = `${suggestion.similarBranch.college_code}|${slugify(suggestion.similarBranch.branch)}|${suggestion.similarBranch.category}`.toLowerCase();
+                   const sbData = seoDataMap[sbKey];
+                   if (sbData && Number(sbData.r) > 0) {
+                     items.push({ label: 'Similar Ranked Branch', college: suggestion.similarBranch.college, college_code: suggestion.similarBranch.college_code, branch: suggestion.similarBranch.branch, cat: suggestion.similarBranch.category, rank: sbData.r });
+                   }
+                 }
+                 if (suggestion.similarCollege && suggestion.similarCollege.college_code && suggestion.similarCollege.branch) {
+                   const scKey = `${suggestion.similarCollege.college_code}|${slugify(suggestion.similarCollege.branch)}|${suggestion.similarCollege.category}`.toLowerCase();
+                   const scData = seoDataMap[scKey];
+                   if (scData && Number(scData.r) > 0) {
+                     items.push({ label: 'Similar Ranked College', college: suggestion.similarCollege.college, college_code: suggestion.similarCollege.college_code, branch: suggestion.similarCollege.branch, cat: suggestion.similarCollege.category, rank: scData.r });
+                   }
+                 }
+                 
+                 if (items.length > 0) {
+                   fallbackHtml += `    <h3 style="margin-top: 24px;">Related Articles</h3>\n`;
+                   fallbackHtml += `    <table border="1" cellpadding="8" style="border-collapse: collapse; margin-top: 10px; width: 100%; text-align: left;">\n      <thead><tr style="background-color: #f2f2f2;"><th>Type</th><th>College</th><th>Branch</th><th>Closing Rank (${articleSeo.y})</th></tr></thead>\n      <tbody>\n`;
+                   for (const item of items) {
+                     const displayCollege = item.college.split('(')[0].split(',')[0].trim();
+                     const articleUrl = `/articles/${streamRaw}/${encodeURIComponent(item.college_code.toLowerCase())}/${encodeURIComponent(slugify(item.branch))}/${encodeURIComponent(item.cat.toUpperCase())}`;
+                     fallbackHtml += `        <tr><td>${escapeHtml(item.label)}</td><td><a href="${articleUrl}" style="color: #0284c7; text-decoration: none; font-weight: 600;">${escapeHtml(displayCollege)}</a></td><td>${escapeHtml(item.branch)}</td><td>${formatRank(item.rank)}</td></tr>\n`;
+                   }
+                   fallbackHtml += `      </tbody>\n    </table>\n`;
+                 }
+               }
+             }
           } catch(e) {
             // Graceful fallback — college chunk unavailable
           }

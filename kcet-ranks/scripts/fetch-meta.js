@@ -9,6 +9,17 @@ const brotliCompress = promisify(zlib.brotliCompress);
 const gzip = promisify(zlib.gzip);
 import { processCollegeChunks } from './precompute-suggestions.js';
 
+function slugify(text) {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[\s\(\)\[\]]+/g, '-')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 function extractSeoData(roundsObj) {
   if (!roundsObj) return null;
   // Parse all year+round combos
@@ -160,10 +171,9 @@ async function fetchMetadata() {
         }
         // Add valid combination
         if (col && branch && col.college_name) {
-          const bName = branch.parent_branches ? branch.parent_branches.name : branch.raw_name;
-          streams[stream].combinations.add(`${col.college_name}::${bName}`);
+          streams[stream].combinations.add(`${col.college_code}::${col.college_name}::${row.course_name}`);
           if (row.category && row.max_rank > 0) {
-            streams[stream].articleCombinations.add(`${col.college_name}::${bName}::${row.category}::${row.seat_type || 'G'}`);
+            streams[stream].articleCombinations.add(`${col.college_code}::${col.college_name}::${row.course_name}::${row.category}::${row.seat_type || 'G'}`);
           }
         }
       });
@@ -208,11 +218,8 @@ async function fetchMetadata() {
       if (row.seat_type !== 'ROK') continue;
       const seoData = extractSeoData(row.rounds);
       if (!seoData) continue;
-      const branch = branchData.find(b => b.raw_name === row.course_name);
-      const bName = branch && branch.parent_branches ? branch.parent_branches.name : row.course_name;
-      const key = `${row.college_name}|${bName}|${row.category}`.toLowerCase();
-      // Keep the core branch (shorter/closer raw name) or first entry
-      if (!seoLookup[key] || row.course_name.toLowerCase() === bName.toLowerCase()) {
+      const key = `${row.college_code}|${slugify(row.course_name)}|${row.category}`.toLowerCase();
+      if (!seoLookup[key]) {
         seoLookup[key] = { ...seoData, code: row.college_code };
       }
     }
@@ -268,12 +275,14 @@ async function fetchMetadata() {
     const sortFn = (a, b) => {
       const partsA = a.split('::');
       const partsB = b.split('::');
-      const collegeA = partsA[0];
-      const collegeB = partsB[0];
-      const branchA = partsA[1];
-      const branchB = partsB[1];
-      const catA = partsA[2];
-      const catB = partsB[2];
+      const isArticle = partsA.length === 5;
+
+      const codeA = partsA[0];
+      const codeB = partsB[0];
+      const branchA = partsA[2];
+      const branchB = partsB[2];
+      const catA = isArticle ? partsA[3] : '';
+      const catB = isArticle ? partsB[3] : '';
 
       // 1. Sort by Category: GM first, then alphabetical
       if (catA && catB && catA !== catB) {
@@ -283,8 +292,6 @@ async function fetchMetadata() {
       }
 
       // 2. Sort by College Code
-      const codeA = nameToCode.get(collegeA) || '';
-      const codeB = nameToCode.get(collegeB) || '';
       if (codeA !== codeB) {
         return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
       }
@@ -420,9 +427,9 @@ async function fetchMetadata() {
     // Branch pages
     if (streamData && streamData.branches) {
       for (const b of streamData.branches) {
-        const bName = b.parent_branches ? b.parent_branches.name : b.raw_name;
+        const bName = b.raw_name;
         if (!bName) continue;
-        const bUrl = `${domain}/explorer/${sId}/branch/${encodeURIComponent(bName)}`;
+        const bUrl = `${domain}/explorer/${sId}/branch/${encodeURIComponent(slugify(bName))}`;
         explorerUrls.push({ loc: bUrl, changefreq: 'weekly', priority: '0.6' });
         branchCount++;
       }
@@ -431,8 +438,8 @@ async function fetchMetadata() {
     // College pages
     if (streamData && streamData.colleges) {
       for (const c of streamData.colleges) {
-        if (!c.college_name) continue;
-        const cUrl = `${domain}/explorer/${sId}/college/${encodeURIComponent(c.college_name)}`;
+        if (!c.college_code) continue;
+        const cUrl = `${domain}/explorer/${sId}/college/${encodeURIComponent(c.college_code.toLowerCase())}`;
         explorerUrls.push({ loc: cUrl, changefreq: 'weekly', priority: '0.6' });
         collegeCount++;
       }
@@ -441,9 +448,9 @@ async function fetchMetadata() {
     // Combinations (College + Branch)
     if (streamData && streamData.combinations) {
       for (const combo of streamData.combinations) {
-        const [cName, bName] = combo.split('::');
-        if (!cName || !bName) continue;
-        const comboUrl = `${domain}/explorer/${sId}/branch/${encodeURIComponent(bName)}?college=${encodeURIComponent(cName).replace(/%20/g, '+').replace(/&/g, '%26')}`;
+        const [cCode, cName, bName] = combo.split('::');
+        if (!cCode || !bName) continue;
+        const comboUrl = `${domain}/explorer/${sId}/branch/${encodeURIComponent(slugify(bName))}?college=${encodeURIComponent(cCode.toLowerCase())}`;
         cutoffUrls.push({ loc: comboUrl, changefreq: 'weekly', priority: '0.5' });
       }
     }
@@ -458,9 +465,9 @@ async function fetchMetadata() {
       }
 
       for (const combo of streamData.articleCombinations) {
-        const [cName, bName, cat, st] = combo.split('::');
-        if (!cName || !bName || !cat) continue;
-        const articleUrl = `${domain}/articles/${sId}/${encodeURIComponent(cName)}/${encodeURIComponent(bName)}/${encodeURIComponent(cat)}`;
+        const [cCode, cName, bName, cat, st] = combo.split('::');
+        if (!cCode || !bName || !cat) continue;
+        const articleUrl = `${domain}/articles/${sId}/${cCode.toLowerCase()}/${slugify(bName)}/${cat.toUpperCase()}`;
         articleUrls.push({ loc: articleUrl, changefreq: 'weekly', priority: '0.6' });
       }
     }

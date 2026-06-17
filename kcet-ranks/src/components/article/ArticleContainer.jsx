@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Menu } from 'lucide-react'
 import { SidebarContext } from '../Layout'
+import { slugify } from '../../lib/url'
 
 import ArchiveGrid from './ArchiveGrid'
 import ArticleHeader from './ArticleHeader'
@@ -63,11 +64,9 @@ export default function ArticleContainer() {
       if (!res.ok) throw new Error("Metadata not found")
       const meta = await res.json()
       
-      const bQuery = branch.toLowerCase()
+      const bQuery = slugify(branch)
       const matchingRawNames = meta.branches.filter(b => {
-        const pName = b.parent_branches?.name?.toLowerCase()
-        const pAlias = b.parent_branches?.alias?.toLowerCase()
-        return bQuery === pName || bQuery === pAlias || bQuery === b.raw_name?.toLowerCase()
+        return bQuery === slugify(b.raw_name)
       }).map(b => b.raw_name)
 
       if (matchingRawNames.length === 0) {
@@ -83,8 +82,11 @@ export default function ArticleContainer() {
         return
       }
 
-      // Find ALL college codes that match the name (e.g., BMS College has E003 and E048)
-      const matchedColleges = meta.colleges.filter(c => c.college_name.toLowerCase().includes(college.toLowerCase()));
+      // Find colleges by code or name
+      const matchedColleges = meta.colleges.filter(c => 
+        c.college_code.toLowerCase() === college.toLowerCase() ||
+        c.college_name.toLowerCase().includes(college.toLowerCase())
+      );
       if (matchedColleges.length === 0) {
         setError("College Not Found (Code mismatch)")
         setLoading(false);
@@ -104,8 +106,7 @@ export default function ArticleContainer() {
 
           const row = allData.find(r => 
             r.category?.toUpperCase() === category?.toUpperCase() && 
-            matchingRawNames.includes(r.course_name) && 
-            r.college_name.toLowerCase().includes(college.toLowerCase())
+            matchingRawNames.includes(r.course_name)
           );
 
           if (row) {
@@ -240,7 +241,7 @@ export default function ArticleContainer() {
       <div className="space-y-6">
         <ArticleHeader 
           cleanCollege={cleanCollege} 
-          branch={branch} 
+          branch={articleData.course_name} 
           category={category} 
           topYears={topYears} 
           articleData={articleData} 
@@ -254,7 +255,7 @@ export default function ArticleContainer() {
         />
         
         <ArticleNarrative 
-          branch={branch}
+          branch={articleData.course_name}
           cleanCollege={cleanCollege}
           category={category}
           latestYear={latestYear}
@@ -265,7 +266,7 @@ export default function ArticleContainer() {
         />
         
         <ArticleFAQ 
-          branch={branch}
+          branch={articleData.course_name}
           cleanCollege={cleanCollege}
           category={category}
           latestYear={latestYear}
@@ -280,7 +281,7 @@ export default function ArticleContainer() {
         
         <ArticleCTABlocks 
           stream={stream}
-          branch={branch}
+          branch={articleData.course_name}
           category={category}
           cleanCollege={cleanCollege}
           articleData={articleData}
@@ -289,7 +290,7 @@ export default function ArticleContainer() {
         <ArticleOtherCategories
           stream={stream}
           college={college}
-          branch={branch}
+          branch={articleData.course_name}
           currentCategory={category}
           collegeDataObj={collegeDataObj}
           articleData={articleData}

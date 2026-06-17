@@ -8,6 +8,7 @@ import { Menu } from 'lucide-react'
 import { SidebarContext } from './components/Layout.jsx'
 import TabTitle from './components/TabTitle.jsx'
 import streamsData from './streams.json'
+import { slugify } from './lib/url'
 
 const ALL_CATEGORIES = [
   '1G','1K','1R',
@@ -34,11 +35,10 @@ export default function App() {
   // Search state
   const [rank,       setRank]       = useState(rankValue || searchParams.get('rank') || '')
   const [variation,  setVariation]  = useState(parseInt(searchParams.get('variation')) || 3000)
-  const [category,   setCategory]   = useState(categoryParam || searchParams.get('cat') || 'GM')
+  const [category,   setCategory]   = useState((categoryParam || searchParams.get('cat') || 'GM').toUpperCase())
   const [seatType,   setSeatType]   = useState(searchParams.get('seat') || 'ROK')
   
-  const initialBranches = branchName ? [branchName] : (searchParams.get('branches') ? searchParams.get('branches').split(',') : [])
-  const [selectedBranches, setSelectedBranches] = useState(initialBranches)
+  const [selectedBranches, setSelectedBranches] = useState([])
   
   const initialCollege = collegeName || searchParams.get('college') || ''
   const [collegeQuery, setCollegeQuery] = useState(initialCollege)
@@ -94,6 +94,7 @@ export default function App() {
           setSelectedBranches([])
           setCollegeQuery('')
           setFullMatrixData(null)
+          setHasAutoSearched(false)
         }
 
         // Also fetch the full matrix data in chunks for client-side search
@@ -123,22 +124,100 @@ export default function App() {
     loadMeta()
   }, [stream])
 
+  // Resolve college code parameter to college name for the input field
+  useEffect(() => {
+    if (colleges.length > 0) {
+      const queryCollege = collegeName || searchParams.get('college');
+      if (queryCollege) {
+        const matched = colleges.find(c => c.college_code.toLowerCase() === queryCollege.toLowerCase());
+        if (matched) {
+          setCollegeQuery(matched.college_name);
+        } else {
+          const matchedByName = colleges.find(c => c.college_name.toLowerCase() === queryCollege.toLowerCase());
+          if (matchedByName) {
+            setCollegeQuery(matchedByName.college_name);
+          } else {
+            setCollegeQuery(queryCollege);
+          }
+        }
+      }
+    }
+  }, [colleges, collegeName, searchParams]);
+
+  // Resolve branch slug or URL param to actual raw branch name
+  useEffect(() => {
+    if (branches.length > 0) {
+      if (branchName) {
+        const matched = branches.find(b => slugify(b.raw_name) === slugify(branchName));
+        if (matched) {
+          setSelectedBranches([matched.raw_name]);
+        }
+      } else {
+        const queryBranches = searchParams.get('branches');
+        if (queryBranches) {
+          const resolved = [];
+          const queryList = queryBranches.split(',');
+          for (const qItem of queryList) {
+            const matched = branches.find(b => slugify(b.raw_name) === slugify(qItem));
+            if (matched && !resolved.includes(matched.raw_name)) {
+              resolved.push(matched.raw_name);
+            }
+          }
+          if (resolved.length > 0) {
+            setSelectedBranches(resolved);
+          }
+        }
+      }
+    }
+  }, [branches, branchName, searchParams]);
+
   const search = useCallback(async () => {
-    let rankNum;
-    if (mode === 'analyzer') {
-      rankNum = parseInt(rank, 10)
-      if (!rank || isNaN(rankNum) || rankNum < 1) {
-        setError('Please enter a valid rank.')
-        return
+    let currentMode = mode;
+    const useUrlParams = !hasAutoSearched;
+    const urlRank = useUrlParams ? (rankValue || searchParams.get('rank') || rank) : rank;
+    const urlCategory = (useUrlParams ? (categoryParam || searchParams.get('cat') || category || 'GM') : category).toUpperCase();
+    const urlSeatType = useUrlParams ? (searchParams.get('seat') || seatType || 'ROK') : seatType;
+    
+    let rankNum = parseInt(urlRank, 10);
+    
+    if (currentMode === 'analyzer') {
+      if (!urlRank || isNaN(rankNum) || rankNum < 1) {
+        currentMode = 'explorer';
+        setMode('explorer');
+      }
+    }
+
+    const rawCollege = useUrlParams ? (collegeName || searchParams.get('college') || collegeQuery) : collegeQuery;
+    let resolvedCollegeName = rawCollege;
+    if (rawCollege && colleges.length > 0) {
+      const matched = colleges.find(c => c.college_code.toLowerCase() === rawCollege.toLowerCase());
+      if (matched) {
+        resolvedCollegeName = matched.college_name;
+      }
+    }
+
+    let resolvedBranches = [];
+    const rawBranch = useUrlParams ? (branchName || searchParams.get('branches')) : null;
+    if (rawBranch && branches.length > 0) {
+      const queryList = rawBranch.split(',');
+      for (const qItem of queryList) {
+        const matched = branches.find(b => slugify(b.raw_name) === slugify(qItem));
+        if (matched && !resolvedBranches.includes(matched.raw_name)) {
+          resolvedBranches.push(matched.raw_name);
+        }
       }
     } else {
-      if (!collegeQuery && selectedBranches.length === 0) {
+      resolvedBranches = selectedBranches;
+    }
+
+    if (currentMode === 'explorer') {
+      if (!resolvedCollegeName && resolvedBranches.length === 0) {
         setError('Please select at least one college or branch to explore cutoffs.')
         return
       }
     }
 
-    if (!category) {
+    if (!urlCategory) {
       setError('Please select a category.')
       return
     }
@@ -155,18 +234,25 @@ export default function App() {
         return
       }
 
-      // ── Smart Branch Matching ──
-      let filteredData = fullMatrixData.filter(row => row.category === category && row.seat_type === seatType)
+      // Sync resolved values back to React state so UI displays them correctly
+      if (urlRank) setRank(urlRank);
+      setCategory(urlCategory);
+      setSeatType(urlSeatType);
+      if (resolvedCollegeName !== collegeQuery) setCollegeQuery(resolvedCollegeName);
+      if (JSON.stringify(resolvedBranches) !== JSON.stringify(selectedBranches)) {
+        setSelectedBranches(resolvedBranches);
+      }
 
-      if (mode === 'analyzer') {
+      let filteredData = fullMatrixData.filter(row => row.category === urlCategory && row.seat_type === urlSeatType)
+
+      if (currentMode === 'analyzer') {
         const safeVariation = Math.min(50000, Math.max(0, variation))
         const lo = Math.max(1, rankNum - safeVariation)
         const hi = rankNum + safeVariation
         filteredData = filteredData.filter(row => row.max_rank >= lo && row.min_rank <= hi)
       }
 
-      // ── Filter by College Name or Code ──
-      const cQuery = collegeQuery.trim().toLowerCase()
+      const cQuery = (resolvedCollegeName || '').trim().toLowerCase()
       if (cQuery) {
         const matchedCodes = colleges.filter(c => {
           return c.college_name.toLowerCase().includes(cQuery) || 
@@ -182,84 +268,73 @@ export default function App() {
         filteredData = filteredData.filter(row => matchedCodes.includes(row.college_code))
       }
 
-      // ── Filter by Multiple Branches ──
-      if (selectedBranches.length > 0) {
-        const branchNames = selectedBranches.map(b => b.toLowerCase())
-        
-        // Find all raw_names where the parent_branch name matches ANY of the selected branches
-        const matchingRawNames = branches.filter(b => {
-          const pName = b.parent_branches?.name?.toLowerCase()
-          const pAlias = b.parent_branches?.alias?.toLowerCase()
-          return branchNames.includes(pName) || branchNames.includes(pAlias)
-        }).map(b => b.raw_name)
-
-        if (matchingRawNames.length === 0) {
-          setResults([])
-          setLoading(false)
-          
-          if (window.gtag) {
-            window.gtag('event', 'search', {
-              mode: mode,
-              rank_entered: mode === 'analyzer' ? rankNum : 'N/A',
-              variation: mode === 'analyzer' ? variation : 'N/A',
-              category: category,
-              seat_type: seatType,
-              college_query: collegeQuery.trim() || 'N/A',
-              search_term: selectedBranches.join(','),
-              results_count: 0
-            })
+      if (resolvedBranches.length > 0) {
+        // Expand selected parent branches to all child raw_names
+        // e.g. selecting "ELECTRONICS AND COMMUNICATION ENGG" should also match
+        // "ELECTRONICS AND COMMUNICATIO N ENGG" and other variants under that parent
+        const expandedRawNames = new Set();
+        for (const selected of resolvedBranches) {
+          const selLower = selected.toLowerCase();
+          let expanded = false;
+          for (const b of branches) {
+            if (b.parent_branches?.name && b.parent_branches.name.toLowerCase() === selLower) {
+              expandedRawNames.add(b.raw_name.toLowerCase());
+              expanded = true;
+            }
           }
-          return
+          // Fallback: if it wasn't a parent branch name, match directly as a raw name
+          if (!expanded) {
+            expandedRawNames.add(selLower);
+          }
         }
-
-        // Only query the matching raw branches
-        filteredData = filteredData.filter(row => matchingRawNames.includes(row.course_name))
+        filteredData = filteredData.filter(row => expandedRawNames.has(row.course_name.toLowerCase()))
       }
 
       setResults(filteredData || [])
 
-      // Scroll to results to skip inputs if user came from a link
       setTimeout(() => {
         const el = document.getElementById('results-container');
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
 
-      // Update URL with current search parameters so it's easily shareable
       const params = new URLSearchParams()
-      if (mode === 'analyzer') params.set('variation', variation)
-      params.set('seat', seatType)
-      if (collegeQuery && mode === 'analyzer') params.set('college', collegeQuery)
-      if (selectedBranches.length > 0 && mode === 'analyzer') params.set('branches', selectedBranches.join(','))
-      if (mode === 'explorer' && collegeQuery && selectedBranches.length > 0) {
-        params.set('college', collegeQuery) // if both are selected, we put one in query param
+      if (currentMode === 'analyzer') params.set('variation', variation)
+      params.set('seat', urlSeatType)
+      if (resolvedCollegeName && currentMode === 'analyzer') params.set('college', resolvedCollegeName)
+      if (resolvedBranches.length > 0 && currentMode === 'analyzer') {
+        params.set('branches', resolvedBranches.map(b => slugify(b)).join(','))
+      }
+      if (currentMode === 'explorer' && resolvedCollegeName && resolvedBranches.length > 0) {
+        params.set('college', resolvedCollegeName)
       }
       
       let newPath = `/${stream}`
-      if (mode === 'analyzer' && rankNum) {
-        newPath = `/analyzer/${stream}/rank/${rankNum}/${encodeURIComponent(category)}`
-      } else if (mode === 'explorer') {
-        if (selectedBranches.length > 0) {
-          newPath = `/explorer/${stream}/branch/${encodeURIComponent(selectedBranches[0])}`
-          params.set('cat', category)
-        } else if (collegeQuery) {
-          newPath = `/explorer/${stream}/college/${encodeURIComponent(collegeQuery)}`
-          params.set('cat', category)
+      if (currentMode === 'analyzer' && rankNum) {
+        newPath = `/analyzer/${stream}/rank/${rankNum}/${encodeURIComponent(urlCategory.toLowerCase())}`
+      } else if (currentMode === 'explorer') {
+        if (resolvedBranches.length > 0) {
+          newPath = `/explorer/${stream}/branch/${encodeURIComponent(slugify(resolvedBranches[0]))}`
+          params.set('cat', urlCategory.toLowerCase())
+        } else if (resolvedCollegeName) {
+          const matched = colleges.find(c => c.college_name.toLowerCase() === resolvedCollegeName.trim().toLowerCase() || c.college_code.toLowerCase() === resolvedCollegeName.trim().toLowerCase());
+          const code = matched ? matched.college_code.toLowerCase() : resolvedCollegeName.toLowerCase();
+          newPath = `/explorer/${stream}/college/${encodeURIComponent(code)}`
+          params.set('cat', urlCategory.toLowerCase())
         }
       }
       
       const queryString = params.toString() ? `?${params.toString()}` : ''
       navigate(`${newPath}${queryString}`, { replace: true })
 
-      // Send event to Google Analytics
       if (window.gtag) {
         window.gtag('event', 'search', {
-          mode: mode,
-          rank_entered: mode === 'analyzer' ? rankNum : 'N/A',
-          variation: mode === 'analyzer' ? variation : 'N/A',
-          category: category,
-          seat_type: seatType,
-          college_query: collegeQuery.trim() || 'N/A',
-          search_term: selectedBranches.length > 0 ? selectedBranches.join(',') : 'All Branches',
+          mode: currentMode,
+          rank_entered: currentMode === 'analyzer' ? rankNum : 'N/A',
+          variation: currentMode === 'analyzer' ? variation : 'N/A',
+          category: urlCategory,
+          seat_type: urlSeatType,
+          college_query: resolvedCollegeName?.trim() || 'N/A',
+          search_term: resolvedBranches.length > 0 ? resolvedBranches.join(',') : 'All Branches',
           results_count: filteredData ? filteredData.length : 0
         })
       }
@@ -270,7 +345,7 @@ export default function App() {
     } finally {
       setLoading(false)
     }
-  }, [mode, rank, variation, category, seatType, selectedBranches, collegeQuery, branches, colleges, stream, fullMatrixData])
+  }, [mode, rank, variation, category, seatType, selectedBranches, collegeQuery, branches, colleges, stream, fullMatrixData, rankValue, categoryParam, searchParams, navigate, hasAutoSearched])
 
   // Auto-trigger search if URL params are present (shared link)
   useEffect(() => {
