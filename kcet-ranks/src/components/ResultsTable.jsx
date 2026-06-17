@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-export default function ResultsTable({ rows, rounds, userRank }) {
+
+export default function ResultsTable({ rows, rounds, userRank, stream, category }) {
   // Determine unique years and rounds for the matrix
   // Only keep the top 4 recent years (x, x-1, x-2, x-3)
   const uniqueYears = Array.from(new Set(rounds.map(r => r.year))).sort((a, b) => b - a).slice(0, 4)
@@ -57,11 +58,10 @@ export default function ResultsTable({ rows, rounds, userRank }) {
   return (
     <div className="w-full">
       {/* Table Header - Unified for both Desktop and Mobile */}
-      <div className="hidden md:grid grid-cols-[2fr_2fr_1fr_auto] gap-4 px-4 py-3 bg-ink text-paper rounded-t-xl text-xs uppercase tracking-wider font-semibold">
+      <div className="hidden md:grid grid-cols-[2fr_2fr_1fr] gap-4 px-4 py-3 bg-ink text-paper rounded-t-xl text-xs uppercase tracking-wider font-semibold">
         <div>College</div>
         <div>Course</div>
         <div className="text-right">Latest Cutoff</div>
-        <div className="w-8"></div>
       </div>
 
       {/* Rows */}
@@ -88,107 +88,125 @@ export default function ResultsTable({ rows, rounds, userRank }) {
                 </div>
               )}
               <div className={`border-b border-border last:border-b-0 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-[#fafaf7]'} hover:bg-amber-50/40`}>
-                {/* Main Row Content */}
-              <div 
-                onClick={() => toggleRow(rowKey)}
-                className="cursor-pointer grid grid-cols-1 md:grid-cols-[2fr_2fr_1fr_auto] gap-2 md:gap-4 px-4 py-3 md:py-4 items-center"
-              >
-                {/* College Info */}
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono text-xs px-1.5 py-0.5 bg-paper border border-border rounded text-muted font-medium">
-                      {row.college_code}
-                    </span>
+                
+                {/* Main Row Content - Entire div is clickable to toggle history */}
+                <div 
+                  onClick={() => toggleRow(rowKey)}
+                  className="cursor-pointer px-4 py-3 md:py-4 flex flex-col"
+                >
+                  {/* Top Information Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-[2fr_2fr_1fr] gap-2 md:gap-4 items-center">
+                    {/* College Info */}
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono text-xs px-1.5 py-0.5 bg-paper border border-border rounded text-muted font-medium">
+                          {row.college_code}
+                        </span>
+                      </div>
+                      <span className="font-medium text-ink leading-snug text-sm md:text-base">
+                        {row.college_name}
+                      </span>
+                    </div>
+
+                    {/* Course Info */}
+                    <div className="text-sm md:text-base text-ink leading-snug">
+                      {row.course_name}
+                    </div>
+
+                    {/* Latest Cutoff */}
+                    <div className="flex items-center justify-between md:justify-end mt-2 md:mt-0">
+                      <span className="md:hidden text-xs text-muted uppercase tracking-wider font-semibold">Latest Cutoff</span>
+                      <div className="flex flex-col md:items-end gap-1">
+                        {latestCutoff ? (
+                          <>
+                            <span className="text-[10px] md:text-xs font-semibold text-muted uppercase tracking-wider">{latestCutoff.label}</span>
+                            <RankCell rank={latestCutoff.rank} userRank={userRank} />
+                          </>
+                        ) : (
+                          <span className="text-muted/40 font-mono text-sm">—</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <span className="font-medium text-ink leading-snug text-sm md:text-base">
-                    {row.college_name}
-                  </span>
-                </div>
 
-                {/* Course Info */}
-                <div className="text-sm md:text-base text-ink leading-snug">
-                  {row.course_name}
-                </div>
-
-                {/* Latest Cutoff & Mobile Layout Container */}
-                <div className="flex items-center justify-between md:justify-end mt-2 md:mt-0">
-                  <span className="md:hidden text-xs text-muted uppercase tracking-wider font-semibold">Latest Cutoff</span>
-                  <div className="flex flex-col md:items-end gap-1">
-                    {latestCutoff ? (
-                      <>
-                        <span className="text-[10px] md:text-xs font-semibold text-muted uppercase tracking-wider">{latestCutoff.label}</span>
-                        <RankCell rank={latestCutoff.rank} userRank={userRank} />
-                      </>
+                  {/* Dual Action Bottom Bar */}
+                  <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between w-full">
+                    {/* LHS: Article Link - stopPropagation prevents row expansion. TARGET BLANK ADDED HERE */}
+                    {stream && category ? (
+                      <Link
+                        to={`/articles/${stream}/${encodeURIComponent(row.college_name)}/${encodeURIComponent(row.course_name)}/${encodeURIComponent(category)}`}
+                        target="_blank"
+                        rel="noopener"
+                        onClick={(e) => e.stopPropagation()} 
+                        className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors border border-indigo-100"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        View Analysis
+                      </Link>
                     ) : (
-                      <span className="text-muted/40 font-mono text-sm">—</span>
+                      <div /> /* Empty placeholder to maintain flex spacing if routing props are missing */
                     )}
+
+                    {/* RHS: Show History Indicator */}
+                    <div className="text-xs font-medium text-accent flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-accent/10 transition-colors">
+                      {isExpanded ? 'Hide History' : 'Show History'}
+                      <svg className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
 
-                {/* Expand Icon */}
-                <div className="hidden md:flex justify-end w-8 text-muted">
-                  <svg className={`w-5 h-5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-
-                {/* Mobile Expand Hint */}
-                <div className="md:hidden mt-2 pt-2 border-t border-border/50 text-center text-xs font-medium text-accent flex items-center justify-center gap-1">
-                  {isExpanded ? 'Hide History' : 'Show History'}
-                  <svg className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+                {/* Expanded Matrix Panel */}
+                {isExpanded && (
+                  <div className="px-4 pb-5 pt-1 md:pt-2 cursor-default" onClick={e => e.stopPropagation()}>
+                    <div className="bg-white border border-border rounded-lg shadow-inner overflow-hidden">
+                      <div className="bg-paper px-3 py-2 border-b border-border flex items-center justify-between">
+                        <span className="text-xs font-semibold uppercase text-muted tracking-wider">Historical Cutoffs</span>
+                      </div>
+                      <div className="overflow-x-auto scrollbar-thin">
+                        <table className="w-full text-sm text-left border-collapse">
+                          <thead>
+                            <tr className="bg-[#fafaf7] border-b border-border/50 text-xs text-muted uppercase tracking-wider">
+                              <th className="px-4 py-2 font-semibold border-r border-border/50 w-24 sticky left-0 z-10 bg-[#fafaf7]">Year</th>
+                              {uniqueRoundNums.map(roundNum => (
+                                <th key={roundNum} className="px-4 py-2 font-semibold text-center border-r border-border/50 last:border-r-0 min-w-[90px] whitespace-nowrap">
+                                  {roundMap.get(roundNum)}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {uniqueYears.map((year, idx) => {
+                              // Check if this specific year has any data for this row
+                              const hasData = uniqueRoundNums.some(roundNum => row.rounds[`${year}_R${roundNum}`] != null)
+                              if (!hasData) return null;
+                              
+                              return (
+                                <tr key={year} className={`${idx !== uniqueYears.length - 1 ? 'border-b border-border/30' : ''}`}>
+                                  <td className="px-4 py-2.5 font-semibold text-ink border-r border-border/50 bg-white sticky left-0 z-10 text-xs shadow-[1px_0_0_0_#f4f4f5]">
+                                    {year}
+                                  </td>
+                                  {uniqueRoundNums.map(roundNum => {
+                                    const rank = row.rounds[`${year}_R${roundNum}`]
+                                    return (
+                                      <td key={roundNum} className="px-4 py-2.5 text-center border-r border-border/50 last:border-r-0 whitespace-nowrap">
+                                        <RankCell rank={rank} userRank={userRank} />
+                                      </td>
+                                    )
+                                  })}
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {/* Expanded Matrix Panel */}
-              {isExpanded && (
-                <div className="px-4 pb-5 pt-1 md:pt-2 cursor-default" onClick={e => e.stopPropagation()}>
-                  <div className="bg-white border border-border rounded-lg shadow-inner overflow-hidden">
-                    <div className="bg-paper px-3 py-2 border-b border-border flex items-center justify-between">
-                      <span className="text-xs font-semibold uppercase text-muted tracking-wider">Historical Cutoffs</span>
-                    </div>
-                    <div className="overflow-x-auto scrollbar-thin">
-                      <table className="w-full text-sm text-left border-collapse">
-                        <thead>
-                          <tr className="bg-[#fafaf7] border-b border-border/50 text-xs text-muted uppercase tracking-wider">
-                            <th className="px-4 py-2 font-semibold border-r border-border/50 w-24 sticky left-0 z-10 bg-[#fafaf7]">Year</th>
-                            {uniqueRoundNums.map(roundNum => (
-                              <th key={roundNum} className="px-4 py-2 font-semibold text-center border-r border-border/50 last:border-r-0 min-w-[90px] whitespace-nowrap">
-                                {roundMap.get(roundNum)}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {uniqueYears.map((year, idx) => {
-                            // Check if this specific year has any data for this row
-                            const hasData = uniqueRoundNums.some(roundNum => row.rounds[`${year}_R${roundNum}`] != null)
-                            if (!hasData) return null;
-                            
-                            return (
-                              <tr key={year} className={`${idx !== uniqueYears.length - 1 ? 'border-b border-border/30' : ''}`}>
-                                <td className="px-4 py-2.5 font-semibold text-ink border-r border-border/50 bg-white sticky left-0 z-10 text-xs shadow-[1px_0_0_0_#f4f4f5]">
-                                  {year}
-                                </td>
-                                {uniqueRoundNums.map(roundNum => {
-                                  const rank = row.rounds[`${year}_R${roundNum}`]
-                                  return (
-                                    <td key={roundNum} className="px-4 py-2.5 text-center border-r border-border/50 last:border-r-0 whitespace-nowrap">
-                                      <RankCell rank={rank} userRank={userRank} />
-                                    </td>
-                                  )
-                                })}
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
             </React.Fragment>
           )
         })}

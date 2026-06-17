@@ -1,17 +1,9 @@
-import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { X } from 'lucide-react'
+import streams from '../streams.json'
 
 export default function Sidebar({ onClose }) {
-  const [streams, setStreams] = useState([])
   const location = useLocation()
-
-  useEffect(() => {
-    fetch('/streams.json')
-      .then(res => res.json())
-      .then(data => setStreams(data))
-      .catch(err => console.error("Failed to load streams index:", err))
-  }, [])
 
   return (
     <div className="flex flex-col h-full bg-paper">

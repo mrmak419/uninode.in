@@ -7,7 +7,7 @@ import Footer from './components/Footer.jsx'
 import { Menu } from 'lucide-react'
 import { SidebarContext } from './components/Layout.jsx'
 import TabTitle from './components/TabTitle.jsx'
-import streamsData from '../public/streams.json'
+import streamsData from './streams.json'
 
 const ALL_CATEGORIES = [
   '1G','1K','1R',
@@ -461,6 +461,8 @@ export default function App() {
                 rows={groupedResults}
                 rounds={rounds}
                 userRank={mode === 'analyzer' ? parseInt(rank, 10) : null}
+                stream={stream}
+                category={category}
               />
             </>
           )}

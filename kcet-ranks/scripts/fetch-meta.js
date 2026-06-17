@@ -324,8 +324,13 @@ async function fetchMetadata() {
     return a.id.localeCompare(b.id);
   });
 
+  const srcDir = path.resolve(process.cwd(), 'src');
+  if (!fs.existsSync(srcDir)) {
+    fs.mkdirSync(srcDir, { recursive: true });
+  }
+
   fs.writeFileSync(
-    path.join(publicDir, 'streams.json'), 
+    path.join(srcDir, 'streams.json'), 
     JSON.stringify(streamSummaries, null, 2)
   );
 

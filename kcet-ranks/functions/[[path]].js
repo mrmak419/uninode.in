@@ -20,6 +20,33 @@ function formatRank(rank) {
   return Math.round(Number(rank)).toLocaleString('en-IN');
 }
 
+// Module-level caches — survive across requests in the same worker isolate
+// seoCache: eliminates re-fetching the ~5MB SEO lookup on every request
+// collegeChunkCache: eliminates re-fetching per-college data when bot crawls multiple branches
+// knownStreamsCache: validated stream IDs from streams.json (built at deploy time)
+const seoCache = new Map();
+const collegeChunkCache = new Map();
+let knownStreamsCache = null;
+
+async function getKnownStreams(context, origin) {
+  if (knownStreamsCache) {
+    console.log('[CACHE HIT] knownStreams');
+    return knownStreamsCache;
+  }
+  console.log('[CACHE MISS] knownStreams — fetching streams.json');
+  try {
+    const res = await context.env.ASSETS.fetch(
+      new Request(new URL('/streams.json', origin))
+    );
+    if (res.ok) {
+      const streams = await res.json();
+      knownStreamsCache = new Set(streams.map(s => s.id));
+      return knownStreamsCache;
+    }
+  } catch(e) {}
+  return null;
+}
+
 export async function onRequest(context) {
   const url = new URL(context.request.url);
 
@@ -124,11 +151,19 @@ export async function onRequest(context) {
         
         // Try to fetch real cutoff data from the pre-built SEO lookup
         try {
-          const seoRes = await context.env.ASSETS.fetch(
-            new Request(new URL(`/seo_${streamRaw}.json`, url.origin))
-          );
-          if (seoRes.ok) {
-            seoDataMap = await seoRes.json();
+          if (!seoCache.has(streamRaw)) {
+              console.log(`[CACHE MISS] seoCache(${streamRaw}) — fetching seo_${streamRaw}.json`);
+              const seoRes = await context.env.ASSETS.fetch(
+                new Request(new URL(`/seo_${streamRaw}.json`, url.origin))
+              );
+              if (seoRes.ok) {
+                seoCache.set(streamRaw, await seoRes.json());
+              }
+            } else {
+              console.log(`[CACHE HIT] seoCache(${streamRaw})`);
+            }
+          seoDataMap = seoCache.get(streamRaw) || null;
+          if (seoDataMap) {
             const lookupKey = `${collegeDec}|${branchDec}|${catDec}`.toLowerCase();
             articleSeo = seoDataMap[lookupKey] || null;
           }
@@ -201,11 +236,18 @@ export async function onRequest(context) {
         pageDescription = `The best laptops, tablets, and accessories recommended for engineering students.`;
       }
     } else {
-      // Root stream route (e.g. /engineering)
-      streamRaw = pathParts[0];
-      stream = formatStream(streamRaw);
-      pageTitle = `${stream} Cutoffs | Uninode KCET Cutoff Analyzer`;
-      pageDescription = `Analyze historical KCET cutoff trends for ${stream}. Discover eligible colleges for your rank.`;
+      // Root stream route (e.g. /engineering) — validate against build-time streams.json
+      const candidate = pathParts[0].toLowerCase();
+      const validStreams = await getKnownStreams(context, url.origin);
+      if (validStreams && validStreams.has(candidate)) {
+        streamRaw = candidate;
+        stream = formatStream(streamRaw);
+        pageTitle = `${stream} Cutoffs | Uninode KCET Cutoff Analyzer`;
+        pageDescription = `Analyze historical KCET cutoff trends for ${stream}. Discover eligible colleges for your rank.`;
+      } else {
+        pageTitle = `Page Not Found | Uninode KCET`;
+        pageDescription = `The page you're looking for doesn't exist. Browse KCET cutoffs and college data on Uninode.`;
+      }
     }
   }
 
@@ -383,7 +425,7 @@ export async function onRequest(context) {
       }
     })
     .on('div#root', {
-      element(element) {
+      async element(element) {
         if (isArticle && articleSeo && articleParts && seoDataMap) {
           const collegeShort = cleanCollegeName(articleParts.college);
           const rank = formatRank(articleSeo.r);
@@ -435,6 +477,65 @@ export async function onRequest(context) {
               return `      <a href="${catUrl}" style="color: #0284c7; text-decoration: none; margin-right: 12px; display: inline-block; font-weight: 600;">${escapeHtml(cat)}</a>`;
             }).join(', \n');
             fallbackHtml += `\n    </p>\n`;
+          }
+          
+          // --- CTA Internal Links (mirrors ArticleCTABlocks) ---
+          fallbackHtml += `    <h3 style="margin-top: 24px;">Explore More</h3>\n    <ul style="list-style: none; padding: 0;">\n`;
+          fallbackHtml += `      <li style="margin-bottom: 8px;"><a href="/explorer/${streamRaw}/college/${encodeURIComponent(articleParts.college)}?cat=${encodeURIComponent(articleParts.cat)}&seat=ROK" style="color: #0284c7; text-decoration: none; font-weight: 600;">📊 Explore all branches at ${escapeHtml(collegeShort)}</a></li>\n`;
+          fallbackHtml += `      <li style="margin-bottom: 8px;"><a href="/explorer/${streamRaw}/branch/${encodeURIComponent(articleParts.branch)}?cat=${encodeURIComponent(articleParts.cat)}&seat=ROK" style="color: #0284c7; text-decoration: none; font-weight: 600;">🔍 Compare ${escapeHtml(articleParts.branch)} across all colleges</a></li>\n`;
+          fallbackHtml += `      <li style="margin-bottom: 8px;"><a href="/gear" style="color: #0284c7; text-decoration: none; font-weight: 600;">🎒 College essentials & recommended gear</a></li>\n`;
+          fallbackHtml += `    </ul>\n`;
+          
+          // --- Related Articles: Precomputed Suggestions (same source as React) ---
+          try {
+            const chunkKey = `${streamRaw}_${articleSeo.code}`;
+            if (!collegeChunkCache.has(chunkKey)) {
+              console.log(`[CACHE MISS] collegeChunk(${chunkKey}) — fetching`);
+              const collegeChunkRes = await context.env.ASSETS.fetch(
+                new Request(new URL(`/college_data/${chunkKey}.json`, url.origin))
+              );
+              if (collegeChunkRes.ok) {
+                collegeChunkCache.set(chunkKey, await collegeChunkRes.json());
+              }
+            } else {
+              console.log(`[CACHE HIT] collegeChunk(${chunkKey})`);
+            }
+            const collegeChunk = collegeChunkCache.get(chunkKey);
+            if (collegeChunk) {
+              const suggKey = `${articleParts.branch}|${articleParts.cat}|ROK`;
+              const suggestion = (collegeChunk.suggestions || {})[suggKey];
+              
+              if (suggestion) {
+                const items = [];
+                if (suggestion.similarBranch && suggestion.similarBranch.college && suggestion.similarBranch.branch) {
+                  const sbKey = `${suggestion.similarBranch.college}|${suggestion.similarBranch.branch}|${suggestion.similarBranch.category}`.toLowerCase();
+                  const sbData = seoDataMap[sbKey];
+                  if (sbData && Number(sbData.r) > 0) {
+                    items.push({ label: 'Similar Ranked Branch', college: suggestion.similarBranch.college, branch: suggestion.similarBranch.branch, cat: suggestion.similarBranch.category, rank: sbData.r });
+                  }
+                }
+                if (suggestion.similarCollege && suggestion.similarCollege.college && suggestion.similarCollege.branch) {
+                  const scKey = `${suggestion.similarCollege.college}|${suggestion.similarCollege.branch}|${suggestion.similarCollege.category}`.toLowerCase();
+                  const scData = seoDataMap[scKey];
+                  if (scData && Number(scData.r) > 0) {
+                    items.push({ label: 'Similar Ranked College', college: suggestion.similarCollege.college, branch: suggestion.similarCollege.branch, cat: suggestion.similarCollege.category, rank: scData.r });
+                  }
+                }
+                
+                if (items.length > 0) {
+                  fallbackHtml += `    <h3 style="margin-top: 24px;">Related Articles</h3>\n`;
+                  fallbackHtml += `    <table border="1" cellpadding="8" style="border-collapse: collapse; margin-top: 10px; width: 100%; text-align: left;">\n      <thead><tr style="background-color: #f2f2f2;"><th>Type</th><th>College</th><th>Branch</th><th>Closing Rank (${articleSeo.y})</th></tr></thead>\n      <tbody>\n`;
+                  for (const item of items) {
+                    const displayCollege = item.college.split('(')[0].split(',')[0].trim();
+                    const articleUrl = `/articles/${streamRaw}/${encodeURIComponent(item.college)}/${encodeURIComponent(item.branch)}/${encodeURIComponent(item.cat)}`;
+                    fallbackHtml += `        <tr><td>${escapeHtml(item.label)}</td><td><a href="${articleUrl}" style="color: #0284c7; text-decoration: none; font-weight: 600;">${escapeHtml(displayCollege)}</a></td><td>${escapeHtml(item.branch)}</td><td>${formatRank(item.rank)}</td></tr>\n`;
+                  }
+                  fallbackHtml += `      </tbody>\n    </table>\n`;
+                }
+              }
+            }
+          } catch(e) {
+            // Graceful fallback — college chunk unavailable
           }
           
           fallbackHtml += `    <p style="color: #666; font-size: 12px; margin-top: 20px;">This is a crawler-friendly fallback representation. Enable JavaScript to view interactive trend charts, search widgets, and compare other options.</p>\n  </div>\n`;

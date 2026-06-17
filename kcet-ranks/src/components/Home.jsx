@@ -5,7 +5,7 @@ import LegalFooter from './LegalFooter'
 import { SidebarContext } from './Layout'
 
 import TabTitle from './TabTitle'
-import streamsData from '../../public/streams.json'
+import streamsData from '../streams.json'
 
 const STREAM_INFO = {
   engineering: { title: 'Engineering', desc: 'B.E. / B.Tech cutoffs across all branches.', icon: Laptop, color: 'from-blue-500 to-indigo-600' },
