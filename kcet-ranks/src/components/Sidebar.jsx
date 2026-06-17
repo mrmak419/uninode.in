@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { X } from 'lucide-react'
 import streams from '../streams.json'
+import RazorpayButton from './RazorpayButton' // Ensure correct import path
 
 export default function Sidebar({ onClose }) {
   const location = useLocation()
@@ -84,8 +85,9 @@ export default function Sidebar({ onClose }) {
       </div>
       
       {/* Footer */}
-      <div className="px-4 py-4 border-t border-border mt-auto shrink-0 text-center text-xs text-muted">
-        <Link to="/contact" className="hover:text-ink transition-colors" onClick={() => { if (window.innerWidth < 1024) onClose() }}>
+      <div className="px-4 py-4 border-t border-border mt-auto shrink-0 text-center flex flex-col gap-3">
+        <RazorpayButton />
+        <Link to="/contact" className="hover:text-ink text-xs text-muted transition-colors" onClick={() => { if (window.innerWidth < 1024) onClose() }}>
           Made with ❤️ by Ayaan and Shreyas
         </Link>
       </div>
