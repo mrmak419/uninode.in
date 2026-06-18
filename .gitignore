@@ -1,5 +1,25 @@
-.env
+# Dependencies
 node_modules/
+.env
+
+# Build Outputs
 dist/
-*.csv
 .DS_Store
+
+# Data Logs
+*.csv
+
+# --- GENERATED EDGE ARTIFACTS ---
+
+# Sitemaps
+public/sitemap*.xml
+
+# Generated JSON Data & Compressed Variants (.br, .gz)
+public/meta_*.json*
+public/archive_*.json*
+public/data_*.json*
+public/seo_*.json*
+public/college_data/
+
+# Generated Stream Config
+src/streams.json

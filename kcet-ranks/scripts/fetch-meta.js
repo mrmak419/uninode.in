@@ -20,6 +20,15 @@ function slugify(text) {
     .replace(/^-+|-+$/g, '');
 }
 
+function xmlEscape(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function extractSeoData(roundsObj) {
   if (!roundsObj) return null;
   // Parse all year+round combos
@@ -378,7 +387,9 @@ async function fetchMetadata() {
 
     console.log(`✅ Wrote meta_${stream}.json (${data.colleges.length} colleges, ${data.branches.length} branches)`);
     console.log(`✅ Wrote archive_${stream}.json (${archiveData.articleCombinations.length} combinations)`);
-  }  // Generate sitemap.xml
+  }
+
+  // Generate sitemap.xml
   const domain = process.env.VITE_APP_DOMAIN || 'https://kcet.uninode.in';
   const currentDate = new Date().toISOString();
   
@@ -429,7 +440,7 @@ async function fetchMetadata() {
       for (const b of streamData.branches) {
         const bName = b.raw_name;
         if (!bName) continue;
-        const bUrl = `${domain}/explorer/${sId}/branch/${encodeURIComponent(slugify(bName))}`;
+        const bUrl = `${domain}/explorer/${sId}/branch/${slugify(bName)}`;
         explorerUrls.push({ loc: bUrl, changefreq: 'weekly', priority: '0.6' });
         branchCount++;
       }
@@ -439,7 +450,7 @@ async function fetchMetadata() {
     if (streamData && streamData.colleges) {
       for (const c of streamData.colleges) {
         if (!c.college_code) continue;
-        const cUrl = `${domain}/explorer/${sId}/college/${encodeURIComponent(c.college_code.toLowerCase())}`;
+        const cUrl = `${domain}/explorer/${sId}/college/${c.college_code.toLowerCase()}`;
         explorerUrls.push({ loc: cUrl, changefreq: 'weekly', priority: '0.6' });
         collegeCount++;
       }
@@ -450,7 +461,7 @@ async function fetchMetadata() {
       for (const combo of streamData.combinations) {
         const [cCode, cName, bName] = combo.split('::');
         if (!cCode || !bName) continue;
-        const comboUrl = `${domain}/explorer/${sId}/branch/${encodeURIComponent(slugify(bName))}?college=${encodeURIComponent(cCode.toLowerCase())}`;
+        const comboUrl = `${domain}/explorer/${sId}/branch/${slugify(bName)}?college=${cCode.toLowerCase()}`;
         cutoffUrls.push({ loc: comboUrl, changefreq: 'weekly', priority: '0.5' });
       }
     }
@@ -488,7 +499,7 @@ async function fetchMetadata() {
       const chunk = urls.slice(i * URLS_PER_SITEMAP, (i + 1) * URLS_PER_SITEMAP);
       let chunkXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
       chunk.forEach(u => {
-        chunkXml += `  <url>\n    <loc>${u.loc}</loc>\n    <lastmod>${currentDate}</lastmod>\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>\n`;
+        chunkXml += `  <url>\n    <loc>${xmlEscape(u.loc)}</loc>\n    <lastmod>${currentDate}</lastmod>\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>\n`;
       });
       chunkXml += `</urlset>`;
       fs.writeFileSync(path.join(publicDir, filename), chunkXml);
