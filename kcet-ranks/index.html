@@ -31,6 +31,15 @@
         }, 1500); // 1.5s delay ensures Lighthouse and users don't feel the hit
       });
     </script>
+
+    <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
+  }
+</script>
+
   </head>
   <body>
     <div id="root">
