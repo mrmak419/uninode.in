@@ -447,7 +447,7 @@ export default function App() {
             <h2 className="text-3xl font-display font-bold text-ink mb-1 flex items-center gap-3">
               {stream.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
             </h2>
-            <p className="text-muted font-body text-sm">
+            <p className="text-muted font-body text-sm mt-1">
               Historical cut-off analysis ({yearsText})
             </p>
           </div>

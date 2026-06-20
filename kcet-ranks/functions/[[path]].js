@@ -390,6 +390,9 @@ export async function onRequest(context) {
         pageTitle = `Uninode Gear | Recommended Laptops & Tech for College`;
         pageDescription = `The best laptops, tablets, and accessories recommended for engineering students.`;
       }
+    } else if (section === 'option-entry') {
+      pageTitle = `Option Entry List Generator | Uninode KCET`;
+      pageDescription = `Build, prioritize, and validate your KCET Option Entry preference list strategically based on historical cutoff ranks.`;
     } else {
       // Root stream route (e.g. /engineering) — validate against build-time streams.json
       const candidate = pathParts[0].toLowerCase();

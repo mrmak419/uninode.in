@@ -18,6 +18,7 @@ const GearAdmin = lazy(() => import('./admin/GearAdmin.jsx'))
 const GearIndex = lazy(() => import('./components/gear/GearIndex.jsx'))
 const GearCategory = lazy(() => import('./components/gear/GearCategory.jsx'))
 const NotFound = lazy(() => import('./components/NotFound.jsx'))
+const OptionGenerator = lazy(() => import('./components/OptionGenerator.jsx'))
 
 const path = window.location.pathname
 const isAdmin = path.startsWith('/system/hq/portal/admin/secure/99x')
@@ -151,6 +152,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               
               {/* Analyzer Routes */}
               <Route path="/analyzer/:stream/rank/:rankValue/:category" element={<App />} />
+              {/* Option Entry Generator Route */}
+              <Route path="/option-entry" element={<OptionGenerator />} />
               
               {/* Root Stream Route — validated against known streams */}
               <Route path="/:stream" element={<ValidatedStreamRoute />} />

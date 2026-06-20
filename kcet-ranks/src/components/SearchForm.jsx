@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import { Sparkles } from 'lucide-react'
 
 const SEAT_TYPES = [
   { value: 'ROK', label: 'Rest of Karnataka' },
@@ -22,6 +24,7 @@ export default function SearchForm({
   onClear,
   loading,
 }) {
+  const { stream = 'engineering' } = useParams()
   const [branchOpen, setBranchOpen] = useState(false)
   const [branchInput, setBranchInput] = useState('')
   const branchRef = useRef(null)
@@ -43,14 +46,23 @@ export default function SearchForm({
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Derive unique parent branches for the dropdown
+  // Derive unique branches for the dropdown
   const parentBranchesMap = new Map()
   branches.forEach(b => {
-    if (b.parent_branches?.name) {
-      parentBranchesMap.set(b.parent_branches.name, {
-        name: b.parent_branches.name,
-        alias: b.parent_branches.alias
-      })
+    if (stream === 'engineering') {
+      if (b.parent_branches?.name) {
+        parentBranchesMap.set(b.parent_branches.name, {
+          name: b.parent_branches.name,
+          alias: b.parent_branches.alias
+        })
+      }
+    } else {
+      if (b.raw_name) {
+        parentBranchesMap.set(b.raw_name, {
+          name: b.raw_name,
+          alias: b.alias || ''
+        })
+      }
     }
   })
   const parentBranchesList = Array.from(parentBranchesMap.values())
@@ -334,12 +346,23 @@ export default function SearchForm({
         </div>
 
         {/* Right side: Buttons */}
-        <div className="flex items-center justify-end gap-3 shrink-0">
+        <div className="flex flex-wrap items-center justify-start sm:justify-end gap-3 w-full sm:w-auto">
+          <Link
+            to={`/option-entry?stream=${stream}`}
+            className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg
+                       bg-emerald-50 text-emerald-800 text-sm font-semibold border border-emerald-200
+                       hover:bg-emerald-100 transition-colors duration-150 focus:outline-none shadow-sm
+                       w-full sm:w-auto text-center"
+          >
+            <Sparkles className="w-4 h-4 text-emerald-600 animate-pulse" />
+            <span>Click here for option entry generator</span>
+          </Link>
+
           {/* Clear button */}
           <button
             type="button"
             onClick={onClear}
-            className="px-4 py-2.5 rounded-lg text-sm font-semibold text-muted hover:text-ink hover:bg-paper transition-colors duration-150 focus:outline-none"
+            className="px-4 py-2.5 rounded-lg text-sm font-semibold text-muted hover:text-ink hover:bg-paper transition-colors duration-150 focus:outline-none flex-1 sm:flex-none text-center"
           >
             Clear
           </button>
@@ -384,7 +407,7 @@ export default function SearchForm({
             title="Copy link to these results"
             className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg
                        border border-border bg-white text-ink text-sm font-semibold
-                       hover:bg-paper transition-colors duration-150 focus:outline-none"
+                       hover:bg-paper transition-colors duration-150 focus:outline-none flex-1 sm:flex-none text-center"
           >
             <svg className="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -399,7 +422,7 @@ export default function SearchForm({
             className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg
                        bg-ink text-paper text-sm font-semibold
                        hover:bg-accent transition-colors duration-150
-                       disabled:opacity-50 disabled:cursor-not-allowed"
+                       disabled:opacity-50 disabled:cursor-not-allowed flex-[2] sm:flex-none text-center"
           >
             {loading ? (
               <>

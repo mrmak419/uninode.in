@@ -132,23 +132,25 @@ export default function ResultsTable({ rows, rounds, userRank, stream, category 
 
                   {/* Dual Action Bottom Bar */}
                   <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between w-full">
-                    {/* LHS: Article Link - stopPropagation prevents row expansion. TARGET BLANK ADDED HERE */}
-                    {stream && category ? (
-                      <Link
-                        to={getArticleUrl(stream, row.college_code, row.course_name, category)}
-                        target="_blank"
-                        rel="noopener"
-                        onClick={(e) => e.stopPropagation()} 
-                        className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors border border-indigo-100"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                        View Analysis
-                      </Link>
-                    ) : (
-                      <div /> /* Empty placeholder to maintain flex spacing if routing props are missing */
-                    )}
+                    {/* LHS: Article Link & Add Option */}
+                    <div className="flex items-center gap-2">
+                      {stream && category ? (
+                        <Link
+                          to={getArticleUrl(stream, row.college_code, row.course_name, category)}
+                          target="_blank"
+                          rel="noopener"
+                          onClick={(e) => e.stopPropagation()} 
+                          className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors border border-indigo-100"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                          View Analysis
+                        </Link>
+                      ) : null}
+
+
+                    </div>
 
                     {/* RHS: Show History Indicator */}
                     <div className="text-xs font-medium text-accent flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-accent/10 transition-colors">
@@ -212,6 +214,7 @@ export default function ResultsTable({ rows, rounds, userRank, stream, category 
           )
         })}
       </div>
+
     </div>
   )
 }

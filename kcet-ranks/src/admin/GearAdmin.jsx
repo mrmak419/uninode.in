@@ -100,6 +100,7 @@ function GearManager() {
   const [rawUrl, setRawUrl] = useState('')
   const [fetchingAmazon, setFetchingAmazon] = useState(false)
   const [amazonError, setAmazonError] = useState(null)
+  const [amazonSuccess, setAmazonSuccess] = useState(null)
 
   // Category Form
   const [catName, setCatName] = useState('')
@@ -107,6 +108,8 @@ function GearManager() {
   const [catIcon, setCatIcon] = useState('')
   const [catSort, setCatSort] = useState(0)
   const [editingCategoryId, setEditingCategoryId] = useState(null)
+  const [catError, setCatError] = useState(null)
+  const [confirmDeleteCatId, setConfirmDeleteCatId] = useState(null)
   
   // Product Form
   const [prodName, setProdName] = useState('')
@@ -117,6 +120,8 @@ function GearManager() {
   const [prodFeatured, setProdFeatured] = useState(false)
   const [prodSort, setProdSort] = useState(0)
   const [editingProductId, setEditingProductId] = useState(null)
+  const [prodError, setProdError] = useState(null)
+  const [confirmDeleteProdId, setConfirmDeleteProdId] = useState(null)
 
   // Auto-generate slug from name
   useEffect(() => {
@@ -136,6 +141,7 @@ function GearManager() {
     if (!rawUrl) return
     setFetchingAmazon(true)
     setAmazonError(null)
+    setAmazonSuccess(null)
 
     const asin = extractAsin(rawUrl)
     if (!asin || asin.length < 10) {
@@ -171,7 +177,7 @@ function GearManager() {
       setProdPriceHint(data.priceHint || '')
       setProdAffiliate(data.affiliateUrl || '')
       
-      alert('Product data auto-filled successfully!')
+      setAmazonSuccess('Product data auto-filled successfully!')
     } catch (err) {
       setAmazonError(err.message)
     } finally {
@@ -190,6 +196,7 @@ function GearManager() {
     } else {
       setProducts([])
     }
+    setConfirmDeleteProdId(null)
   }, [selectedCategory])
 
   async function loadCategories() {
@@ -211,18 +218,19 @@ function GearManager() {
   async function addCategory(e) {
     e.preventDefault()
     setSaving(true)
+    setCatError(null)
     const categoryData = { name: catName, slug: catSlug, icon: catIcon, sort_order: parseInt(catSort) }
     
     if (editingCategoryId) {
       const { error } = await supabase.from('gear_categories').update(categoryData).eq('id', editingCategoryId)
-      if (error) alert("Error: " + error.message)
+      if (error) setCatError(error.message)
       else {
         resetCategoryForm()
         loadCategories()
       }
     } else {
       const { error } = await supabase.from('gear_categories').insert([categoryData])
-      if (error) alert("Error: " + error.message)
+      if (error) setCatError(error.message)
       else {
         resetCategoryForm()
         loadCategories()
@@ -233,24 +241,31 @@ function GearManager() {
 
   function resetCategoryForm() {
     setCatName(''); setCatSlug(''); setCatIcon(''); setCatSort(0); setEditingCategoryId(null);
+    setCatError(null)
   }
 
   function editCategory(c) {
     setCatName(c.name); setCatSlug(c.slug); setCatIcon(c.icon); setCatSort(c.sort_order || 0);
     setEditingCategoryId(c.id);
+    setCatError(null)
   }
 
   async function deleteCategory(id) {
-    if(!window.confirm("Are you sure? This deletes the category AND all its products.")) return
-    await supabase.from('gear_categories').delete().eq('id', id)
-    if(selectedCategory?.id === id) setSelectedCategory(null)
-    loadCategories()
+    const { error } = await supabase.from('gear_categories').delete().eq('id', id)
+    if (error) {
+      setCatError(error.message)
+    } else {
+      if(selectedCategory?.id === id) setSelectedCategory(null)
+      setConfirmDeleteCatId(null)
+      loadCategories()
+    }
   }
 
   async function addProduct(e) {
     e.preventDefault()
     if (!selectedCategory) return
     setSaving(true)
+    setProdError(null)
     
     const productData = {
       category_id: selectedCategory.id,
@@ -260,14 +275,14 @@ function GearManager() {
 
     if (editingProductId) {
       const { error } = await supabase.from('gear_products').update(productData).eq('id', editingProductId)
-      if (error) alert("Error: " + error.message)
+      if (error) setProdError(error.message)
       else {
         resetProductForm()
         loadProducts(selectedCategory.id)
       }
     } else {
       const { error } = await supabase.from('gear_products').insert([productData])
-      if (error) alert("Error: " + error.message)
+      if (error) setProdError(error.message)
       else {
         resetProductForm()
         loadProducts(selectedCategory.id)
@@ -280,6 +295,7 @@ function GearManager() {
     setProdName(''); setProdDesc(''); setProdPriceHint(''); setProdImage(''); setProdAffiliate(''); setProdFeatured(false); setProdSort(0);
     setRawUrl('')
     setEditingProductId(null)
+    setProdError(null)
   }
 
   function editProduct(p) {
@@ -287,13 +303,18 @@ function GearManager() {
     setProdImage(p.image_url || ''); setProdAffiliate(p.affiliate_url || ''); 
     setProdFeatured(p.is_featured || false); setProdSort(p.sort_order || 0);
     setEditingProductId(p.id)
+    setProdError(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function deleteProduct(id) {
-    if(!window.confirm("Delete this product?")) return
-    await supabase.from('gear_products').delete().eq('id', id)
-    loadProducts(selectedCategory.id)
+    const { error } = await supabase.from('gear_products').delete().eq('id', id)
+    if (error) {
+      setProdError(error.message)
+    } else {
+      setConfirmDeleteProdId(null)
+      loadProducts(selectedCategory.id)
+    }
   }
 
   return (
@@ -311,7 +332,7 @@ function GearManager() {
               type="text" 
               placeholder="Paste regular Amazon link or ASIN here..." 
               value={rawUrl} 
-              onChange={e => setRawUrl(e.target.value)} 
+              onChange={e => { setRawUrl(e.target.value); setAmazonError(null); setAmazonSuccess(null); }} 
               className="w-full px-3 py-2 border border-blue-800 bg-blue-950/50 rounded text-sm text-white focus:outline-none focus:border-accent" 
             />
           </div>
@@ -326,6 +347,9 @@ function GearManager() {
         {amazonError && (
           <div className="mt-4 text-sm text-red-300 font-semibold">{amazonError}</div>
         )}
+        {amazonSuccess && (
+          <div className="mt-4 text-sm text-green-300 font-semibold">{amazonSuccess}</div>
+        )}
         {!selectedCategory && (
           <div className="mt-3 text-xs text-blue-300">Please select a Category from the list below before fetching.</div>
         )}
@@ -336,9 +360,16 @@ function GearManager() {
       <div className="w-1/3 bg-white border border-border rounded-xl p-5 shadow-sm">
         <h2 className="text-xl font-display font-bold text-ink mb-4">Categories</h2>
         
+        {catError && (
+          <div className="mb-4 p-3 bg-red-50 text-miss text-sm rounded-lg border border-red-100 flex justify-between items-center">
+            <span>{catError}</span>
+            <button type="button" onClick={() => setCatError(null)} className="font-bold text-red-700 hover:text-red-900">×</button>
+          </div>
+        )}
+
         <form onSubmit={addCategory} className="mb-6 space-y-3 bg-paper p-4 rounded-lg border border-border">
-          <input type="text" placeholder="Category Name (e.g. Laptops)" value={catName} onChange={e => setCatName(e.target.value)} required className="w-full px-3 py-2 border rounded text-sm" />
-          <input type="text" placeholder="Slug (e.g. laptops)" value={catSlug} onChange={e => setCatSlug(e.target.value)} required className="w-full px-3 py-2 border rounded text-sm" />
+          <input type="text" placeholder="Category Name (e.g. Laptops)" value={catName} onChange={e => { setCatName(e.target.value); setCatError(null) }} required className="w-full px-3 py-2 border rounded text-sm" />
+          <input type="text" placeholder="Slug (e.g. laptops)" value={catSlug} onChange={e => { setCatSlug(e.target.value); setCatError(null) }} required className="w-full px-3 py-2 border rounded text-sm" />
           
           <div className="space-y-2">
             <div className="text-xs font-semibold text-muted uppercase tracking-wider">Select an Icon</div>
@@ -346,7 +377,7 @@ function GearManager() {
               {Object.keys(ICONS).map(iconName => (
                 <button 
                   key={iconName} type="button" 
-                  onClick={() => setCatIcon(iconName)}
+                  onClick={() => { setCatIcon(iconName); setCatError(null) }}
                   className={`w-10 h-10 rounded flex items-center justify-center transition-colors border ${catIcon === iconName ? 'bg-accent text-white border-accent' : 'bg-white border-border hover:bg-gray-50'}`}
                   title={iconName}
                 >
@@ -355,8 +386,8 @@ function GearManager() {
               ))}
             </div>
             <div className="flex gap-2">
-              <input type="text" placeholder="Custom Icon Name" value={catIcon} onChange={e => setCatIcon(e.target.value)} className="w-1/2 px-3 py-2 border rounded text-sm" />
-              <input type="number" placeholder="Sort Order" value={catSort} onChange={e => setCatSort(e.target.value)} className="w-1/2 px-3 py-2 border rounded text-sm" />
+              <input type="text" placeholder="Custom Icon Name" value={catIcon} onChange={e => { setCatIcon(e.target.value); setCatError(null) }} className="w-1/2 px-3 py-2 border rounded text-sm" />
+              <input type="number" placeholder="Sort Order" value={catSort} onChange={e => { setCatSort(e.target.value); setCatError(null) }} className="w-1/2 px-3 py-2 border rounded text-sm" />
             </div>
           </div>
 
@@ -377,7 +408,7 @@ function GearManager() {
           {categories.map(c => (
             <div key={c.id} 
                  className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${selectedCategory?.id === c.id ? 'border-accent bg-blue-50' : 'border-border hover:bg-paper'}`}
-                 onClick={() => setSelectedCategory(c)}>
+                 onClick={() => { setSelectedCategory(c); setCatError(null); }}>
               <div className="flex items-center gap-3">
                 <span className="text-ink"><GearIcon name={c.icon} className="w-6 h-6" /></span>
                 <div>
@@ -385,9 +416,17 @@ function GearManager() {
                   <div className="text-xs text-muted">/{c.slug} (Sort: {c.sort_order})</div>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button onClick={(e) => { e.stopPropagation(); editCategory(c); }} className="text-blue-500 hover:text-blue-700 text-xs font-semibold">Edit</button>
-                <button onClick={(e) => { e.stopPropagation(); deleteCategory(c.id); }} className="text-red-500 hover:text-red-700 text-xs font-semibold">Delete</button>
+              <div className="flex gap-2 shrink-0">
+                <button type="button" onClick={(e) => { e.stopPropagation(); editCategory(c); }} className="text-blue-500 hover:text-blue-700 text-xs font-semibold">Edit</button>
+                {confirmDeleteCatId === c.id ? (
+                  <div className="flex items-center gap-2 bg-red-50 px-2 py-0.5 rounded border border-red-200" onClick={(e) => e.stopPropagation()}>
+                    <span className="text-[10px] font-bold text-miss">Sure?</span>
+                    <button type="button" onClick={() => deleteCategory(c.id)} className="text-miss font-bold hover:underline text-xs">Yes</button>
+                    <button type="button" onClick={() => setConfirmDeleteCatId(null)} className="text-muted font-bold hover:underline text-xs">No</button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setConfirmDeleteCatId(c.id); setCatError(null); }} className="text-red-500 hover:text-red-700 text-xs font-semibold">Delete</button>
+                )}
               </div>
             </div>
           ))}
@@ -400,17 +439,24 @@ function GearManager() {
           {selectedCategory ? `Products in "${selectedCategory.name}"` : 'Select a Category'}
         </h2>
 
+        {prodError && (
+          <div className="mb-4 p-3 bg-red-50 text-miss text-sm rounded-lg border border-red-100 flex justify-between items-center">
+            <span>{prodError}</span>
+            <button type="button" onClick={() => setProdError(null)} className="font-bold text-red-700 hover:text-red-900">×</button>
+          </div>
+        )}
+
         {selectedCategory ? (
           <>
             <form onSubmit={addProduct} className="mb-6 grid grid-cols-2 gap-3 bg-paper p-4 rounded-lg border border-border">
-              <input type="text" placeholder="Product Name" value={prodName} onChange={e => setProdName(e.target.value)} required className="col-span-2 px-3 py-2 border rounded text-sm" />
-              <input type="text" placeholder="Description / Why recommend it?" value={prodDesc} onChange={e => setProdDesc(e.target.value)} className="col-span-2 px-3 py-2 border rounded text-sm" />
-              <input type="text" placeholder="Image URL (Amazon)" value={prodImage} onChange={e => setProdImage(e.target.value)} required className="col-span-2 px-3 py-2 border rounded text-sm" />
-              <input type="url" placeholder="Affiliate Link" value={prodAffiliate} onChange={e => setProdAffiliate(e.target.value)} required className="col-span-2 px-3 py-2 border rounded text-sm" />
-              <input type="text" placeholder="Price Hint (e.g. ₹50k)" value={prodPriceHint} onChange={e => setProdPriceHint(e.target.value)} className="px-3 py-2 border rounded text-sm" />
-              <input type="number" placeholder="Sort Order" value={prodSort} onChange={e => setProdSort(e.target.value)} className="px-3 py-2 border rounded text-sm" />
+              <input type="text" placeholder="Product Name" value={prodName} onChange={e => { setProdName(e.target.value); setProdError(null) }} required className="col-span-2 px-3 py-2 border rounded text-sm" />
+              <input type="text" placeholder="Description / Why recommend it?" value={prodDesc} onChange={e => { setProdDesc(e.target.value); setProdError(null) }} className="col-span-2 px-3 py-2 border rounded text-sm" />
+              <input type="text" placeholder="Image URL (Amazon)" value={prodImage} onChange={e => { setProdImage(e.target.value); setProdError(null) }} required className="col-span-2 px-3 py-2 border rounded text-sm" />
+              <input type="url" placeholder="Affiliate Link" value={prodAffiliate} onChange={e => { setProdAffiliate(e.target.value); setProdError(null) }} required className="col-span-2 px-3 py-2 border rounded text-sm" />
+              <input type="text" placeholder="Price Hint (e.g. ₹50k)" value={prodPriceHint} onChange={e => { setProdPriceHint(e.target.value); setProdError(null) }} className="px-3 py-2 border rounded text-sm" />
+              <input type="number" placeholder="Sort Order" value={prodSort} onChange={e => { setProdSort(e.target.value); setProdError(null) }} className="px-3 py-2 border rounded text-sm" />
               <label className="col-span-2 flex items-center gap-2 text-sm text-ink cursor-pointer p-2 border border-border rounded bg-white">
-                <input type="checkbox" checked={prodFeatured} onChange={e => setProdFeatured(e.target.checked)} className="w-4 h-4 text-accent" />
+                <input type="checkbox" checked={prodFeatured} onChange={e => { setProdFeatured(e.target.checked); setProdError(null) }} className="w-4 h-4 text-accent" />
                 Featured Product (Show at top)
               </label>
               <div className="col-span-2 flex gap-3">
@@ -435,9 +481,17 @@ function GearManager() {
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
                       <h3 className="font-bold text-ink">{p.name}</h3>
-                      <div className="flex gap-3">
-                        <button onClick={() => editProduct(p)} className="text-blue-500 hover:text-blue-700 text-xs font-semibold">Edit</button>
-                        <button onClick={() => deleteProduct(p.id)} className="text-red-500 hover:text-red-700 text-xs font-semibold">Delete</button>
+                      <div className="flex gap-3 shrink-0">
+                        <button type="button" onClick={() => editProduct(p)} className="text-blue-500 hover:text-blue-700 text-xs font-semibold">Edit</button>
+                        {confirmDeleteProdId === p.id ? (
+                          <div className="flex items-center gap-2 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                            <span className="text-[10px] font-bold text-miss">Sure?</span>
+                            <button type="button" onClick={() => deleteProduct(p.id)} className="text-miss font-bold hover:underline text-xs">Yes</button>
+                            <button type="button" onClick={() => setConfirmDeleteProdId(null)} className="text-muted font-bold hover:underline text-xs">No</button>
+                          </div>
+                        ) : (
+                          <button type="button" onClick={() => { setConfirmDeleteProdId(p.id); setProdError(null); }} className="text-red-500 hover:text-red-700 text-xs font-semibold">Delete</button>
+                        )}
                       </div>
                     </div>
                     {p.price_hint && <div className="text-xs font-semibold text-green-700 bg-green-50 inline-block px-2 py-0.5 rounded mt-1">{p.price_hint}</div>}

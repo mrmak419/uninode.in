@@ -53,13 +53,25 @@ export default function Sidebar({ onClose }) {
             if (window.innerWidth < 1024) onClose()
           }}
           className={`
-            block px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-4
+            block px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-2
             ${location.pathname.startsWith('/gear') ? 'bg-accent text-white shadow-sm' : 'text-orange-600 hover:bg-orange-50'}
           `}
         >
           Student Essentials
         </Link>
         
+        <Link
+          to="/option-entry"
+          onClick={() => {
+            if (window.innerWidth < 1024) onClose()
+          }}
+          className={`
+            block px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-4
+            ${location.pathname === '/option-entry' ? 'bg-ink text-white shadow-sm' : 'text-emerald-700 hover:bg-emerald-50'}
+          `}
+        >
+          Option entry generator
+        </Link>
         {streams.map(s => {
           const streamId = typeof s === 'string' ? s : s.id;
           const displayName = streamId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());

@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
-import { Laptop, Building2, Pill, Activity, Wheat, Stethoscope, FlaskConical, Sprout, PersonStanding, Search, Menu } from 'lucide-react'
+import { Laptop, Building2, Pill, Activity, Wheat, Stethoscope, FlaskConical, Sprout, PersonStanding, Search, Menu, ListOrdered } from 'lucide-react'
 import LegalFooter from './LegalFooter'
 import { SidebarContext } from './Layout'
 
@@ -92,6 +92,20 @@ export default function Home() {
       {/* Grid Section */}
       <main className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full">
         <h1 className="sr-only">Uninode KCET Cutoff Analyzer & College Predictor</h1>
+        
+        {/* Option Entry Generator CTA Banner */}
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50/50 border border-emerald-200 rounded-3xl p-6 mb-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex-1 text-left">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded">New Feature</span>
+            </div>
+            <h2 className="font-display font-bold text-emerald-900 text-xl md:text-2xl">Option entry generator</h2>
+          </div>
+          <Link to="/option-entry" className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold text-sm transition-colors border border-emerald-500 shadow-sm w-full md:w-auto text-center flex items-center justify-center gap-1.5">
+            <ListOrdered className="w-4 h-4" /> Open Generator
+          </Link>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {streams.filter(s => {
             const streamId = typeof s === 'string' ? s : s.id;

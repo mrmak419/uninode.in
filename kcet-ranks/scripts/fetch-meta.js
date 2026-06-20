@@ -404,6 +404,7 @@ async function fetchMetadata() {
   mainUrls.push({ loc: `${domain}/`, changefreq: 'daily', priority: '1.0' });
   mainUrls.push({ loc: `${domain}/articles`, changefreq: 'daily', priority: '0.9' });
   mainUrls.push({ loc: `${domain}/gear`, changefreq: 'daily', priority: '0.8' });
+  mainUrls.push({ loc: `${domain}/option-entry`, changefreq: 'daily', priority: '0.9' });
 
   // Stream pages, Branch pages, College pages, and Rank Buckets
   let branchCount = 0;

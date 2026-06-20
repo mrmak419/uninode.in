@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom'
 import RazorpayButton from './RazorpayButton'
 
-export default function Footer() {
+export default function Footer({ className = "" }) {
   return (
-    <footer className="mt-6 py-4 border-t border-border bg-gray-50/50">
+    <footer className={`mt-6 py-4 border-t border-border bg-gray-50/50 print:hidden ${className}`}>
       <div className="max-w-7xl mx-auto px-4 text-center text-muted text-xs font-body flex flex-col items-center space-y-4">
         
         {/* Buy Us a Chai Button */}

@@ -15,6 +15,15 @@ export function slugify(text) {
 }
 
 /**
+ * Normalizes a course/branch name by removing all whitespace and special characters
+ * for robust string matching (e.g. "D ata Science" -> "datascience")
+ */
+export function normalizeCourse(name) {
+  if (!name) return '';
+  return name.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+/**
  * Returns a clean, human-readable URL for an article.
  */
 export function getArticleUrl(stream, collegeCode, branchName, category) {
