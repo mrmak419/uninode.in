@@ -10,6 +10,11 @@ import TabTitle from './components/TabTitle.jsx'
 import streamsData from './streams.json'
 import { slugify } from './lib/url'
 
+const moduleCache = {
+  meta: {},
+  matrix: {}
+};
+
 const ALL_CATEGORIES = [
   '1G','1K','1R',
   '2AG','2AK','2AR','2BG','2BK','2BR',
@@ -72,30 +77,45 @@ export default function App() {
     const isStreamSwitch = prevStreamRef.current !== stream;
     prevStreamRef.current = stream;
 
+    // Clear previous results on stream switch synchronously
+    if (isStreamSwitch) {
+      setResults(null)
+      setSelectedBranches([])
+      setCollegeQuery('')
+      setFullMatrixData(null)
+      setHasAutoSearched(false)
+    }
+
     async function loadMeta() {
       try {
-        const res = await fetch(`/meta_${stream}.json?v=1`)
+        if (moduleCache.meta[stream] && moduleCache.matrix[stream]) {
+          const data = moduleCache.meta[stream];
+          setColleges(data.colleges);
+          setBranches(data.branches);
+          setRounds(data.rounds);
+          setFullMatrixData(moduleCache.matrix[stream]);
+          return;
+        }
+
+        const res = await fetch(`/meta_${stream}.json?v=${__BUILD_HASH__}`)
         if (!res.ok) throw new Error(`Stream metadata not found for ${stream}`)
         const data = await res.json()
-        
-        setColleges(data.colleges || [])
-        setBranches(data.branches || [])
         
         const uniqueRounds = data.rounds || []
         uniqueRounds.sort((a,b) => {
           if (a.year !== b.year) return b.year - a.year;
           return b.round - a.round;
         })
-        setRounds(uniqueRounds)
-        
-        // Clear previous results on stream switch
-        if (isStreamSwitch) {
-          setResults(null)
-          setSelectedBranches([])
-          setCollegeQuery('')
-          setFullMatrixData(null)
-          setHasAutoSearched(false)
-        }
+
+        moduleCache.meta[stream] = {
+          colleges: data.colleges || [],
+          branches: data.branches || [],
+          rounds: uniqueRounds
+        };
+
+        setColleges(moduleCache.meta[stream].colleges)
+        setBranches(moduleCache.meta[stream].branches)
+        setRounds(moduleCache.meta[stream].rounds)
 
         // Also fetch the full matrix data in chunks for client-side search
         let matrixData = [];
@@ -103,7 +123,7 @@ export default function App() {
           const fetchPromises = [];
           for (let i = 0; i < data.numChunks; i++) {
             fetchPromises.push(
-              fetch(`/data_${stream}_${i}.json?v=${data.lastUpdated || ''}`)
+              fetch(`/data_${stream}_${i}.json?v=${__BUILD_HASH__}`)
                 .then(r => r.ok ? r.json() : [])
             );
           }
@@ -111,11 +131,13 @@ export default function App() {
           matrixData = chunkResults.flat();
         } else {
           // Fallback just in case some streams don't have chunks yet
-          const dataRes = await fetch(`/data_${stream}.json?v=${data.lastUpdated || ''}`);
+          const dataRes = await fetch(`/data_${stream}.json?v=${__BUILD_HASH__}`);
           if (dataRes.ok) {
             matrixData = await dataRes.json();
           }
         }
+        
+        moduleCache.matrix[stream] = matrixData;
         setFullMatrixData(matrixData);
       } catch (err) {
         console.error("Failed to load stream metadata/data:", err)

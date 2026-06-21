@@ -14,8 +14,8 @@ import ArticleOtherCategories from './ArticleOtherCategories'
 import ArticleSuggestions from './ArticleSuggestions'
 import Footer from '../Footer'
 
-const articleCache = {}
-const allDataCache = {}
+const articleMetaCache = {}
+const collegeDataCache = {}
 
 const TopNavigation = () => {
   const { toggleSidebar } = useContext(SidebarContext)
@@ -60,9 +60,13 @@ export default function ArticleContainer() {
     try {
       setLoading(true)
       
-      const res = await fetch(`/meta_${stream}.json?v=1`)
-      if (!res.ok) throw new Error("Metadata not found")
-      const meta = await res.json()
+      let meta = articleMetaCache[stream];
+      if (!meta) {
+        const res = await fetch(`/meta_${stream}.json?v=${__BUILD_HASH__}`)
+        if (!res.ok) throw new Error("Metadata not found")
+        meta = await res.json()
+        articleMetaCache[stream] = meta;
+      }
       
       const bQuery = slugify(branch)
       const matchingRawNames = meta.branches.filter(b => {
@@ -71,13 +75,6 @@ export default function ArticleContainer() {
 
       if (matchingRawNames.length === 0) {
         setError("Article Not Found")
-        setLoading(false)
-        return
-      }
-
-      const cacheKey = `${stream}_${college}_${branch}_${category}`
-      if (articleCache[cacheKey]) {
-        setArticleData(articleCache[cacheKey])
         setLoading(false)
         return
       }
@@ -93,29 +90,37 @@ export default function ArticleContainer() {
         return;
       }
       
-      let matchedRow = null;
       let finalCollegeData = null;
 
       for (const colObj of matchedColleges) {
         const collegeCode = colObj.college_code;
-        const collegeDataRes = await fetch(`/college_data/${stream}_${collegeCode}.json?v=${meta.lastUpdated || ''}`);
+        const collegeCacheKey = `${stream}_${collegeCode}`;
+
+        if (collegeDataCache[collegeCacheKey]) {
+           finalCollegeData = collegeDataCache[collegeCacheKey];
+           break;
+        }
+
+        const collegeDataRes = await fetch(`/college_data/${stream}_${collegeCode}.json?v=${__BUILD_HASH__}`);
         
         if (collegeDataRes.ok) {
-          const collegeData = await collegeDataRes.json();
-          const allData = collegeData.cutoffs;
-
-          const row = allData.find(r => 
-            r.category?.toUpperCase() === category?.toUpperCase() && 
-            matchingRawNames.includes(r.course_name)
-          );
-
-          if (row) {
-            matchedRow = row;
-            finalCollegeData = collegeData;
-            break; // Found it!
-          }
+          finalCollegeData = await collegeDataRes.json();
+          collegeDataCache[collegeCacheKey] = finalCollegeData;
+          break; // Found it!
         }
       }
+
+      if (!finalCollegeData) {
+        setError("Article Not Found (College Data Fetch Error)")
+        setLoading(false)
+        return
+      }
+
+      const allData = finalCollegeData.cutoffs;
+      const matchedRow = allData.find(r => 
+        r.category?.toUpperCase() === category?.toUpperCase() && 
+        matchingRawNames.includes(r.course_name)
+      );
 
       if (!matchedRow) {
         setError("Article Not Found (Row mismatch)")
@@ -124,7 +129,6 @@ export default function ArticleContainer() {
       }
 
       setCollegeDataObj(finalCollegeData)
-      articleCache[cacheKey] = matchedRow
       setArticleData(matchedRow)
       
     } catch (err) {

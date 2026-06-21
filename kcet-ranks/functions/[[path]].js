@@ -7,6 +7,27 @@ function escapeHtml(unsafe) {
     .replace(/'/g, "&#039;");
 }
 
+function getDynamicTrendText(r, pr, py, y) {
+  if (!pr || !py) return null;
+  const diff = r - pr;
+  if (diff === 0) return `Perfectly stable. The cutoff remained at ${formatRank(r)} from ${py} to ${y}.`;
+  
+  const pct = (diff / pr) * 100;
+  const absDiff = Math.abs(diff);
+  
+  if (diff > 0) {
+    if (pct >= 30) return `Massively easier. The closing rank dropped by ${formatRank(absDiff)} ranks (from ${formatRank(pr)} in ${py} to ${formatRank(r)} in ${y}), indicating a significant drop in demand.`;
+    if (pct >= 15) return `Significantly easier. The closing rank relaxed from ${formatRank(pr)} in ${py} to ${formatRank(r)} in ${y}.`;
+    if (pct >= 5) return `Moderately easier. Competition eased as the cutoff dropped from ${formatRank(pr)} in ${py} to ${formatRank(r)} in ${y}.`;
+    return `Slightly easier. The closing rank eased from ${formatRank(pr)} in ${py} to ${formatRank(r)} in ${y}, meaning competition has slightly relaxed.`;
+  } else {
+    if (pct <= -30) return `Highly competitive spike! The cutoff aggressively tightened by ${formatRank(absDiff)} ranks (from ${formatRank(pr)} in ${py} to ${formatRank(r)} in ${y}), showing a massive surge in demand.`;
+    if (pct <= -15) return `Significantly more competitive. The cutoff tightened notably from ${formatRank(pr)} in ${py} to ${formatRank(r)} in ${y}.`;
+    if (pct <= -5) return `Moderately more competitive. The cutoff tightened from ${formatRank(pr)} in ${py} to ${formatRank(r)} in ${y}, indicating a steady increase in competition.`;
+    return `Slightly more competitive. The cutoff tightened from ${formatRank(pr)} in ${py} to ${formatRank(r)} in ${y}.`;
+  }
+}
+
 // Truncate long college names to a clean short form for SEO titles
 // e.g., "PES University 100 Feet Ring Road, Banashankari..." → "PES University"
 function cleanCollegeName(name) {
@@ -488,12 +509,7 @@ export async function onRequest(context) {
             
             // Q2: Is it getting easier or harder?
             if (articleSeo.pr && articleSeo.py) {
-              const trend = articleSeo.r > articleSeo.pr ? 'easing' : articleSeo.r < articleSeo.pr ? 'tightening' : 'stable';
-              const trendText = trend === 'easing' 
-                ? `Easing. The closing rank increased from ${formatRank(articleSeo.pr)} in ${articleSeo.py} to ${formatRank(articleSeo.r)} in ${articleSeo.y}, meaning competition has relaxed.`
-                : trend === 'tightening'
-                ? `More competitive. The cutoff tightened from ${formatRank(articleSeo.pr)} in ${articleSeo.py} to ${formatRank(articleSeo.r)} in ${articleSeo.y}.`
-                : `Perfectly stable. The cutoff remained at ${formatRank(articleSeo.r)} from ${articleSeo.py} to ${articleSeo.y}.`;
+              const trendText = getDynamicTrendText(articleSeo.r, articleSeo.pr, articleSeo.py, articleSeo.y);
               
               faqQuestions.push({
                 "@type": "Question",
@@ -613,12 +629,7 @@ export async function onRequest(context) {
           fallbackHtml += `      </tbody>\n    </table>\n    <h3 style="margin-top: 20px;">Frequently Asked Questions</h3>\n    <ul>\n      <li><strong>What rank do I need for ${escapeHtml(articleParts.branch)} at ${escapeHtml(collegeShort)} (${escapeHtml(articleParts.cat)})?</strong><br/>Based on ${year} data, you need a rank of ${r1Rank} or better in Round 1. The final Round ${round} cutoff was ${rank}.</li>\n`;
           
           if (articleSeo.pr && articleSeo.py) {
-            const trend = articleSeo.r > articleSeo.pr ? 'easing' : articleSeo.r < articleSeo.pr ? 'tightening' : 'stable';
-            const trendText = trend === 'easing'
-              ? `Easing. The closing rank increased from ${formatRank(articleSeo.pr)} in ${articleSeo.py} to ${rank} in ${year}.`
-              : trend === 'tightening'
-              ? `More competitive. The cutoff tightened from ${formatRank(articleSeo.pr)} in ${articleSeo.py} to ${rank} in ${year}.`
-              : `Stable. The cutoff remained at ${rank} from ${articleSeo.py} to ${year}.`;
+            const trendText = getDynamicTrendText(articleSeo.r, articleSeo.pr, articleSeo.py, articleSeo.y);
             fallbackHtml += `      <li><strong>Is ${escapeHtml(articleParts.branch)} at ${escapeHtml(collegeShort)} getting easier or harder to get into?</strong><br/>${trendText}</li>\n`;
           }
           

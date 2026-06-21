@@ -1,3 +1,7 @@
+function pickVariant(variants, seed) {
+  return variants[seed % variants.length];
+}
+
 export default function ArticleNarrative({
   branch,
   cleanCollege,
@@ -9,6 +13,8 @@ export default function ArticleNarrative({
   rounds
 }) {
   let analysisParagraphs = [];
+  const seed = (cleanCollege.length * 7) + (branch.length * 3) + (latestRoundRank && latestRoundRank !== '--' ? parseInt(latestRoundRank, 10) : 0);
+
 
   // ----------------------------------------------------------------------
   // Paragraph 1: Year-over-Year Narrative with Tiered Volatility Logic
@@ -44,39 +50,79 @@ export default function ArticleNarrative({
       if (diff > 0) {
         // Easing Competition
         if (pct >= 50) {
-          p1 += ` Comparing this to the previous year, the cutoff experienced an unprecedented freefall, dropping by an astonishing ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%). This indicates a near-total collapse in demand or a massive influx of available seats.`;
+          p1 += pickVariant([
+            ` Comparing this to the previous year, the cutoff experienced an unprecedented freefall, dropping by an astonishing ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%). This indicates a near-total collapse in demand or a massive influx of available seats.`,
+            ` In a shocking turn of events, the cutoff plummeted by ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%) from the previous year. It has become drastically easier to get into this program.`
+          ], seed);
         } else if (pct >= 30) {
-          p1 += ` Comparing this to the previous year, the cutoff plummeted by ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%). This massive relaxation indicates a significant drop in demand.`;
+          p1 += pickVariant([
+            ` Comparing this to the previous year, the cutoff plummeted by ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%). This massive relaxation indicates a significant drop in demand.`,
+            ` We observed a massive easing in competition, with the cutoff relaxing by ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%) compared to last year.`
+          ], seed + 1);
         } else if (pct >= 15) {
-          p1 += ` Comparing this to the previous year, the cutoff relaxed significantly by ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%), making it notably easier to secure a seat here.`;
+          p1 += pickVariant([
+            ` Comparing this to the previous year, the cutoff relaxed significantly by ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%), making it notably easier to secure a seat here.`,
+            ` Good news for applicants: the cutoff dropped by ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%) from last year, showing a clear relaxation in competition.`
+          ], seed + 2);
         } else if (pct >= 5) {
-          p1 += ` Comparing this to the previous year, the cutoff relaxed moderately by ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%), showing a steady easing in competition.`;
+          p1 += pickVariant([
+            ` Comparing this to the previous year, the cutoff relaxed moderately by ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%), showing a steady easing in competition.`,
+            ` The cutoff moved down by ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%) compared to last year, which points to a moderate decrease in applicant demand.`
+          ], seed + 3);
         } else {
           if (isHighRank) {
-            p1 += ` The cutoff drifted lower by ${absDiff.toLocaleString()} ranks compared to the previous year. While this number seems large, at these higher rank ranges it represents a relatively minor natural fluctuation (${pct.toFixed(1)}%) in demand.`;
+            p1 += pickVariant([
+              ` The cutoff drifted lower by ${absDiff.toLocaleString()} ranks compared to the previous year. While this number seems large, at these higher rank ranges it represents a relatively minor natural fluctuation (${pct.toFixed(1)}%) in demand.`,
+              ` A shift of ${absDiff.toLocaleString()} ranks lower was observed. Due to the high rank tier, this ${pct.toFixed(1)}% change is just normal year-to-year variance.`
+            ], seed + 4);
           } else {
-            p1 += ` Comparing this to the previous year, the cutoff relaxed slightly by ${absDiff.toLocaleString()} ranks, indicating a minor easing in competition.`;
+            p1 += pickVariant([
+              ` Comparing this to the previous year, the cutoff relaxed slightly by ${absDiff.toLocaleString()} ranks, indicating a minor easing in competition.`,
+              ` The closing rank eased by a gentle ${absDiff.toLocaleString()} ranks from last year, suggesting competition cooled off just a bit.`
+            ], seed + 5);
           }
         }
       } else if (diff < 0) {
         // Tightening Competition
         if (pct <= -50) {
-          p1 += ` The cutoff witnessed an unprecedented exponential surge in demand, aggressively tightening by ${absDiff.toLocaleString()} ranks (${Math.abs(pct).toFixed(1)}%). Securing this seat has become extraordinarily difficult compared to last year.`;
+          p1 += pickVariant([
+            ` The cutoff witnessed an unprecedented exponential surge in demand, aggressively tightening by ${absDiff.toLocaleString()} ranks (${Math.abs(pct).toFixed(1)}%). Securing this seat has become extraordinarily difficult compared to last year.`,
+            ` Competition skyrocketed this year! The cutoff tightened by a massive ${absDiff.toLocaleString()} ranks (${Math.abs(pct).toFixed(1)}%), making this program exceptionally hard to get into compared to previous cycles.`
+          ], seed + 6);
         } else if (pct <= -30) {
-          p1 += ` The cutoff saw a massive spike in competition, tightening by an aggressive ${absDiff.toLocaleString()} ranks (${Math.abs(pct).toFixed(1)}%) compared to the previous year.`;
+          p1 += pickVariant([
+            ` The cutoff saw a massive spike in competition, tightening by an aggressive ${absDiff.toLocaleString()} ranks (${Math.abs(pct).toFixed(1)}%) compared to the previous year.`,
+            ` Demand for this seat surged significantly. The cutoff closed ${absDiff.toLocaleString()} ranks earlier (${Math.abs(pct).toFixed(1)}%) than last year, marking a sharp increase in competition.`
+          ], seed + 7);
         } else if (pct <= -15) {
-          p1 += ` Comparing this to the previous year, the cutoff tightened notably by ${absDiff.toLocaleString()} ranks (${Math.abs(pct).toFixed(1)}%), reflecting a clear surge in student demand for this program.`;
+          p1 += pickVariant([
+            ` Comparing this to the previous year, the cutoff tightened notably by ${absDiff.toLocaleString()} ranks (${Math.abs(pct).toFixed(1)}%), reflecting a clear surge in student demand for this program.`,
+            ` We've seen a strong upward trend in demand here; the cutoff tightened by ${absDiff.toLocaleString()} ranks (${Math.abs(pct).toFixed(1)}%) since the last cycle.`
+          ], seed + 8);
         } else if (pct <= -5) {
-          p1 += ` Comparing this to the previous year, the cutoff tightened moderately by ${absDiff.toLocaleString()} ranks (${Math.abs(pct).toFixed(1)}%), indicating a steady increase in competition.`;
+          p1 += pickVariant([
+            ` Comparing this to the previous year, the cutoff tightened moderately by ${absDiff.toLocaleString()} ranks (${Math.abs(pct).toFixed(1)}%), indicating a steady increase in competition.`,
+            ` The cutoff closed ${absDiff.toLocaleString()} ranks tighter (${Math.abs(pct).toFixed(1)}%) than last year. This steady climb shows growing interest among applicants.`
+          ], seed + 9);
         } else {
           if (isHighRank) {
-            p1 += ` The cutoff tightened by ${absDiff.toLocaleString()} ranks compared to the previous year. Because this is a higher rank tier, this ${Math.abs(pct).toFixed(1)}% shift represents a minor natural fluctuation rather than a severe spike in competition.`;
+            p1 += pickVariant([
+              ` The cutoff tightened by ${absDiff.toLocaleString()} ranks compared to the previous year. Because this is a higher rank tier, this ${Math.abs(pct).toFixed(1)}% shift represents a minor natural fluctuation rather than a severe spike in competition.`,
+              ` A tightening of ${absDiff.toLocaleString()} ranks occurred compared to last year. At these higher ranges, this ${Math.abs(pct).toFixed(1)}% movement is standard and doesn't necessarily imply a massive competitive surge.`
+            ], seed + 10);
           } else {
-            p1 += ` Comparing this to the previous year, the cutoff tightened by ${absDiff.toLocaleString()} ranks, indicating that securing a seat here has become slightly more competitive.`;
+            p1 += pickVariant([
+              ` Comparing this to the previous year, the cutoff tightened by ${absDiff.toLocaleString()} ranks, indicating that securing a seat here has become slightly more competitive.`,
+              ` With the cutoff closing ${absDiff.toLocaleString()} ranks earlier this year, we can see a slight bump in student preference for this program.`,
+              ` The data shows a minor tightening of ${absDiff.toLocaleString()} ranks from last year, suggesting competition is slowly heating up for this seat.`
+            ], seed + 11);
           }
         }
       } else {
-        p1 += ` Comparing this to the previous year, the cutoff remained perfectly stable, indicating a highly consistent and predictable demand for this program.`;
+        p1 += pickVariant([
+          ` Comparing this to the previous year, the cutoff remained perfectly stable, indicating a highly consistent and predictable demand for this program.`,
+          ` The cutoff rank didn't move an inch compared to last year. This level of stability shows rock-solid, unchanging demand for this exact seat.`
+        ], seed + 12);
       }
     }
   }
