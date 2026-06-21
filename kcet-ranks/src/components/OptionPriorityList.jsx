@@ -39,10 +39,10 @@ export default function OptionPriorityList({
   activeTab
 }) {
   return (
-    <div className={`lg:col-span-7 flex flex-col gap-4 print:block ${activeTab === 'list' ? 'block' : 'hidden lg:block'}`}>
+    <div className={`flex flex-col gap-4 print:block ${activeTab === 'list' ? 'block' : 'hidden'}`}>
       
       {/* Header and Stats box */}
-      <div className="bg-white border border-border rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4 print:hidden">
+      <div className="bg-white border border-border rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
           <h2 className="font-display font-bold text-lg text-ink flex items-center gap-1.5">
             My Options List
@@ -104,7 +104,7 @@ export default function OptionPriorityList({
       )}
 
       {/* Priority Ordered List */}
-      <div className="border border-border rounded-2xl bg-white shadow-sm overflow-hidden print:border-0 print:shadow-none">
+      <div className="border border-border rounded-2xl bg-white shadow-sm overflow-hidden">
         {optionsList.length === 0 ? (
           <div className="text-center py-20 px-4 text-muted text-sm font-body">
             <GraduationCap className="w-12 h-12 text-border mx-auto mb-4" />
@@ -114,7 +114,7 @@ export default function OptionPriorityList({
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-border/60 print:divide-y print:divide-border print:border-t print:border-border">
+          <div className="divide-y divide-border/60">
             {[
               { key: 'dream', label: 'Dream Choices', badgeClass: 'bg-red-50 text-red-700 border-red-200', textClass: 'text-red-900', headerBg: 'bg-red-50/40 hover:bg-red-50/70' },
               { key: 'borderline', label: 'Target Choices', badgeClass: 'bg-yellow-50 text-yellow-700 border-yellow-200', textClass: 'text-yellow-900', headerBg: 'bg-yellow-50/40 hover:bg-yellow-50/70' },
@@ -123,16 +123,19 @@ export default function OptionPriorityList({
             ].map(cat => {
               const catItems = optionsList
                 .map((item, idx) => ({ ...item, originalIndex: idx }))
-                .filter(item => item.safety === cat.key)
+                .filter(item => {
+                  if (cat.key === 'neutral' && item.safety === 'hidden') return true
+                  return item.safety === cat.key
+                })
 
               if (catItems.length === 0) return null
 
               return (
-                <div key={cat.key} className="border-b border-border/60 last:border-b-0 print:border-b-0 print:break-inside-avoid">
+                <div key={cat.key} className="border-b border-border/60 last:border-b-0 print:break-inside-avoid">
                   {/* Section Header */}
                   <button
                     onClick={() => setCollapsedCategories(prev => ({ ...prev, [cat.key]: !prev[cat.key] }))}
-                    className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors border-b border-border/40 ${cat.headerBg} print:bg-transparent print:border-b`}
+                    className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors border-b border-border/40 ${cat.headerBg}`}
                   >
                     <div className="flex items-center gap-2">
                       <span className={`text-xs font-bold uppercase tracking-wider ${cat.textClass}`}>{cat.label}</span>
@@ -140,16 +143,16 @@ export default function OptionPriorityList({
                         {catItems.length}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 print:hidden">
-                      <span className="text-[10px] text-muted font-medium">
+                    <div className="flex items-center gap-1.5 print:hidden text-indigo-600 hover:text-indigo-800 transition-colors">
+                      <span className="text-xs font-bold uppercase tracking-wider">
                         {collapsedCategories[cat.key] ? 'Show' : 'Hide'}
                       </span>
-                      <ChevronDown className={`w-4 h-4 text-muted transition-transform duration-200 ${collapsedCategories[cat.key] ? '' : 'rotate-180'}`} />
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${collapsedCategories[cat.key] ? '' : 'rotate-180'}`} />
                     </div>
                   </button>
 
                   {/* Section Items */}
-                  <div className={`${collapsedCategories[cat.key] ? 'hidden print:block' : 'block'} divide-y divide-border/60 print:divide-y print:divide-border`}>
+                  <div className={`${collapsedCategories[cat.key] ? 'hidden' : 'block'} divide-y divide-border/60`}>
                     {catItems.map(({ originalIndex: idx, ...item }, catItemIdx) => {
                       const itemKey = `list-item-${item.college_code}||${item.course_name}`
                       const isHistoryExpanded = expandedHistory.has(itemKey)
@@ -174,12 +177,12 @@ export default function OptionPriorityList({
                           className={`p-4 flex flex-col transition-all duration-150 relative select-none
                             ${isDragging ? 'opacity-30 bg-gray-50' : 'bg-white'} 
                             ${isHovered ? 'border-t-2 border-accent/60 bg-amber-50/20' : ''}
-                            print:p-3 print:bg-white print:border-b print:border-border print:break-inside-avoid`}
+                            print:break-inside-avoid`}
                         >
                           <div className="flex items-start gap-3">
                             
                             {/* LHS: Priority Index Badge */}
-                            <div className="flex flex-col items-center gap-1 pt-1 print:block shrink-0">
+                            <div className="flex flex-col items-center gap-1 pt-1 shrink-0">
                               {isEditing ? (
                                 <input
                                   type="number"
@@ -196,7 +199,7 @@ export default function OptionPriorityList({
                                 <button
                                   onClick={() => { setEditingIndex(idx); setEditVal(String(idx + 1)) }}
                                   title="Click to manually edit priority"
-                                  className="w-7 h-7 bg-ink text-paper rounded-lg font-mono text-xs font-bold flex items-center justify-center cursor-pointer hover:bg-accent transition-colors shrink-0 print:bg-transparent print:text-ink print:border print:border-border print:text-sm"
+                                  className="w-7 h-7 bg-ink text-paper rounded-lg font-mono text-xs font-bold flex items-center justify-center cursor-pointer hover:bg-accent transition-colors shrink-0"
                                 >
                                   {idx + 1}
                                 </button>
@@ -212,12 +215,14 @@ export default function OptionPriorityList({
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5 flex-wrap mb-1">
                                 <span className="font-mono text-[9px] font-bold px-1.5 py-0.2 bg-paper border border-border rounded text-muted">{item.college_code}</span>
-                                <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${safetyBadgeColor}`}>{item.safety.toUpperCase()}</span>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${safetyBadgeColor}`}>
+                                  {item.safety === 'hidden' ? 'UNREALISTIC' : item.safety.toUpperCase()}
+                                </span>
                               </div>
-                              <h4 className="font-bold text-ink text-sm leading-snug break-words print:text-sm">{item.college_name}</h4>
-                              <p className="text-muted text-xs font-body mt-0.5 print:text-xs">{item.course_name}</p>
+                              <h4 className="font-bold text-ink text-sm leading-snug break-words">{item.college_name}</h4>
+                              <p className="text-muted text-xs font-body mt-0.5">{item.course_name}</p>
                               {item.cutoff_rank && (
-                                <p className="text-muted font-mono text-[10px] mt-1 print:text-[10px]">
+                                <p className="text-muted font-mono text-[10px] mt-1">
                                   Cutoff: <span className="font-bold text-ink">{item.cutoff_rank.toLocaleString('en-IN')}</span> ({item.cutoff_label})
                                 </p>
                               )}

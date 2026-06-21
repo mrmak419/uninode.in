@@ -1,7 +1,7 @@
 import React, { Suspense, lazy } from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate, useSearchParams, useParams } from 'react-router-dom'
-import { useRegisterSW } from 'virtual:pwa-register/react'
+import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import streamsData from './streams.json'
 import { getArticleUrl } from './lib/url'
@@ -24,21 +24,32 @@ const OptionGenerator = lazy(() => import('./components/OptionGenerator.jsx'))
 const path = window.location.pathname
 const isAdmin = path.startsWith('/system/hq/portal/admin/secure/99x')
 
-// ─── PWA Update Prompt ───────────────────────────────────────────────────────
-// Shows a toast when a new version is deployed.
-// Checks for updates every 60 seconds and whenever the tab regains focus.
-function PWAUpdatePrompt() {
-  const {
-    needRefresh: [needRefresh, setNeedRefresh],
-    updateServiceWorker,
-  } = useRegisterSW({
-    onRegisteredSW(swUrl, r) {
+// ─── PWA Background Updater ──────────────────────────────────────────────────
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  let refreshing = false
+
+  // Listen for the controllerchange event to reload the page when a new Service Worker takes over
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return
+    refreshing = true
+
+    // Apply safety threshold: prevent continuous reloading loop by enforcing a 10s cooldown
+    const lastReload = sessionStorage.getItem('sw_reload_time')
+    const now = Date.now()
+    if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
+      sessionStorage.setItem('sw_reload_time', now.toString())
+      window.location.reload()
+    }
+  })
+
+  registerSW({
+    onRegistered(r) {
       if (!r) return
 
       // Check for updates every 60 seconds
       setInterval(async () => {
-        if (r.installing) return                              // already updating
-        if ('connection' in navigator && !navigator.onLine) return  // offline
+        if (r.installing) return
+        if ('connection' in navigator && !navigator.onLine) return
         await r.update()
       }, 60 * 1000)
 
@@ -49,29 +60,8 @@ function PWAUpdatePrompt() {
           await r.update()
         }
       })
-    },
+    }
   })
-
-  if (!needRefresh) return null
-
-  return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-xl text-sm font-medium whitespace-nowrap">
-      <span>✦ New version available</span>
-      <button
-        onClick={() => updateServiceWorker(true)}
-        className="bg-white text-gray-900 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-gray-100 transition-colors"
-      >
-        Update Now
-      </button>
-      <button
-        onClick={() => setNeedRefresh(false)}
-        className="text-gray-400 hover:text-white transition-colors leading-none"
-        aria-label="Dismiss"
-      >
-        ✕
-      </button>
-    </div>
-  )
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -204,7 +194,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               
               {/* Analyzer Routes */}
               <Route path="/analyzer/:stream/rank/:rankValue/:category" element={<App />} />
-              {/* Option Entry Generator Route */}
+              {/* Option Entry Generator Routes */}
+              <Route path="/option-entry/:stream/:category/rank/:rank" element={<OptionGenerator />} />
               <Route path="/option-entry" element={<OptionGenerator />} />
               
               {/* Root Stream Route — validated against known streams */}
@@ -216,8 +207,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         </BrowserRouter>
       </Suspense>
 
-      {/* PWA update toast — lives outside Suspense so it renders independently */}
-      <PWAUpdatePrompt />
     </ErrorBoundary>
   </React.StrictMode>
 )

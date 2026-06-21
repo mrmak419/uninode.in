@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { useSearchParams, useNavigate, Link, useParams } from 'react-router-dom'
 import { normalizeCourse } from '../lib/url'
 import { AlertTriangle, RefreshCw, Eye, Search, ListOrdered } from 'lucide-react'
 import TabTitle from './TabTitle'
@@ -10,14 +10,28 @@ import OptionSearchPanel from './OptionSearchPanel'
 import OptionPriorityList from './OptionPriorityList'
 
 
+// Module-level caches to avoid refetching metadata/matrix chunks when switching streams
+const metadataCache = new Map()
+const matrixDataCache = new Map()
+
 export default function OptionGenerator() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
+  const { stream: paramStream, category: paramCategory, rank: paramRank } = useParams()
 
   // --- Persistent & Share State ---
-  const [stream, setStream] = useState(searchParams.get('stream') || localStorage.getItem('op_stream') || 'engineering')
-  const [rank, setRank] = useState(searchParams.get('rank') || localStorage.getItem('op_rank') || '')
-  const [category, setCategory] = useState((searchParams.get('cat') || localStorage.getItem('op_cat') || 'GM').toUpperCase())
+  const [stream, setStream] = useState(() => {
+    if (paramStream) return paramStream
+    return searchParams.get('stream') || localStorage.getItem('op_stream') || 'engineering'
+  })
+  const [rank, setRank] = useState(() => {
+    if (paramRank) return paramRank
+    return searchParams.get('rank') || localStorage.getItem('op_rank') || ''
+  })
+  const [category, setCategory] = useState(() => {
+    if (paramCategory) return paramCategory.toUpperCase()
+    return (searchParams.get('cat') || localStorage.getItem('op_cat') || 'GM').toUpperCase()
+  })
   const [seatType, setSeatType] = useState(searchParams.get('seat') || localStorage.getItem('op_seat') || 'ROK')
   
   // Preference list state
@@ -35,6 +49,7 @@ export default function OptionGenerator() {
     }
   })
   const [safetyFilter, setSafetyFilter] = useState(() => localStorage.getItem('op_safety_filter') || 'all')
+  const [showAllPossible, setShowAllPossible] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   
@@ -75,7 +90,10 @@ export default function OptionGenerator() {
   const [showClearConfirm, setShowClearConfirm] = useState(false)
 
   // Collapse states
-  const [findCollegesOpen, setFindCollegesOpen] = useState(() => localStorage.getItem('op_find_colleges_open') === 'true')
+  const [findCollegesOpen, setFindCollegesOpen] = useState(() => {
+    const saved = localStorage.getItem('op_find_colleges_open')
+    return saved === null ? true : saved === 'true'
+  })
   const [collapsedCategories, setCollapsedCategories] = useState({
     dream: false,
     borderline: false,
@@ -134,9 +152,15 @@ export default function OptionGenerator() {
       setLoading(true)
       setError(null)
       try {
-        const res = await fetch(`/meta_${stream}.json?v=1`)
-        if (!res.ok) throw new Error(`Stream metadata not found for ${stream}`)
-        const data = await res.json()
+        let data
+        if (metadataCache.has(stream)) {
+          data = metadataCache.get(stream)
+        } else {
+          const res = await fetch(`/meta_${stream}.json?v=1`)
+          if (!res.ok) throw new Error(`Stream metadata not found for ${stream}`)
+          data = await res.json()
+          metadataCache.set(stream, data)
+        }
         
         setColleges(data.colleges || [])
         setBranches(data.branches || [])
@@ -150,39 +174,46 @@ export default function OptionGenerator() {
 
         // Only load the heavy matrix chunks if shouldLoad is true!
         if (shouldLoad) {
-          let matrixData = []
-          if (data.numChunks && data.numChunks > 0) {
-            const fetchPromises = []
-            for (let i = 0; i < data.numChunks; i++) {
-              fetchPromises.push(
-                fetch(`/data_${stream}_${i}.json?v=${data.lastUpdated || ''}`)
-                  .then(r => r.ok ? r.json() : [])
-              )
-            }
-            const chunkResults = await Promise.all(fetchPromises)
-            matrixData = chunkResults.flat()
+          let mergedData
+          if (matrixDataCache.has(stream)) {
+            mergedData = matrixDataCache.get(stream)
           } else {
-            const dataRes = await fetch(`/data_${stream}.json?v=${data.lastUpdated || ''}`)
-            if (dataRes.ok) matrixData = await dataRes.json()
-          }
-          
-          // Merge variations of course names (e.g. "D ata Science" and "Da ta Science")
-          const mergedMap = new Map()
-          for (const row of matrixData) {
-            const normCourse = normalizeCourse(row.course_name)
-            const key = `${row.college_code.toUpperCase()}||${normCourse}||${(row.category || '').toUpperCase()}||${(row.seat_type || '').toUpperCase()}`
-            if (!mergedMap.has(key)) {
-              mergedMap.set(key, {
-                ...row,
-                course_name: row.course_name, // Keep the first name
-                rounds: { ...(row.rounds || {}) }
-              })
+            let matrixData = []
+            if (data.numChunks && data.numChunks > 0) {
+              const fetchPromises = []
+              for (let i = 0; i < data.numChunks; i++) {
+                fetchPromises.push(
+                  fetch(`/data_${stream}_${i}.json?v=${data.lastUpdated || ''}`)
+                    .then(r => r.ok ? r.json() : [])
+                )
+              }
+              const chunkResults = await Promise.all(fetchPromises)
+              matrixData = chunkResults.flat()
             } else {
-              const existing = mergedMap.get(key)
-              existing.rounds = { ...existing.rounds, ...(row.rounds || {}) }
+              const dataRes = await fetch(`/data_${stream}.json?v=${data.lastUpdated || ''}`)
+              if (dataRes.ok) matrixData = await dataRes.json()
             }
+            
+            // Merge variations of course names (e.g. "D ata Science" and "Da ta Science")
+            const mergedMap = new Map()
+            for (const row of matrixData) {
+              const normCourse = normalizeCourse(row.course_name)
+              const key = `${row.college_code.toUpperCase()}||${normCourse}||${(row.category || '').toUpperCase()}||${(row.seat_type || '').toUpperCase()}`
+              if (!mergedMap.has(key)) {
+                mergedMap.set(key, {
+                  ...row,
+                  course_name: row.course_name, // Keep the first name
+                  normalized_course: normCourse, // Pre-normalized for speed
+                  rounds: { ...(row.rounds || {}) }
+                })
+              } else {
+                const existing = mergedMap.get(key)
+                existing.rounds = { ...existing.rounds, ...(row.rounds || {}) }
+              }
+            }
+            mergedData = Array.from(mergedMap.values())
+            matrixDataCache.set(stream, mergedData)
           }
-          const mergedData = Array.from(mergedMap.values())
           setFullMatrixData(mergedData)
         }
       } catch (err) {
@@ -252,14 +283,27 @@ export default function OptionGenerator() {
     const sRank = Number(studentRank)
     if (sRank <= cutoffRank) return 'safe' // student's rank is better than cutoff
     if (cutoffRank * 1.15 >= sRank) return 'borderline' // within 15% cutoff increase
-    return 'dream' // way above cutoff
+    
+    // Evaluate dream and hidden ranges
+    if (sRank < 10000) {
+      return 'dream' // anything better than rank is dream
+    } else if (sRank <= 50000) {
+      if (cutoffRank >= sRank * 0.5) return 'dream' // within 50% of rank
+      return 'hidden' // anything better than rank * 0.5 is hidden
+    } else {
+      if (cutoffRank >= sRank * 0.7) return 'dream' // within 30% of rank
+      return 'hidden' // anything better than rank * 0.7 is hidden
+    }
   }, [])
 
   // --- Populate List from Share Params or LocalStorage ---
+  const hasLoadedSharedList = useRef(false)
+
   useEffect(() => {
     if (fullMatrixData && fullMatrixData.length > 0 && colleges.length > 0 && branches.length > 0) {
       const listParam = searchParams.get('list')
-      if (listParam) {
+      if (listParam && !hasLoadedSharedList.current) {
+        hasLoadedSharedList.current = true
         // Parse shared list URL parameter (supports both old ','/':' and new '-'/'-' delimiters)
         const hasNewDelimiters = listParam.includes('_')
         const itemDelimiter = hasNewDelimiters ? '-' : ','
@@ -300,11 +344,7 @@ export default function OptionGenerator() {
           }
         })
         setOptionsList(items)
-        // Clean URL to prevent double loads on changes
-        const params = new URLSearchParams(window.location.search)
-        params.delete('list')
-        navigate(`/option-entry?${params.toString()}`, { replace: true })
-      } else {
+      } else if (!listParam) {
         // Load from LocalStorage
         const localList = localStorage.getItem(`op_list_${stream}`)
         if (localList) {
@@ -334,7 +374,58 @@ export default function OptionGenerator() {
         }
       }
     }
-  }, [fullMatrixData, colleges, branches, stream, searchParams, category, seatType, rank, getLatestCutoff, evaluateSafety, navigate])
+  }, [fullMatrixData, colleges, branches, stream, searchParams, category, seatType, rank, getLatestCutoff, evaluateSafety])
+
+  // --- Real-time URL Path and Parameters Synchronization ---
+  useEffect(() => {
+    // Wait for initial list load if share parameters are present
+    const listParam = searchParams.get('list')
+    if (listParam && !hasLoadedSharedList.current) {
+      return
+    }
+
+    let newPath = '/option-entry'
+    if (stream && category && rank && !isNaN(Number(rank))) {
+      newPath = `/option-entry/${stream}/${category.toLowerCase()}/rank/${rank}`
+    }
+
+    const currentParams = new URLSearchParams()
+    
+    // Seat type
+    if (seatType && seatType !== 'ROK') {
+      currentParams.set('seat', seatType)
+    }
+
+    // List serialization
+    if (optionsList.length > 0 && branches.length > 0) {
+      const encodedItems = optionsList.map(item => {
+        const branchIdx = branches.findIndex(b => b.raw_name.toLowerCase() === item.course_name.toLowerCase())
+        const courseVal = branchIdx !== -1 ? branchIdx : encodeURIComponent(item.course_name)
+        return `${item.college_code}_${courseVal}`
+      }).join('-')
+      currentParams.set('list', encodedItems)
+    }
+
+    const queryString = currentParams.toString() ? `?${currentParams.toString()}` : ''
+    const fullTarget = `${newPath}${queryString}`
+
+    if (window.location.pathname + window.location.search !== fullTarget) {
+      navigate(fullTarget, { replace: true })
+    }
+  }, [stream, category, rank, seatType, optionsList, branches, navigate, searchParams])
+
+  // --- Backward Param Sync (supports browser back/forward action navigation) ---
+  useEffect(() => {
+    if (paramStream && paramStream !== stream) {
+      setStream(paramStream)
+    }
+    if (paramCategory && paramCategory.toUpperCase() !== category) {
+      setCategory(paramCategory.toUpperCase())
+    }
+    if (paramRank && paramRank !== rank) {
+      setRank(paramRank)
+    }
+  }, [paramStream, paramCategory, paramRank])
 
   // --- Compile Suggested Options list on click (Generate) once data is ready ---
   useEffect(() => {
@@ -378,7 +469,7 @@ export default function OptionGenerator() {
 
       const matchedRows = fullMatrixData.filter(row => {
         if (row.category !== category || row.seat_type !== seatType) return false
-        return matchedRawNormalized.has(normalizeCourse(row.course_name))
+        return matchedRawNormalized.has(row.normalized_course)
       })
 
       const suggestedOptions = matchedRows.map(row => {
@@ -395,7 +486,11 @@ export default function OptionGenerator() {
       })
       .filter(item => {
         if (item.cutoff_rank == null) return false
-        return item.cutoff_rank <= maxCutoffLimit
+        if (!showAllPossible) {
+          if (item.safety === 'hidden') return false
+          if (item.cutoff_rank > maxCutoffLimit) return false
+        }
+        return true
       })
       .sort((a, b) => a.cutoff_rank - b.cutoff_rank)
 
@@ -406,8 +501,20 @@ export default function OptionGenerator() {
 
       setOptionsList(suggestedOptions)
       setActiveTab('list')
+
+      if (window.gtag) {
+        window.gtag('event', 'search', {
+          mode: 'option_entry_generate',
+          rank_entered: numericRank,
+          category: category,
+          seat_type: seatType,
+          college_query: 'N/A',
+          search_term: wizardBranches.length > 0 ? wizardBranches.join(',') : 'All Branches',
+          results_count: suggestedOptions.length
+        })
+      }
     }
-  }, [pendingGenerate, fullMatrixData, branches, rank, wizardThreshold, wizardBranches, category, seatType, getLatestCutoff, evaluateSafety])
+  }, [pendingGenerate, fullMatrixData, branches, rank, wizardThreshold, wizardBranches, category, seatType, getLatestCutoff, evaluateSafety, showAllPossible])
 
   // --- Save preference list to LocalStorage on changes ---
   useEffect(() => {
@@ -481,8 +588,8 @@ export default function OptionGenerator() {
     let data = fullMatrixData.filter(row => row.category === category && row.seat_type === seatType)
 
     // Filter by branch (with space/special char normalization)
-    if (selectedSearchBranches.length > 0) {
-      const normalizedSelected = selectedSearchBranches.map(s => normalizeCourse(s))
+    if (wizardBranches.length > 0) {
+      const normalizedSelected = wizardBranches.map(s => normalizeCourse(s))
       const matchedRawNormalized = new Set()
       for (const selectedNorm of normalizedSelected) {
         let expanded = false
@@ -496,7 +603,7 @@ export default function OptionGenerator() {
         }
         if (!expanded) matchedRawNormalized.add(selectedNorm)
       }
-      data = data.filter(row => matchedRawNormalized.has(normalizeCourse(row.course_name)))
+      data = data.filter(row => matchedRawNormalized.has(row.normalized_course))
     }
 
     // Filter by College Name/Code Search Query
@@ -526,8 +633,11 @@ export default function OptionGenerator() {
 
     // Filter by Safety level
     let filtered = processed
+    if (!showAllPossible) {
+      filtered = processed.filter(item => item.safety !== 'hidden')
+    }
     if (safetyFilter !== 'all') {
-      filtered = processed.filter(item => item.safety === safetyFilter)
+      filtered = filtered.filter(item => item.safety === safetyFilter)
     }
 
     // Sort by latest cutoff rank ascending (highest cutoff rank first is best, i.e., lowest rank number is most competitive)
@@ -537,8 +647,26 @@ export default function OptionGenerator() {
       return ra - rb
     })
 
-  }, [fullMatrixData, category, seatType, selectedSearchBranches, branches, searchQuery, colleges, getLatestCutoff, evaluateSafety, rank, safetyFilter])
+  }, [fullMatrixData, category, seatType, wizardBranches, branches, searchQuery, colleges, getLatestCutoff, evaluateSafety, rank, safetyFilter, showAllPossible])
 
+  // --- GA Tracking for Manual Search Panel searches ---
+  useEffect(() => {
+    if (!fullMatrixData) return
+    const q = searchQuery.trim()
+    if (q || wizardBranches.length > 0) {
+      if (window.gtag) {
+        window.gtag('event', 'search', {
+          mode: 'option_entry_search',
+          rank_entered: Number(rank) || 'N/A',
+          category: category,
+          seat_type: seatType,
+          college_query: q || 'N/A',
+          search_term: wizardBranches.length > 0 ? wizardBranches.join(',') : 'All Branches',
+          results_count: eligibleColleges ? eligibleColleges.length : 0
+        })
+      }
+    }
+  }, [searchQuery, wizardBranches])
   // --- Add Option to Preference List ---
   const addOption = (item) => {
     const exists = optionsList.some(o => 
@@ -547,7 +675,7 @@ export default function OptionGenerator() {
     )
     if (exists) return
 
-    setOptionsList([...optionsList, {
+    const newOption = {
       college_code: item.college_code.toUpperCase(),
       college_name: item.college_name,
       course_name: item.course_name,
@@ -555,7 +683,22 @@ export default function OptionGenerator() {
       cutoff_label: item.cutoff_label,
       rounds: item.rounds,
       safety: item.safety
-    }])
+    }
+
+    // Find correct insertion index based on cutoff_rank ascending (competitive options first, null/no-rank options last)
+    const newRank = item.cutoff_rank ?? Infinity
+    let insertIdx = optionsList.length
+    for (let i = 0; i < optionsList.length; i++) {
+      const existingRank = optionsList[i].cutoff_rank ?? Infinity
+      if (existingRank > newRank) {
+        insertIdx = i
+        break
+      }
+    }
+
+    const updated = [...optionsList]
+    updated.splice(insertIdx, 0, newOption)
+    setOptionsList(updated)
   }
 
   // --- Remove Option from Preference List ---
@@ -718,14 +861,23 @@ export default function OptionGenerator() {
       return `${item.college_code}_${courseVal}`
     }).join('-')
 
+    let shareUrl = `${window.location.origin}/option-entry`
     const params = new URLSearchParams()
-    params.set('stream', stream)
-    params.set('rank', rank)
-    params.set('cat', category)
-    params.set('seat', seatType)
+    if (seatType && seatType !== 'ROK') {
+      params.set('seat', seatType)
+    }
     params.set('list', encodedItems)
-
-    const shareUrl = `${window.location.origin}/option-entry?${params.toString()}`
+    
+    const queryString = params.toString() ? `?${params.toString()}` : ''
+    
+    if (stream && category && rank && !isNaN(Number(rank))) {
+      shareUrl = `${window.location.origin}/option-entry/${stream}/${category.toLowerCase()}/rank/${rank}${queryString}`
+    } else {
+      params.set('stream', stream)
+      params.set('rank', rank)
+      params.set('cat', category)
+      shareUrl = `${window.location.origin}/option-entry?${params.toString()}`
+    }
 
     navigator.clipboard.writeText(shareUrl).then(() => {
       setShareStatus('Copied!')
@@ -764,31 +916,20 @@ export default function OptionGenerator() {
   }
 
   return (
-    <div className="min-h-screen bg-paper flex flex-col print:bg-white print:min-h-0 print:p-0">
+    <div className="min-h-screen bg-paper flex flex-col">
       <TabTitle 
         title={`Option Entry List Generator | Uninode KCET`} 
         description="Build, prioritize, and validate your KCET Option Entry preference list strategically based on historical cutoff ranks."
       />
 
-      <main id="printable-area" className="flex-1 w-full max-w-7xl mx-auto px-4 py-6 md:py-8 flex flex-col print:p-0 print:max-w-none">
+      <main id="printable-area" className="flex-1 w-full max-w-7xl mx-auto px-4 py-6 md:py-8 flex flex-col">
         
-        {/* Print Only Header */}
-        <div className="hidden print:block border-b-2 border-ink pb-4 mb-6">
-          <h1 className="text-2xl font-bold font-display text-ink uppercase tracking-tight">Uninode KCET Option Entry Helper</h1>
-          <p className="text-sm font-semibold text-muted mt-1">
-            Rank: <span className="font-mono text-ink mr-4">{Number(rank).toLocaleString('en-IN')}</span>
-            Category: <span className="font-mono text-ink mr-4">{category}</span>
-            Seat Type: <span className="font-mono text-ink mr-4">{seatType}</span>
-            Stream: <span className="font-mono text-ink">{formattedStreamName}</span>
-          </p>
-        </div>
-
-        {/* Desktop Branding Header (Hidden on Print) */}
-        <div className="flex items-center justify-between gap-2 text-left mb-6 print:hidden">
+        {/* Desktop Branding Header */}
+        <div className="flex items-center justify-between gap-2 text-left mb-6">
           <Link to="/" className="font-display font-bold text-xl tracking-tight text-ink flex items-center">
             Uninode<span className="text-blue-600 ml-1">KCET</span>
           </Link>
-          <div>
+          <div className="print:hidden">
             <Link 
               to={`/${stream}`}
               className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 border border-indigo-100 bg-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-sm"
@@ -798,8 +939,8 @@ export default function OptionGenerator() {
           </div>
         </div>
 
-        {/* Page Title Row (Hidden on Print) */}
-        <div className="mb-6 border-b border-border/50 pb-5 print:hidden">
+        {/* Page Title Row */}
+        <div className="mb-6 border-b border-border/50 pb-5">
           <h1 className="text-2xl md:text-3xl font-display font-bold text-ink mb-1 flex items-center gap-2">
             Option entry generator
           </h1>
@@ -818,7 +959,18 @@ export default function OptionGenerator() {
           setOptionsList={setOptionsList}
           setSelectedSearchBranches={setSelectedSearchBranches}
           setWizardBranches={setWizardBranches}
+          showAllPossible={showAllPossible}
+          setShowAllPossible={setShowAllPossible}
         />
+
+        {showAllPossible && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-950 px-4 py-3.5 rounded-2xl text-xs font-medium flex items-start gap-2.5 shadow-sm mb-6 leading-relaxed">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              Showing all colleges including those well outside your rank range. The KEA system will skip colleges you're not eligible for - this list is for reference only.
+            </div>
+          </div>
+        )}
 
         {/* Wizard Panel */}
         <OptionWizard
@@ -834,6 +986,7 @@ export default function OptionGenerator() {
           setWizardThreshold={setWizardThreshold}
           handleAutoGenerate={handleAutoGenerate}
           wizardBranchRef={wizardBranchRef}
+          generating={pendingGenerate}
         />
 
         {/* Global Warnings Panel (Hidden on Print) */}
@@ -866,12 +1019,12 @@ export default function OptionGenerator() {
           </div>
         )}
 
-        {/* Split Screen Container */}
+        {/* Tabbed Layout Container */}
         {!loading && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start flex-1 min-h-0 print:block">
+          <div className="flex flex-col gap-6 items-stretch flex-1 min-h-0 print:block">
             
-            {/* Mobile Tab Toggles (Hidden on Desktop & Print) */}
-            <div className="lg:hidden flex bg-border/50 p-1 rounded-xl border border-border/80 print:hidden">
+            {/* Tab Toggles */}
+            <div className="flex bg-border/50 p-1 rounded-xl border border-border/80 print:hidden max-w-md mx-auto w-full mb-2">
               <button 
                 onClick={() => setActiveTab('search')}
                 className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'search' ? 'bg-white shadow-sm text-ink' : 'text-muted'}`}
@@ -899,6 +1052,7 @@ export default function OptionGenerator() {
               eligibleColleges={eligibleColleges}
               optionsList={optionsList}
               addOption={addOption}
+              removeOption={removeOption}
               expandedHistory={expandedHistory}
               toggleHistory={toggleHistory}
               stream={stream}
@@ -943,11 +1097,6 @@ export default function OptionGenerator() {
           </div>
         )}
         
-        {/* Print Footer */}
-        <div className="hidden print:block mt-12 border-t border-border pt-4 text-center text-xs font-body text-muted">
-          Generated by kcet.uninode.in - KCET Cutoff Analyzer
-        </div>
-
         <Footer className="print:hidden" />
 
         {/* Custom Confirmation Modal */}

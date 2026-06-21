@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronDown, Search, CheckCircle2, Plus } from 'lucide-react'
 import CutoffHistoryTable from './CutoffHistoryTable'
@@ -14,6 +14,7 @@ export default function OptionSearchPanel({
   eligibleColleges,
   optionsList,
   addOption,
+  removeOption,
   expandedHistory,
   toggleHistory,
   stream,
@@ -22,8 +23,19 @@ export default function OptionSearchPanel({
   evaluateSafety,
   activeTab
 }) {
+  const [inputValue, setInputValue] = useState(searchQuery)
+  const [visibleCount, setVisibleCount] = useState(100)
+
+  useEffect(() => {
+    setInputValue(searchQuery)
+  }, [searchQuery])
+
+  useEffect(() => {
+    setVisibleCount(100)
+  }, [searchQuery, safetyFilter, stream])
+
   return (
-    <div className={`lg:col-span-5 flex flex-col gap-4 print:hidden ${activeTab === 'search' ? 'block' : 'hidden lg:block'}`}>
+    <div className={`flex flex-col gap-4 print:hidden ${activeTab === 'search' ? 'block' : 'hidden'}`}>
       <div className="bg-white border border-border rounded-2xl p-4 shadow-sm flex flex-col gap-4">
         <button
           type="button"
@@ -37,18 +49,32 @@ export default function OptionSearchPanel({
         {findCollegesOpen && (
           <div className="flex flex-col gap-4 border-t border-border/50 pt-4">
             {/* Search Bar */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-muted">
-                <Search className="w-4 h-4" />
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault()
+                setSearchQuery(inputValue)
+              }}
+              className="flex gap-2"
+            >
+              <div className="relative flex-1">
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-muted">
+                  <Search className="w-4 h-4" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search by college name or code..."
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-paper border border-border rounded-xl text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink"
+                />
               </div>
-              <input
-                type="text"
-                placeholder="Search by college name or code..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-paper border border-border rounded-xl text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink"
-              />
-            </div>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-ink text-paper text-xs font-bold rounded-xl hover:bg-accent transition-colors shrink-0"
+              >
+                Search
+              </button>
+            </form>
 
             {/* Safety filter buttons */}
             <div>
@@ -79,7 +105,7 @@ export default function OptionSearchPanel({
             </div>
           ) : (
             <div className="divide-y divide-border/60">
-              {eligibleColleges.slice(0, 100).map((item) => {
+              {eligibleColleges.slice(0, visibleCount).map((item) => {
                 const rowKey = `${item.college_code}||${item.course_name}`
                 const isAdded = optionsList.some(
                   o => o.college_code.toUpperCase() === item.college_code.toUpperCase() && 
@@ -118,12 +144,32 @@ export default function OptionSearchPanel({
                       </div>
 
                       <button
-                        onClick={() => addOption(item)}
-                        disabled={isAdded}
-                        className={`shrink-0 p-2.5 rounded-xl border text-xs font-bold transition-all shadow-sm flex items-center justify-center w-10 h-10 ${isAdded ? 'bg-gray-50 border-border text-muted/40 cursor-not-allowed shadow-none' : 'bg-white border-border hover:bg-gray-50 text-ink'}`}
-                        aria-label="Add option"
+                        onClick={() => {
+                          if (isAdded) {
+                            const idx = optionsList.findIndex(
+                              o => o.college_code.toUpperCase() === item.college_code.toUpperCase() && 
+                                   normalizeCourse(o.course_name) === normalizeCourse(item.course_name)
+                            )
+                            if (idx !== -1) removeOption(idx)
+                          } else {
+                            addOption(item)
+                          }
+                        }}
+                        className={`shrink-0 rounded-xl border text-xs font-bold transition-all shadow-sm flex items-center justify-center ${
+                          isAdded 
+                            ? 'px-3 py-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:border-green-300 gap-1.5 cursor-pointer' 
+                            : 'w-10 h-10 bg-white border-border hover:bg-gray-50 text-ink cursor-pointer'
+                        }`}
+                        aria-label={isAdded ? "Remove option" : "Add option"}
                       >
-                        {isAdded ? <CheckCircle2 className="w-5 h-5 text-green-600" /> : <Plus className="w-5 h-5" />}
+                        {isAdded ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                            <span>Added</span>
+                          </>
+                        ) : (
+                          <Plus className="w-5 h-5" />
+                        )}
                       </button>
                     </div>
 
@@ -156,10 +202,13 @@ export default function OptionSearchPanel({
                   </div>
                 )
               })}
-              {eligibleColleges.length > 100 && (
-                <div className="p-3 text-center text-muted font-body text-xs bg-gray-50 border-t border-border/80">
-                  Showing top 100 matching colleges. Refine search query for more.
-                </div>
+              {eligibleColleges.length > visibleCount && (
+                <button
+                  onClick={() => setVisibleCount(prev => prev + 100)}
+                  className="w-full py-3 text-center text-xs font-bold text-indigo-600 hover:bg-indigo-50/30 border-t border-border/80 transition-colors focus:outline-none cursor-pointer"
+                >
+                  Load More Choices (+100) — Showing {visibleCount} of {eligibleColleges.length}
+                </button>
               )}
             </div>
           )}

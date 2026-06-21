@@ -14,7 +14,8 @@ export default function OptionWizard({
   wizardThreshold,
   setWizardThreshold,
   handleAutoGenerate,
-  wizardBranchRef
+  wizardBranchRef,
+  generating
 }) {
   return (
     <div className="bg-white border border-border rounded-2xl p-4 mb-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 print:hidden">
@@ -44,9 +45,10 @@ export default function OptionWizard({
 
         <button
           onClick={handleAutoGenerate}
-          className="px-5 py-2.5 bg-ink hover:bg-accent text-paper text-sm font-semibold rounded-lg shadow-md transition-all flex items-center justify-center gap-1.5 duration-150"
+          disabled={generating}
+          className="px-5 py-2.5 bg-ink hover:bg-accent text-paper text-sm font-semibold rounded-lg shadow-md transition-all flex items-center justify-center gap-1.5 duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Generate
+          {generating ? 'Generating...' : 'Generate'}
         </button>
       </div>
     </div>

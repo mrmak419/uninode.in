@@ -355,7 +355,7 @@ export default function SearchForm({
                        w-full sm:w-auto text-center"
           >
             <Sparkles className="w-4 h-4 text-emerald-600 animate-pulse" />
-            <span>Click here for option entry generator</span>
+            <span>Open option entry generator</span>
           </Link>
 
           {/* Clear button */}

@@ -31,73 +31,13 @@
   }
 }
 
-/* Hides default browser header/footer during print and fixes Tailwind print:block specificity conflicts */
+/* Fixes Tailwind print utility specificity conflicts */
 @media print {
-  @page {
-    margin: 0;
-  }
-  body {
-    margin: 1.6cm;
-  }
   .print\:block {
     display: block !important;
   }
   .print\:hidden {
     display: none !important;
   }
-}
-
-/* html2pdf print-simulation styles */
-.html2pdf-printing .print\:hidden {
-  display: none !important;
-}
-.html2pdf-printing .print\:block {
-  display: block !important;
-}
-.html2pdf-printing .print\:p-0 {
-  padding: 0 !important;
-}
-.html2pdf-printing .print\:p-3 {
-  padding: 0.75rem !important;
-}
-.html2pdf-printing .print\:border-0 {
-  border-width: 0 !important;
-}
-.html2pdf-printing .print\:border-b {
-  border-bottom-width: 1px !important;
-}
-.html2pdf-printing .print\:border-t {
-  border-top-width: 1px !important;
-}
-.html2pdf-printing .print\:shadow-none {
-  box-shadow: none !important;
-}
-.html2pdf-printing .print\:bg-white {
-  background-color: #ffffff !important;
-}
-.html2pdf-printing .print\:bg-transparent {
-  background-color: transparent !important;
-}
-.html2pdf-printing .print\:text-ink {
-  color: #111111 !important;
-}
-.html2pdf-printing .print\:border-border {
-  border-color: #e5e7eb !important;
-}
-.html2pdf-printing .print\:divide-y > :not([hidden]) ~ :not([hidden]) {
-  border-top-width: 1px !important;
-}
-.html2pdf-printing .print\:min-h-0 {
-  min-height: 0 !important;
-}
-.html2pdf-printing .print\:max-w-none {
-  max-width: none !important;
-}
-.html2pdf-printing .print\:break-inside-avoid {
-  break-inside: avoid !important;
-  page-break-inside: avoid !important;
-}
-.html2pdf-printing .hidden.print\:block {
-  display: block !important;
 }
 

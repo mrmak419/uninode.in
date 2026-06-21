@@ -6,12 +6,13 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt',       // was 'autoUpdate' — now we control when to update
+      registerType: 'autoUpdate',
       injectRegister: null,         // was 'inline' — useRegisterSW in main.jsx handles this
       workbox: {
-        skipWaiting: true,          // new SW activates immediately when user clicks Update
+        skipWaiting: true,
+        importScripts: ['/sw-custom.js'],
         navigateFallbackDenylist: [/^\/sitemap.*\.xml$/, /^\/robots\.txt$/],
-        globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js', 'assets/AdminApp-*.js', 'assets/GearAdmin-*.js', 'assets/supabase-*.js', 'data_*.json', 'data_*.json.*', 'meta_*.json', 'seo_*.json', 'seo_*.json.*', 'streams.json', 'college_data/**/*']
+        globIgnores: ['**/node_modules/**/*', 'sw.js', 'sw-custom.js', 'workbox-*.js', 'assets/AdminApp-*.js', 'assets/GearAdmin-*.js', 'assets/supabase-*.js', 'data_*.json', 'data_*.json.*', 'meta_*.json', 'seo_*.json', 'seo_*.json.*', 'streams.json', 'college_data/**/*']
       },
       manifest: {
         name: 'KCET College Predictor',
