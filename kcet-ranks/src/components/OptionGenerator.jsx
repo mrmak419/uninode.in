@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef, useContext } from 'react'
 import { useSearchParams, useNavigate, Link, useParams } from 'react-router-dom'
 import { normalizeCourse } from '../lib/url'
-import { AlertTriangle, RefreshCw, Eye, Search, ListOrdered } from 'lucide-react'
+import { AlertTriangle, RefreshCw, Eye, Search, ListOrdered, Menu } from 'lucide-react'
+import { SidebarContext } from './Layout'
 import TabTitle from './TabTitle'
 import Footer from './Footer'
 import OptionConfigBar from './OptionConfigBar'
@@ -15,6 +16,7 @@ const metadataCache = new Map()
 const matrixDataCache = new Map()
 
 export default function OptionGenerator() {
+  const { toggleSidebar } = useContext(SidebarContext)
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const { stream: paramStream, category: paramCategory, rank: paramRank } = useParams()
@@ -926,9 +928,18 @@ export default function OptionGenerator() {
         
         {/* Desktop Branding Header */}
         <div className="flex items-center justify-between gap-2 text-left mb-6">
-          <Link to="/" className="font-display font-bold text-xl tracking-tight text-ink flex items-center">
-            Uninode<span className="text-blue-600 ml-1">KCET</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={toggleSidebar}
+              className="p-2 -ml-2 text-muted hover:text-ink rounded-xl hover:bg-gray-100 transition-colors"
+              aria-label="Toggle Sidebar"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <Link to="/" className="font-display font-bold text-xl tracking-tight text-ink flex items-center">
+              Uninode<span className="text-blue-600 ml-1">KCET</span>
+            </Link>
+          </div>
           <div className="print:hidden">
             <Link 
               to={`/${stream}`}
@@ -1060,6 +1071,7 @@ export default function OptionGenerator() {
               rank={rank}
               evaluateSafety={evaluateSafety}
               activeTab={activeTab}
+              category={category}
             />
 
             {/* Right Panel: Preference List */}
@@ -1093,6 +1105,7 @@ export default function OptionGenerator() {
               handleClearList={handleClearList}
               shareStatus={shareStatus}
               activeTab={activeTab}
+              category={category}
             />
           </div>
         )}

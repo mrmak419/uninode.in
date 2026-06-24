@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Menu } from 'lucide-react'
 import { SidebarContext } from '../Layout'
-import { slugify } from '../../lib/url'
+import { slugify, normalizeCourse } from '../../lib/url'
 
 import ArchiveGrid from './ArchiveGrid'
 import ArticleHeader from './ArticleHeader'
@@ -117,9 +117,10 @@ export default function ArticleContainer() {
       }
 
       const allData = finalCollegeData.cutoffs;
+      const normalizedMatchingRawNames = matchingRawNames.map(name => normalizeCourse(name));
       const matchedRow = allData.find(r => 
         r.category?.toUpperCase() === category?.toUpperCase() && 
-        matchingRawNames.includes(r.course_name)
+        normalizedMatchingRawNames.includes(normalizeCourse(r.course_name))
       );
 
       if (!matchedRow) {

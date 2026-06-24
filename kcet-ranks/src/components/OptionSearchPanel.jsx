@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronDown, Search, CheckCircle2, Plus } from 'lucide-react'
+import { ChevronDown, Search, CheckCircle2, Plus, ExternalLink } from 'lucide-react'
 import CutoffHistoryTable from './CutoffHistoryTable'
-import { slugify, normalizeCourse } from '../lib/url'
+import { slugify, normalizeCourse, getArticleUrl } from '../lib/url'
 
 export default function OptionSearchPanel({
   findCollegesOpen,
@@ -21,7 +21,8 @@ export default function OptionSearchPanel({
   rounds,
   rank,
   evaluateSafety,
-  activeTab
+  activeTab,
+  category
 }) {
   const [inputValue, setInputValue] = useState(searchQuery)
   const [visibleCount, setVisibleCount] = useState(100)
@@ -127,7 +128,11 @@ export default function OptionSearchPanel({
                 }
 
                 return (
-                  <div key={rowKey} className="p-4 hover:bg-paper/30 transition-colors">
+                  <div 
+                    key={rowKey} 
+                    onClick={() => toggleHistory(rowKey)}
+                    className="p-4 cursor-pointer hover:bg-paper/30 transition-colors"
+                  >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
@@ -144,7 +149,8 @@ export default function OptionSearchPanel({
                       </div>
 
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           if (isAdded) {
                             const idx = optionsList.findIndex(
                               o => o.college_code.toUpperCase() === item.college_code.toUpperCase() && 
@@ -173,21 +179,24 @@ export default function OptionSearchPanel({
                       </button>
                     </div>
 
-                    {/* Action Bar for suggestions */}
-                    <div className="mt-3 flex items-center justify-between border-t border-dashed border-border/60 pt-2.5">
+                    {/* Action Bar */}
+                    <div className="mt-3 flex items-center justify-end gap-2 border-t border-dashed border-border/60 pt-3">
                       <button
-                        onClick={() => toggleHistory(rowKey)}
-                        className="text-[11px] font-semibold text-accent hover:underline flex items-center gap-1"
+                        onClick={(e) => { e.stopPropagation(); toggleHistory(rowKey); }}
+                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-border bg-white text-ink hover:bg-gray-50 flex items-center gap-1.5 transition-colors"
                       >
-                        {isHistoryExpanded ? 'Hide Cutoffs' : 'Show Cutoffs History'}
+                        {isHistoryExpanded ? 'Hide Cutoffs' : 'Show Cutoffs'}
                         <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isHistoryExpanded ? 'rotate-180' : ''}`} />
                       </button>
+
                       <Link
-                        to={`/explorer/${stream}/branch/${slugify(item.course_name)}?college=${item.college_code.toLowerCase()}`}
+                        to={`/explorer/${stream}/college/${item.college_code.toLowerCase()}?cat=${category}`}
                         target="_blank"
-                        className="text-[11px] font-semibold text-indigo-600 hover:underline"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 flex items-center gap-1.5 transition-colors"
                       >
-                        Explore College
+                        College Cutoffs <ExternalLink className="w-3.5 h-3.5" />
                       </Link>
                     </div>
 

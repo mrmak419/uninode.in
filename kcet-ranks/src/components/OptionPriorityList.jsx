@@ -2,10 +2,10 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { 
   GraduationCap, Share2, Download, Printer, ChevronDown, 
-  GripVertical, ArrowUp, ArrowDown, Trash2 
+  GripVertical, ArrowUp, ArrowDown, Trash2, ExternalLink 
 } from 'lucide-react'
 import CutoffHistoryTable from './CutoffHistoryTable'
-import { slugify } from '../lib/url'
+import { slugify, getArticleUrl } from '../lib/url'
 
 export default function OptionPriorityList({
   optionsList,
@@ -36,7 +36,8 @@ export default function OptionPriorityList({
   handlePrint,
   handleClearList,
   shareStatus,
-  activeTab
+  activeTab,
+  category
 }) {
   return (
     <div className={`flex flex-col gap-4 print:block ${activeTab === 'list' ? 'block' : 'hidden'}`}>
@@ -163,21 +164,20 @@ export default function OptionPriorityList({
                       else if (item.safety === 'borderline') safetyBadgeColor = 'bg-yellow-50 border-yellow-200 text-yellow-800'
                       else if (item.safety === 'dream') safetyBadgeColor = 'bg-red-50 border-red-100 text-red-800'
 
-                      const isDragging = idx === draggedIndex
-                      const isHovered = idx === dragOverIndex
-
                       return (
                         <div 
                           key={itemKey}
-                          draggable={true}
+                          draggable
                           onDragStart={(e) => handleDragStart(e, idx)}
                           onDragOver={(e) => handleDragOver(e, idx)}
                           onDrop={(e) => handleDrop(e, idx)}
                           onDragEnd={handleDragEnd}
-                          className={`p-4 flex flex-col transition-all duration-150 relative select-none
-                            ${isDragging ? 'opacity-30 bg-gray-50' : 'bg-white'} 
-                            ${isHovered ? 'border-t-2 border-accent/60 bg-amber-50/20' : ''}
-                            print:break-inside-avoid`}
+                          onClick={() => toggleHistory(itemKey)}
+                          className={`p-3 cursor-pointer transition-all ${
+                            draggedIndex === idx ? 'opacity-40 scale-95' : 'opacity-100'
+                          } ${
+                            dragOverIndex === idx ? 'border-t-2 border-t-ink bg-gray-50' : ''
+                          } ${!isHistoryExpanded ? 'hover:bg-paper/30' : ''} print:break-inside-avoid`}
                         >
                           <div className="flex items-start gap-3">
                             
@@ -185,19 +185,18 @@ export default function OptionPriorityList({
                             <div className="flex flex-col items-center gap-1 pt-1 shrink-0">
                               {isEditing ? (
                                 <input
-                                  type="number"
-                                  min="1"
-                                  max={optionsList.length}
+                                  type="text"
                                   value={editVal}
                                   onChange={e => setEditVal(e.target.value)}
                                   onBlur={() => handleEditSubmit(idx)}
                                   onKeyDown={e => { if (e.key === 'Enter') handleEditSubmit(idx) }}
+                                  onClick={e => e.stopPropagation()}
                                   autoFocus
                                   className="w-10 text-center font-mono text-xs font-bold border border-ink bg-white rounded py-0.5 text-ink print:hidden"
                                 />
                               ) : (
                                 <button
-                                  onClick={() => { setEditingIndex(idx); setEditVal(String(idx + 1)) }}
+                                  onClick={(e) => { e.stopPropagation(); setEditingIndex(idx); setEditVal(String(idx + 1)) }}
                                   title="Click to manually edit priority"
                                   className="w-7 h-7 bg-ink text-paper rounded-lg font-mono text-xs font-bold flex items-center justify-center cursor-pointer hover:bg-accent transition-colors shrink-0"
                                 >
@@ -229,7 +228,7 @@ export default function OptionPriorityList({
                             </div>
 
                             {/* RHS Controls: Up/Down Buttons & Trash (Hidden on Print) */}
-                            <div className="flex items-center gap-1 pt-1 shrink-0 print:hidden">
+                            <div className="flex items-center gap-1 pt-1 shrink-0 print:hidden" onClick={e => e.stopPropagation()}>
                               <div className="flex flex-col gap-0.5">
                                 <button
                                   onClick={() => moveOption(idx, -1)}
@@ -261,15 +260,25 @@ export default function OptionPriorityList({
 
                           </div>
 
-                          {/* Historical cutoffs toggler */}
-                          <div className="mt-2.5 flex items-center gap-3 border-t border-dashed border-border/50 pt-2.5 print:hidden">
+                          {/* Action Bar */}
+                          <div className="mt-3 flex items-center justify-end gap-2 border-t border-dashed border-border/60 pt-3 print:hidden">
                             <button
-                              onClick={() => toggleHistory(itemKey)}
-                              className="text-[10px] font-semibold text-accent hover:underline flex items-center gap-1"
+                              onClick={(e) => { e.stopPropagation(); toggleHistory(itemKey); }}
+                              className="px-2.5 py-1.5 rounded-md text-[10px] font-bold border border-border bg-white text-ink hover:bg-gray-50 flex items-center gap-1 transition-colors"
                             >
-                              {isHistoryExpanded ? 'Hide Cutoffs' : 'Show Cutoffs History'}
+                              {isHistoryExpanded ? 'Hide Cutoffs' : 'Show Cutoffs'}
                               <ChevronDown className={`w-3 h-3 transition-transform ${isHistoryExpanded ? 'rotate-180' : ''}`} />
                             </button>
+
+                            <Link
+                              to={getArticleUrl(stream, item.college_code, item.course_name, category)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-2.5 py-1.5 rounded-md text-[10px] font-bold border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 flex items-center gap-1 transition-colors"
+                            >
+                              View Analysis <ExternalLink className="w-3 h-3" />
+                            </Link>
                           </div>
 
                           {isHistoryExpanded && (

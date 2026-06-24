@@ -31,7 +31,7 @@ export default function RazorpayButton() {
   return (
     <div className="flex flex-col items-center gap-2 w-full max-w-xs mx-auto">
       <p className="text-xs text-muted font-medium text-center leading-relaxed">
-        If this tool saved you a headache during counseling, you can click below to:
+        If this tool helped you during counseling, you can click below to:
       </p>
       
       {/* onClickCapture guarantees the event logs before Razorpay intercepts the click flow */}
