@@ -158,9 +158,13 @@ function LegacyArticleRedirect() {
 // Shows 404 for unknown paths like /sfjofh instead of rendering "Sfjofh Cutoffs"
 const VALID_STREAMS = new Set(streamsData.map(s => s.id));
 function ValidatedStreamRoute() {
-  const { stream } = useParams();
+  const { exam, stream } = useParams();
   if (!VALID_STREAMS.has(stream)) {
     return <NotFound />;
+  }
+  // Redirect legacy /:stream to /kcet/:stream
+  if (!exam) {
+    return <Navigate to={`/kcet/${stream}`} replace />;
   }
   return <App />;
 }
@@ -211,10 +215,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/comedk/:stream" element={<ValidatedStreamRoute />} />
               <Route path="/dcet/:stream" element={<ValidatedStreamRoute />} />
               
+              {/* Legacy Stream Redirect */}
+              <Route path="/:stream" element={<ValidatedStreamRoute />} />
+              
               <Route path="/kcet" element={<Home />} />
               <Route path="/comedk" element={<Home />} />
               <Route path="/dcet" element={<Home />} />
-              <Route path="/" element={<Navigate to="/kcet" replace />} />
+              <Route path="/" element={<Home />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
