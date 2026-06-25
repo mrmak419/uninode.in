@@ -11,8 +11,8 @@ export default function Contact() {
   return (
     <div className="min-h-screen bg-paper flex flex-col">
       <TabTitle 
-        title="Contact Us | Uninode KCET" 
-        description="Get in touch with the student developers behind the Uninode KCET Cutoff Analyzer. We built this tool to help students navigate KCET counseling."
+        title="Contact Us | Uninode" 
+        description="Get in touch with the student developers behind the Uninode Cutoff Analyzer. We built this tool to help students navigate KCET counseling."
       />
       <main className="flex-1 max-w-4xl mx-auto px-4 py-12 w-full">
         <div className="mb-8 flex items-center justify-between border-b border-border/50 pb-6">

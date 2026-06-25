@@ -431,12 +431,12 @@ export default function App() {
     else yearsText = `${uniqueYears.slice(0, -1).join(', ')} & ${uniqueYears[uniqueYears.length - 1]}`
   }
 
-  let pageTitle = `${formattedStreamName} Cutoffs | Uninode KCET Cutoff Analyzer`
-  let pageDescription = `Analyze historical KCET cutoff trends for ${formattedStreamName}. Discover eligible colleges for your rank with the Uninode KCET Cutoff Analyzer.`
+  let pageTitle = `${formattedStreamName} Cutoffs | Uninode Cutoff Analyzer`
+  let pageDescription = `Analyze historical KCET cutoff trends for ${formattedStreamName}. Discover eligible colleges for your rank with the Uninode Cutoff Analyzer.`
 
   if (mode === 'analyzer' && rank && category) {
     pageTitle = `Rank ${rank} ${category} - ${formattedStreamName} | Uninode`
-    pageDescription = `Discover eligible ${formattedStreamName} colleges for rank ${rank} in ${category} category using the Uninode KCET Cutoff Analyzer.`
+    pageDescription = `Discover eligible ${formattedStreamName} colleges for rank ${rank} in ${category} category using the Uninode Cutoff Analyzer.`
   } else if (collegeQuery || selectedBranches.length > 0) {
     let prefixParts = [];
     if (collegeQuery) {
@@ -478,7 +478,7 @@ export default function App() {
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b border-border/50 pb-6">
           <div>
             <h1 className="sr-only">
-              {stream.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} KCET Cutoffs & Rank Analyzer
+              {stream.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Cutoffs & Rank Analyzer
             </h1>
             <h2 className="text-3xl font-display font-bold text-ink mb-1 flex items-center gap-3">
               {stream.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}

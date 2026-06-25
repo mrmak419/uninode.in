@@ -249,8 +249,8 @@ export async function onRequest(context) {
   
   let streamRaw = 'engineering';
   let stream = 'KCET';
-  let pageTitle = `KCET Cutoffs | Uninode KCET Cutoff Analyzer`;
-  let pageDescription = `Analyze historical KCET cutoff trends. Discover eligible colleges for your rank with the Uninode KCET Cutoff Analyzer.`;
+  let pageTitle = `KCET Cutoffs | Uninode Cutoff Analyzer`;
+  let pageDescription = `Analyze historical KCET cutoff trends. Discover eligible colleges for your rank with the Uninode Cutoff Analyzer.`;
   let isArticle = false;
   let articleSeo = null; // Will hold real cutoff data for article pages
   let seoDataMap = null; // Will hold the parsed seo lookup object
@@ -336,7 +336,7 @@ export async function onRequest(context) {
           const year = articleSeo.y;
           const round = articleSeo.rd;
           
-          pageTitle = `${collegeShort} ${branchNameResolved} ${catDec.toUpperCase()} Cutoff ${year} – Rank ${rank} | Uninode KCET`;
+          pageTitle = `${collegeShort} ${branchNameResolved} ${catDec.toUpperCase()} Cutoff ${year} – Rank ${rank} | Uninode`;
           
           let descParts = [`The KCET ${catDec.toUpperCase()} cutoff for ${branchNameResolved} at ${collegeShort} was ${rank} in ${year} (Round ${round}).`];
           
@@ -412,7 +412,7 @@ export async function onRequest(context) {
         pageDescription = `The best laptops, tablets, and accessories recommended for engineering students.`;
       }
     } else if (section === 'option-entry') {
-      pageTitle = `Option Entry List Generator | Uninode KCET`;
+      pageTitle = `Option Entry List Generator | Uninode`;
       pageDescription = `Build, prioritize, and validate your KCET Option Entry preference list strategically based on historical cutoff ranks.`;
     } else {
       // Root stream route (e.g. /engineering) — validate against build-time streams.json
@@ -421,10 +421,10 @@ export async function onRequest(context) {
       if (validStreams && validStreams.has(candidate)) {
         streamRaw = candidate;
         stream = formatStream(streamRaw);
-        pageTitle = `${stream} Cutoffs | Uninode KCET Cutoff Analyzer`;
+        pageTitle = `${stream} Cutoffs | Uninode Cutoff Analyzer`;
         pageDescription = `Analyze historical KCET cutoff trends for ${stream}. Discover eligible colleges for your rank.`;
       } else {
-        pageTitle = `Page Not Found | Uninode KCET`;
+        pageTitle = `Page Not Found | Uninode`;
         pageDescription = `The page you're looking for doesn't exist. Browse KCET cutoffs and college data on Uninode.`;
       }
     }
