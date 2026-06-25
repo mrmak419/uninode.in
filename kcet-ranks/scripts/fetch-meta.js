@@ -390,7 +390,7 @@ async function fetchMetadata() {
   }
 
   // Generate sitemap.xml
-  const domain = process.env.VITE_APP_DOMAIN || 'https://kcet.uninode.in';
+  const domain = process.env.VITE_APP_DOMAIN || 'https://uninode.in';
   const currentDate = new Date().toISOString();
   
   const mainUrls = [];
