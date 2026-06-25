@@ -4,19 +4,14 @@
     "/*"
   ],
   "exclude": [
+    "/kcet/articles/*",
+    "/comedk/articles/*",
+    "/dcet/articles/*",
     "/assets/*",
     "/college_data/*",
-    "/favicon.ico",
-    "/logo.png",
-    "/robots.txt",
-    "/sw.js",
-    "/manifest.webmanifest",
-    "/sitemap*.xml",
-    "/sitemap.xml",
-    "/data_*.json",
-    "/meta_*.json",
-    "/seo_*.json",
-    "/archive_*.json",
-    "/streams.json"
+    "/*.json",
+    "/*.xml",
+    "/*.txt",
+    "/favicon.ico"
   ]
 }
