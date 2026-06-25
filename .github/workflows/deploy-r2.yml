@@ -42,7 +42,8 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: uninode-in # Ensure this matches your Pages project name
-          directory: kcet-ranks/dist
+          projectName: uninode-in
+          directory: dist
           workingDirectory: kcet-ranks
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          wranglerVersion: '3'
