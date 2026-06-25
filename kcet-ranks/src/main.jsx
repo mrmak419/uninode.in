@@ -149,9 +149,9 @@ function LegacyArticleRedirect() {
   const category = searchParams.get('cat')
   
   if (college && branch && category) {
-    return <Navigate to={getArticleUrl(stream, college, branch, category)} replace />
+    return <Navigate to={getArticleUrl('kcet', stream, college, branch, category)} replace />
   }
-  return <Navigate to={`/articles/${stream}`} replace />
+  return <Navigate to={`/kcet/articles/${stream}`} replace />
 }
 
 // Validates that /:stream matches a known stream from streams.json
@@ -183,23 +183,33 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/gear" element={<GearIndex />} />
 
               {/* Article Routes */}
-              <Route path="/articles/:stream/:college/:branch/:category" element={<ArticleContainer />} />
-              <Route path="/articles/:stream" element={<ArticleContainer />} />
-              <Route path="/articles" element={<ArticlesIndex />} />
+              <Route path="/:exam/articles/:stream/:college/:branch/:category" element={<ArticleContainer />} />
+              <Route path="/:exam/articles/:stream" element={<ArticleContainer />} />
+              <Route path="/:exam/articles" element={<ArticlesIndex />} />
+              <Route path="/articles/:stream/:college/:branch/:category" element={<Navigate to="/kcet/articles/:stream/:college/:branch/:category" replace />} />
+              <Route path="/articles/:stream" element={<Navigate to="/kcet/articles/:stream" replace />} />
+              <Route path="/articles" element={<Navigate to="/kcet/articles" replace />} />
               <Route path="/article" element={<LegacyArticleRedirect />} />
               
               {/* Explorer Routes */}
+              <Route path="/:exam/:stream/explorer/branch/:branchName" element={<App />} />
+              <Route path="/:exam/:stream/explorer/college/:collegeName" element={<App />} />
               <Route path="/explorer/:stream/branch/:branchName" element={<App />} />
               <Route path="/explorer/:stream/college/:collegeName" element={<App />} />
               
               {/* Analyzer Routes */}
+              <Route path="/:exam/:stream/analyzer/rank/:rankValue/:category" element={<App />} />
               <Route path="/analyzer/:stream/rank/:rankValue/:category" element={<App />} />
               {/* Option Entry Generator Routes */}
-              <Route path="/option-entry/:stream/:category/rank/:rank" element={<OptionGenerator />} />
-              <Route path="/option-entry" element={<OptionGenerator />} />
+              <Route path="/:exam/option-entry/:stream/:category/rank/:rank" element={<OptionGenerator />} />
+              <Route path="/:exam/option-entry" element={<OptionGenerator />} />
+              <Route path="/option-entry/:stream/:category/rank/:rank" element={<Navigate to="/kcet/option-entry/:stream/:category/rank/:rank" replace />} />
+              <Route path="/option-entry" element={<Navigate to="/kcet/option-entry" replace />} />
               
               {/* Root Stream Route — validated against known streams */}
+              <Route path="/:exam/:stream" element={<ValidatedStreamRoute />} />
               <Route path="/:stream" element={<ValidatedStreamRoute />} />
+              <Route path="/:exam" element={<Home />} />
               <Route path="/" element={<Home />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

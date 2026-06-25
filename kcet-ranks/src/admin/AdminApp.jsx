@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import DeployManager from './DeployManager'
 
 export default function AdminApp() {
   const [session, setSession] = useState(null)
@@ -51,6 +52,7 @@ export default function AdminApp() {
       </div>
 
       <div className="max-w-7xl mx-auto mt-12">
+        <DeployManager />
         {isCategoriesTab ? <CategoriesManager /> : <BranchMapping />}
       </div>
     </div>

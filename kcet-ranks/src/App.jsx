@@ -27,7 +27,8 @@ const ALL_CATEGORIES = [
 // DB aliases will handle this dynamically now.
 
 export default function App() {
-  const { stream, branchName, collegeName, rankValue, category: categoryParam } = useParams()
+  const { exam, stream, branchName, collegeName, rankValue, category: categoryParam } = useParams()
+  const examPrefix = (exam || 'kcet').toLowerCase()
   const formattedStreamName = stream ? stream.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Stream'
   const navigate = useNavigate()
 
@@ -330,17 +331,17 @@ export default function App() {
         params.set('college', resolvedCollegeName)
       }
       
-      let newPath = `/${stream}`
+      let newPath = `/${examPrefix}/${stream}`
       if (currentMode === 'analyzer' && rankNum) {
-        newPath = `/analyzer/${stream}/rank/${rankNum}/${encodeURIComponent(urlCategory.toLowerCase())}`
+        newPath = `/${examPrefix}/${stream}/analyzer/rank/${rankNum}/${encodeURIComponent(urlCategory.toLowerCase())}`
       } else if (currentMode === 'explorer') {
         if (resolvedBranches.length > 0) {
-          newPath = `/explorer/${stream}/branch/${encodeURIComponent(slugify(resolvedBranches[0]))}`
+          newPath = `/${examPrefix}/${stream}/explorer/branch/${encodeURIComponent(slugify(resolvedBranches[0]))}`
           params.set('cat', urlCategory.toLowerCase())
         } else if (resolvedCollegeName) {
           const matched = colleges.find(c => c.college_name.toLowerCase() === resolvedCollegeName.trim().toLowerCase() || c.college_code.toLowerCase() === resolvedCollegeName.trim().toLowerCase());
           const code = matched ? matched.college_code.toLowerCase() : resolvedCollegeName.toLowerCase();
-          newPath = `/explorer/${stream}/college/${encodeURIComponent(code)}`
+          newPath = `/${examPrefix}/${stream}/explorer/college/${encodeURIComponent(code)}`
           params.set('cat', urlCategory.toLowerCase())
         }
       }
@@ -455,8 +456,8 @@ export default function App() {
             >
               <Menu className="w-6 h-6" />
             </button>
-            <Link to="/" className="font-display font-bold text-xl tracking-tight text-ink flex items-center">
-              Uninode<span className="text-blue-600 ml-1">KCET</span>
+            <Link to={`/${examPrefix}`} className="font-display font-bold text-xl tracking-tight text-ink flex items-center">
+              Uninode<span className="text-blue-600 ml-1">{examPrefix.toUpperCase()}</span>
             </Link>
         </div>
 
@@ -555,6 +556,7 @@ export default function App() {
                 {mode === 'analyzer' && <Legend rank={parseInt(rank, 10)} />}
               </div>
               <ResultsTable
+                examPrefix={examPrefix}
                 rows={groupedResults}
                 rounds={rounds}
                 userRank={mode === 'analyzer' ? parseInt(rank, 10) : null}

@@ -3,7 +3,13 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { getArticleUrl } from '../../lib/url'
 
-export default function ArticleSuggestions({ stream, articleData, category, precomputedSuggestions }) {
+export default function ArticleSuggestions({ 
+  examPrefix = 'kcet',
+  stream, 
+  articleData, 
+  category, 
+  precomputedSuggestions 
+}) {
   if (!articleData || !precomputedSuggestions) return null;
 
   const suggKey = `${articleData.course_name}|${category.toUpperCase()}|${articleData.seat_type || 'G'}`;
@@ -18,7 +24,7 @@ export default function ArticleSuggestions({ stream, articleData, category, prec
     <div className="mt-12 pt-8 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
       {prevItem ? (
         <Link 
-          to={getArticleUrl(stream, prevItem.college_code, prevItem.branch, prevItem.category)}
+          to={getArticleUrl(examPrefix, stream, prevItem.college_code, prevItem.branch, prevItem.category)}
           className="group flex flex-col justify-center items-start p-6 bg-white border border-gray-200 rounded-xl hover:border-blue-500 hover:shadow-md transition-all"
         >
           <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1 group-hover:text-blue-600 transition-colors">
@@ -31,7 +37,7 @@ export default function ArticleSuggestions({ stream, articleData, category, prec
 
       {nextItem ? (
         <Link 
-          to={getArticleUrl(stream, nextItem.college_code, nextItem.branch, nextItem.category)}
+          to={getArticleUrl(examPrefix, stream, nextItem.college_code, nextItem.branch, nextItem.category)}
           className="group flex flex-col justify-center items-end text-right p-6 bg-white border border-gray-200 rounded-xl hover:border-blue-500 hover:shadow-md transition-all"
         >
           <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1 group-hover:text-blue-600 transition-colors">

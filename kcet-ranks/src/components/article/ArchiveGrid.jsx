@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { getArticleUrl } from '../../lib/url'
 
-export default function ArchiveGrid({ stream }) {
+export default function ArchiveGrid({ examPrefix = 'kcet', stream }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   
@@ -148,7 +148,7 @@ export default function ArchiveGrid({ stream }) {
           return (
               <Link 
                 key={comb} 
-                to={getArticleUrl(stream, cCode, b, cat)}
+                to={getArticleUrl(examPrefix, stream, cCode, b, cat)}
                 className="group block bg-white border border-gray-200 rounded-xl p-5 hover:border-blue-500 hover:shadow-md transition-all duration-200"
               >
               <h2 className="text-sm font-bold text-gray-900 mb-1 group-hover:text-blue-600 line-clamp-2">{cName}</h2>

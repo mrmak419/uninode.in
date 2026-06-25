@@ -15,4 +15,6 @@ public/archive_*.json.gz
 public/sitemap-*.xml
 public/sitemap.xml
 .wrangler/
+public/college_data/
+src/streams.json
 

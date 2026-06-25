@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getArticleUrl } from '../lib/url'
 
-export default function ResultsTable({ rows, rounds, userRank, stream, category }) {
+export default function ResultsTable({ rows, rounds, userRank, stream, category, examPrefix = 'kcet' }) {
   // Determine unique years and rounds for the matrix
   // Only keep the top 4 recent years (x, x-1, x-2, x-3)
   const uniqueYears = Array.from(new Set(rounds.map(r => r.year))).sort((a, b) => b - a).slice(0, 4)
@@ -136,7 +136,7 @@ export default function ResultsTable({ rows, rounds, userRank, stream, category 
                     <div className="flex items-center gap-2">
                       {stream && category ? (
                         <Link
-                          to={getArticleUrl(stream, row.college_code, row.course_name, category)}
+                          to={getArticleUrl(examPrefix, stream, row.college_code, row.course_name, category)}
                           target="_blank"
                           rel="noopener"
                           onClick={(e) => e.stopPropagation()} 

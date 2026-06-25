@@ -2,7 +2,10 @@ import { Link } from 'react-router-dom'
 import { Tag } from 'lucide-react'
 import { getArticleUrl } from '../../lib/url'
 
-export default function ArticleOtherCategories({ stream, college, branch, currentCategory, collegeDataObj, articleData }) {
+export default function ArticleOtherCategories({ 
+  examPrefix = 'kcet',
+  stream, 
+  college, branch, currentCategory, collegeDataObj, articleData }) {
   if (!collegeDataObj || !collegeDataObj.cutoffs || !articleData) return null;
 
   const otherCategories = collegeDataObj.cutoffs
@@ -29,7 +32,7 @@ export default function ArticleOtherCategories({ stream, college, branch, curren
         {uniqueCategories.map(cat => (
           <Link
             key={cat}
-            to={getArticleUrl(stream, college, branch, cat)}
+            to={getArticleUrl(examPrefix, stream, college, branch, cat)}
             className="px-4 py-2 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 text-sm font-semibold text-gray-700 hover:text-blue-700 rounded-lg transition-colors"
           >
             {cat}

@@ -1,0 +1,41 @@
+name: Deploy to Cloudflare Pages (SSG)
+
+on:
+  workflow_dispatch: # Triggered manually from Admin Panel
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Vite App
+        run: npm run build
+
+      - name: Fetch Latest Data & Build Meta
+        run: node scripts/fetch-meta.js
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Generate Static Site Pages (SSG)
+        run: node scripts/generate-static-site.js
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: kcet-ranks # Ensure this matches your Pages project name
+          directory: dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

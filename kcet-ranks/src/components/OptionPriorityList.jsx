@@ -8,6 +8,7 @@ import CutoffHistoryTable from './CutoffHistoryTable'
 import { slugify, getArticleUrl } from '../lib/url'
 
 export default function OptionPriorityList({
+  examPrefix = 'kcet',
   optionsList,
   listStats,
   collapsedCategories,
@@ -271,7 +272,7 @@ export default function OptionPriorityList({
                             </button>
 
                             <Link
-                              to={getArticleUrl(stream, item.college_code, item.course_name, category)}
+                              to={getArticleUrl(examPrefix, stream, item.college_code, item.course_name, category)}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}

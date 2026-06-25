@@ -55,6 +55,7 @@ export default function ArticleFAQ({
             In the latest {latestYear} counseling, the lowest cutoff was in Round {latestRounds[latestRounds.length - 1]} at {latestRoundRank ? latestRoundRank.toLocaleString() : '--'}.
           </p>
         </div>
+
       </div>
     </div>
   )

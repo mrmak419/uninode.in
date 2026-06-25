@@ -26,37 +26,41 @@ export function normalizeCourse(name) {
 /**
  * Returns a clean, human-readable URL for an article.
  */
-export function getArticleUrl(stream, collegeCode, branchName, category) {
+export function getArticleUrl(exam, stream, collegeCode, branchName, category) {
+  const e = (exam || 'kcet').toLowerCase();
   const s = (stream || 'engineering').toLowerCase();
   const col = (collegeCode || '').toLowerCase();
   const br = slugify(branchName);
   const cat = (category || '').toUpperCase();
-  return `/articles/${s}/${col}/${br}/${cat}`;
+  return `/${e}/articles/${s}/${col}/${br}/${cat}`;
 }
 
 /**
  * Returns a clean, human-readable URL for explorer by college.
  */
-export function getExplorerCollegeUrl(stream, collegeCode) {
+export function getExplorerCollegeUrl(exam, stream, collegeCode) {
+  const e = (exam || 'kcet').toLowerCase();
   const s = (stream || 'engineering').toLowerCase();
   const col = (collegeCode || '').toLowerCase();
-  return `/explorer/${s}/college/${col}`;
+  return `/${e}/${s}/explorer/college/${col}`;
 }
 
 /**
  * Returns a clean, human-readable URL for explorer by branch.
  */
-export function getExplorerBranchUrl(stream, branchName) {
+export function getExplorerBranchUrl(exam, stream, branchName) {
+  const e = (exam || 'kcet').toLowerCase();
   const s = (stream || 'engineering').toLowerCase();
   const br = slugify(branchName);
-  return `/explorer/${s}/branch/${br}`;
+  return `/${e}/${s}/explorer/branch/${br}`;
 }
 
 /**
  * Returns a clean, human-readable URL for the analyzer.
  */
-export function getAnalyzerUrl(stream, rank, category) {
+export function getAnalyzerUrl(exam, stream, rank, category) {
+  const e = (exam || 'kcet').toLowerCase();
   const s = (stream || 'engineering').toLowerCase();
   const cat = (category || '').toUpperCase();
-  return `/analyzer/${s}/rank/${rank}/${cat}`;
+  return `/${e}/${s}/analyzer/rank/${rank}/${cat}`;
 }

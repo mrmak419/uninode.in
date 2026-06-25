@@ -2,7 +2,14 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getAnalyzerUrl, getExplorerBranchUrl, getExplorerCollegeUrl, slugify } from '../../lib/url'
 
-export default function ArticleCTABlocks({ stream, branch, category, cleanCollege, articleData }) {
+export default function ArticleCTABlocks({ 
+  examPrefix = 'kcet',
+  stream, 
+  branch, 
+  category, 
+  cleanCollege, 
+  articleData 
+}) {
   const [userRankInput, setUserRankInput] = useState('')
 
   return (
@@ -21,8 +28,8 @@ export default function ArticleCTABlocks({ stream, branch, category, cleanColleg
         </div>
         <Link 
           to={userRankInput 
-            ? `${getAnalyzerUrl(stream, userRankInput, category)}?branches=${encodeURIComponent(slugify(branch))}&seat=${encodeURIComponent(articleData?.seat_type || 'ROK')}`
-            : `${getExplorerBranchUrl(stream, branch)}?college=${encodeURIComponent(articleData.college_code.toLowerCase())}&cat=${encodeURIComponent(category.toLowerCase())}&seat=${encodeURIComponent(articleData?.seat_type || 'ROK')}`
+            ? `${getAnalyzerUrl(examPrefix, stream, userRankInput, category)}?branches=${encodeURIComponent(slugify(branch))}&seat=${encodeURIComponent(articleData?.seat_type || 'ROK')}`
+            : `${getExplorerBranchUrl(examPrefix, stream, branch)}?college=${encodeURIComponent(articleData.college_code.toLowerCase())}&cat=${encodeURIComponent(category.toLowerCase())}&seat=${encodeURIComponent(articleData?.seat_type || 'ROK')}`
           }
           className="inline-block bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow hover:bg-blue-700 hover:shadow-md transition-all"
         >
@@ -36,7 +43,7 @@ export default function ArticleCTABlocks({ stream, branch, category, cleanColleg
           <p className="text-emerald-800 mb-6 text-sm">Discover and compare cutoff ranks for all other branches offered at {cleanCollege}.</p>
         </div>
         <Link 
-          to={`${getExplorerCollegeUrl(stream, articleData.college_code)}?cat=${encodeURIComponent(category.toLowerCase())}&seat=${encodeURIComponent(articleData?.seat_type || 'ROK')}`}
+          to={`${getExplorerCollegeUrl(examPrefix, stream, articleData.college_code)}?cat=${encodeURIComponent(category.toLowerCase())}&seat=${encodeURIComponent(articleData?.seat_type || 'ROK')}`}
           className="inline-block bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg shadow hover:bg-emerald-700 hover:shadow-md transition-all"
         >
           View College

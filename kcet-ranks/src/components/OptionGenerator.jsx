@@ -19,7 +19,8 @@ export default function OptionGenerator() {
   const { toggleSidebar } = useContext(SidebarContext)
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { stream: paramStream, category: paramCategory, rank: paramRank } = useParams()
+  const { exam, stream: paramStream, category: paramCategory, rank: paramRank } = useParams()
+  const examPrefix = (exam || 'kcet').toLowerCase()
 
   // --- Persistent & Share State ---
   const [stream, setStream] = useState(() => {
@@ -936,9 +937,11 @@ export default function OptionGenerator() {
             >
               <Menu className="w-6 h-6" />
             </button>
-            <Link to="/" className="font-display font-bold text-xl tracking-tight text-ink flex items-center">
-              Uninode<span className="text-blue-600 ml-1">KCET</span>
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link to={`/${examPrefix}`} className="font-display font-bold text-xl tracking-tight text-ink flex items-center">
+                Uninode<span className="text-blue-600 ml-1">{examPrefix.toUpperCase()}</span>
+              </Link>
+            </div>
           </div>
           <div className="print:hidden">
             <Link 
@@ -1054,6 +1057,8 @@ export default function OptionGenerator() {
             </div>
             {/* Left Panel: Search & Suggestions */}
             <OptionSearchPanel
+              examPrefix={examPrefix}
+              stream={stream}
               findCollegesOpen={findCollegesOpen}
               setFindCollegesOpen={setFindCollegesOpen}
               searchQuery={searchQuery}
@@ -1076,6 +1081,7 @@ export default function OptionGenerator() {
 
             {/* Right Panel: Preference List */}
             <OptionPriorityList
+              examPrefix={examPrefix}
               optionsList={optionsList}
               listStats={listStats}
               collapsedCategories={collapsedCategories}

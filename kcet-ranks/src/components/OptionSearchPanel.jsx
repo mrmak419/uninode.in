@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronDown, Search, CheckCircle2, Plus, ExternalLink } from 'lucide-react'
 import CutoffHistoryTable from './CutoffHistoryTable'
-import { slugify, normalizeCourse, getArticleUrl } from '../lib/url'
+import { slugify, normalizeCourse, getArticleUrl, getExplorerCollegeUrl } from '../lib/url'
 
 export default function OptionSearchPanel({
+  examPrefix = 'kcet',
   findCollegesOpen,
   setFindCollegesOpen,
   searchQuery,
@@ -190,7 +191,7 @@ export default function OptionSearchPanel({
                       </button>
 
                       <Link
-                        to={`/explorer/${stream}/college/${item.college_code.toLowerCase()}?cat=${category}`}
+                        to={`${getExplorerCollegeUrl(examPrefix, stream, item.college_code)}?cat=${category}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}

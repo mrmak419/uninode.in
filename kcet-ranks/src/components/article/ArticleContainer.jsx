@@ -17,7 +17,7 @@ import Footer from '../Footer'
 const articleMetaCache = {}
 const collegeDataCache = {}
 
-const TopNavigation = () => {
+const TopNavigation = ({ examPrefix }) => {
   const { toggleSidebar } = useContext(SidebarContext)
   return (
     <div className="w-full max-w-7xl mx-auto px-4 py-6 md:py-8">
@@ -29,8 +29,8 @@ const TopNavigation = () => {
           >
             <Menu className="w-6 h-6" />
           </button>
-          <Link to="/" className="font-display font-bold text-xl tracking-tight text-gray-900 flex items-center">
-            Uninode<span className="text-blue-600 ml-1">KCET</span>
+          <Link to={`/${examPrefix}`} className="font-display font-bold text-xl tracking-tight text-gray-900 flex items-center">
+            Uninode<span className="text-blue-600 ml-1">{examPrefix.toUpperCase()}</span>
           </Link>
       </div>
     </div>
@@ -38,7 +38,8 @@ const TopNavigation = () => {
 }
 
 export default function ArticleContainer() {
-  const { stream: streamParam, college, branch, category } = useParams()
+  const { exam, stream: streamParam, college, branch, category } = useParams()
+  const examPrefix = (exam || 'kcet').toLowerCase()
   const stream = streamParam || 'engineering'
 
   const [loading, setLoading] = useState(true)
@@ -144,8 +145,8 @@ export default function ArticleContainer() {
     if (!college || !branch || !category) {
       return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center w-full">
-          <TopNavigation />
-          <ArchiveGrid stream={stream} />
+          <TopNavigation examPrefix={examPrefix} />
+          <ArchiveGrid examPrefix={examPrefix} stream={stream} />
         </div>
       )
     }
@@ -154,7 +155,7 @@ export default function ArticleContainer() {
     if (loading) {
       return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center w-full">
-          <TopNavigation />
+          <TopNavigation examPrefix={examPrefix} />
           <main className="max-w-4xl mx-auto px-4 py-16 text-center w-full">
             <div className="text-xl text-muted font-body animate-pulse">Loading analysis...</div>
           </main>
@@ -165,7 +166,7 @@ export default function ArticleContainer() {
     if (error || !articleData) {
       return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center w-full">
-          <TopNavigation />
+          <TopNavigation examPrefix={examPrefix} />
           <main className="max-w-4xl mx-auto px-4 py-16 text-center w-full">
             <h1 className="text-3xl font-bold text-gray-900 mb-4">Content Not Found</h1>
             <p className="text-gray-600 mb-8">{error || "The cutoff data you're looking for isn't available or couldn't be loaded."}</p>
@@ -201,10 +202,10 @@ export default function ArticleContainer() {
   if (topYears.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center w-full">
-        <TopNavigation />
+        <TopNavigation examPrefix={examPrefix} />
         <main className="w-full max-w-4xl mx-auto px-4 py-8 overflow-hidden">
           <div className="mb-6">
-            <Link to={`/articles/${stream}`} className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-blue-600 transition-colors uppercase tracking-wider">
+            <Link to={`/${examPrefix}/articles/${stream}`} className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-blue-600 transition-colors uppercase tracking-wider">
               <ArrowLeft size={16} /> Back to {formattedStream} Articles
             </Link>
           </div>
@@ -236,10 +237,10 @@ export default function ArticleContainer() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center w-full">
-      <TopNavigation />
+      <TopNavigation examPrefix={examPrefix} />
       <main className="w-full max-w-4xl mx-auto px-4 py-8 overflow-hidden">
         <div className="mb-6">
-          <Link to={`/articles/${stream}`} className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-blue-600 transition-colors uppercase tracking-wider">
+          <Link to={`/${examPrefix}/articles/${stream}`} className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-blue-600 transition-colors uppercase tracking-wider">
             <ArrowLeft size={16} /> Back to {formattedStream} Articles
           </Link>
         </div>
@@ -285,6 +286,7 @@ export default function ArticleContainer() {
         />
         
         <ArticleCTABlocks 
+          examPrefix={examPrefix}
           stream={stream}
           branch={articleData.course_name}
           category={category}
@@ -293,6 +295,7 @@ export default function ArticleContainer() {
         />
 
         <ArticleOtherCategories
+          examPrefix={examPrefix}
           stream={stream}
           college={college}
           branch={articleData.course_name}
@@ -302,6 +305,7 @@ export default function ArticleContainer() {
         />
         
         <ArticleSuggestions 
+          examPrefix={examPrefix}
           stream={stream} 
           articleData={articleData} 
           category={category}
