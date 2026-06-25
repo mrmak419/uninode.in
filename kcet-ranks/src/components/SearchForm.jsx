@@ -7,7 +7,6 @@ const SEAT_TYPES = [
   { value: 'HK',  label: 'Hyderabad Karnataka' },
 ]
 
-const VARIATION_PRESETS = [1000, 3000, 5000, 10000]
 
 export default function SearchForm({
   mode,
@@ -31,6 +30,8 @@ export default function SearchForm({
 
   const [collegeOpen, setCollegeOpen] = useState(false)
   const collegeRef = useRef(null)
+
+  const [showInfo, setShowInfo] = useState(false)
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -117,7 +118,7 @@ export default function SearchForm({
                 id="search-rank"
                 type="number"
                 min="1"
-                max="300000"
+                max="400000"
                 placeholder="e.g. 8500"
                 value={rank}
                 onChange={e => setRank(e.target.value.replace(/-/g, ''))}
@@ -306,41 +307,49 @@ export default function SearchForm({
         {/* Left side: Variation (only in analyzer mode) */}
         <div>
           {mode === 'analyzer' && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-muted uppercase tracking-wider shrink-0">
+            <div className="flex items-center gap-2 relative">
+              <span className="text-xs font-semibold text-muted uppercase tracking-wider shrink-0 flex items-center gap-1">
                 ± Variation
+                <button
+                  type="button"
+                  onClick={() => setShowInfo(!showInfo)}
+                  className="p-0.5 rounded-full hover:bg-black/5 text-muted hover:text-ink transition-colors focus:outline-none flex items-center justify-center"
+                  title="What is Variation?"
+                >
+                  <svg className="w-3 h-3" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                </button>
               </span>
               <div className="flex items-center gap-1">
-                {VARIATION_PRESETS.map(v => (
-                  <button
-                    key={v}
-                    aria-label={`Set variation to ${v}`}
-                    onClick={(e) => { e.preventDefault(); setVariation(v) }}
-                    className={
-                      'px-2.5 py-1 rounded-md text-xs font-mono transition-colors ' +
-                      (variation === v
-                        ? 'bg-ink text-paper'
-                        : 'bg-paper border border-border text-muted hover:border-ink hover:text-ink')
-                    }
-                  >
-                    {v >= 1000 ? (v/1000) + 'k' : v}
-                  </button>
-                ))}
                 <input
                   id="variation-input"
                   aria-label="Custom Variation Amount"
                   type="number"
                   min="0"
-                  max="50000"
-                  value={variation}
+                  max="300000"
+                  placeholder="Auto"
+                  value={variation === '' ? '' : variation}
                   onChange={e => {
+                    if (e.target.value === '') {
+                      setVariation('')
+                      return
+                    }
                     let val = parseInt(e.target.value) || 0
-                    setVariation(Math.min(50000, Math.max(0, val)))
+                    setVariation(Math.min(300000, Math.max(0, val)))
                   }}
-                  className="w-20 px-2 py-1 border border-border rounded-md font-mono text-xs text-ink
+                  className="w-24 px-2.5 py-1.5 border border-border rounded-md font-mono text-sm text-ink
                              focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent bg-paper"
                 />
               </div>
+
+              {showInfo && (
+                <div className="absolute top-full left-0 mt-2 w-72 sm:w-80 p-3.5 bg-white border border-border rounded-xl shadow-lg z-50 text-[11px] text-muted leading-relaxed font-medium">
+                  Variation determines how far above and below your rank we should search for cutoffs.
+                  <div className="h-2"></div>
+                  By default (Auto), we dynamically search slightly above your rank for competitive "dream" colleges, and much further below your rank to ensure you have safe backup options.
+                  <div className="h-2"></div>
+                  If you want to manually set a fixed search range, enter the exact number here.
+                </div>
+              )}
             </div>
           )}
         </div>

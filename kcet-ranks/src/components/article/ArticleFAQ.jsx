@@ -50,9 +50,39 @@ export default function ArticleFAQ({
         </div>
 
         <div className="bg-gray-50 rounded-lg p-6">
-          <h3 className="font-bold text-gray-900 text-lg mb-2">Which round had the lowest cutoff for {branch} at {cleanCollege}?</h3>
+          <h3 className="font-bold text-gray-900 text-lg mb-2">Which round had the final closing cutoff for {branch} at {cleanCollege}?</h3>
           <p className="text-gray-700">
-            In the latest {latestYear} counseling, the lowest cutoff was in Round {latestRounds[latestRounds.length - 1]} at {latestRoundRank ? latestRoundRank.toLocaleString() : '--'}.
+            In the {latestYear} counseling, the closing cutoff was recorded in Round {latestRounds[latestRounds.length - 1]} at {latestRoundRank ? latestRoundRank.toLocaleString() : '--'}. The final round cutoff represents the absolute threshold for admission in that academic year.
+          </p>
+        </div>
+
+        {hasDropHistory && firstRoundRank && latestRoundRank && (
+          <div className="bg-gray-50 rounded-lg p-6">
+            <h3 className="font-bold text-gray-900 text-lg mb-2">How much did the cutoff change between the first and final round in {latestYear}?</h3>
+            <p className="text-gray-700">
+              The cutoff rank for this category shifted by {Math.abs(latestRoundRank - firstRoundRank).toLocaleString()} ranks between Round 1 and the final round in {latestYear}. This numeric difference indicates the extent to which seats were reallocated, surrendered, or upgraded by candidates during the intermediate counseling phases. A larger shift generally implies higher mobility and seat vacancy after the initial allotment.
+            </p>
+          </div>
+        )}
+
+        <div className="bg-gray-50 rounded-lg p-6">
+          <h3 className="font-bold text-gray-900 text-lg mb-2">If my rank is exactly {latestRoundRank ? latestRoundRank.toLocaleString() : 'the closing cutoff'}, am I guaranteed a seat next year?</h3>
+          <p className="text-gray-700">
+            No, historical cutoffs are not guarantees for future admissions. The cutoff of {latestRoundRank ? latestRoundRank.toLocaleString() : '--'} in {latestYear} simply reflects the rank of the last candidate admitted that year based on that specific candidate pool. Future cutoffs will depend entirely on the number of applicants, seat availability, paper difficulty, and the specific choices made by candidates in the upcoming counseling cycle.
+          </p>
+        </div>
+
+        <div className="bg-gray-50 rounded-lg p-6">
+          <h3 className="font-bold text-gray-900 text-lg mb-2">What role does the {category} category play in these cutoffs?</h3>
+          <p className="text-gray-700">
+            The {category} classification dictates a specific subset of seats allocated within the college's overall seat matrix. Cutoffs for this category operate independently from the General Merit (GM) cutoffs. The competition is strictly limited to other candidates who have successfully claimed and verified their eligibility for the {category} quota during the document verification process.
+          </p>
+        </div>
+
+        <div className="bg-gray-50 rounded-lg p-6">
+          <h3 className="font-bold text-gray-900 text-lg mb-2">How should I use this historical cutoff data during option entry?</h3>
+          <p className="text-gray-700">
+            It is best used as a comparative baseline. If your rank is reasonably close to the final closing rank of {latestRoundRank ? latestRoundRank.toLocaleString() : '--'}, you should certainly include {cleanCollege} in your preference list. However, to mitigate risk, always construct a balanced option entry list that includes "safe" colleges (where past cutoffs are significantly lower than your rank) alongside your preferred "reach" colleges.
           </p>
         </div>
 

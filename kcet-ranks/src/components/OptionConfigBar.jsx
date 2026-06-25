@@ -1,5 +1,5 @@
 import React from 'react'
-import streamsData from '../streams.json'
+import examsData from '../exams.json'
 import { Info } from 'lucide-react'
 
 const ALL_CATEGORIES = [
@@ -17,6 +17,8 @@ const SEAT_TYPES = [
 ]
 
 export default function OptionConfigBar({
+  examPrefix,
+  onExamChange,
   stream,
   setStream,
   rank,
@@ -38,8 +40,24 @@ export default function OptionConfigBar({
     setLocalRank(rank)
   }, [rank])
 
+  const currentExamObj = examsData.find(e => e.id === examPrefix)
+  const availableStreams = currentExamObj ? currentExamObj.streams : []
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-white border border-border rounded-2xl p-4 shadow-sm mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 bg-white border border-border rounded-2xl p-4 shadow-sm mb-6">
+      <div>
+        <label htmlFor="config-exam" className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1">Exam</label>
+        <select
+          id="config-exam"
+          value={examPrefix}
+          onChange={e => onExamChange(e.target.value)}
+          className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-paper text-ink"
+        >
+          {examsData.map(e => (
+            <option key={e.id} value={e.id}>{e.title}</option>
+          ))}
+        </select>
+      </div>
       <div>
         <label htmlFor="config-stream" className="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1">Stream</label>
         <select
@@ -53,7 +71,7 @@ export default function OptionConfigBar({
           }}
           className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-paper text-ink"
         >
-          {streamsData.map(s => {
+          {availableStreams.map(s => {
             const sId = typeof s === 'string' ? s : s.id
             const displayName = sId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
             return <option key={sId} value={sId}>{displayName}</option>
@@ -102,7 +120,7 @@ export default function OptionConfigBar({
         </select>
       </div>
 
-      <div className="sm:col-span-2 md:col-span-4 border-t border-border/50 pt-3 mt-1 flex flex-col gap-2">
+      <div className="sm:col-span-2 md:col-span-5 border-t border-border/50 pt-3 mt-1 flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <label className="flex items-center gap-2 text-xs font-semibold text-ink cursor-pointer select-none">
             <input

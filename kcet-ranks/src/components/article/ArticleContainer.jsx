@@ -63,7 +63,7 @@ export default function ArticleContainer() {
       
       let meta = articleMetaCache[stream];
       if (!meta) {
-        const res = await fetch(`/meta_${stream}.json?v=${__BUILD_HASH__}`)
+        const res = await fetch(`/meta_${examPrefix}_${stream}.json?v=${__BUILD_HASH__}`)
         if (!res.ok) throw new Error("Metadata not found")
         meta = await res.json()
         articleMetaCache[stream] = meta;
@@ -235,6 +235,11 @@ export default function ArticleContainer() {
   });
   const uniqueRounds = Array.from(uniqueRoundsSet).sort((a,b) => a - b);
 
+  const availableCategories = collegeDataObj?.cutoffs
+    ? collegeDataObj.cutoffs.filter(r => r.course_name === articleData.course_name && r.rounds && Object.values(r.rounds).some(val => val !== null && val !== undefined && val !== '--')).map(r => r.category)
+    : [];
+  const uniqueCategories = [...new Set([category, ...availableCategories])].sort();
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center w-full">
       <TopNavigation examPrefix={examPrefix} />
@@ -252,6 +257,10 @@ export default function ArticleContainer() {
           topYears={topYears} 
           articleData={articleData} 
           seatType={articleData.seat_type} 
+          uniqueCategories={uniqueCategories}
+          examPrefix={examPrefix}
+          stream={stream}
+          collegeCode={college}
         />
         
         <ArticleMatrixTable 

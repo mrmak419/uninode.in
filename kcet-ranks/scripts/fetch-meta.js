@@ -188,22 +188,7 @@ async function fetchMetadata() {
       });
     }
 
-    // Create a summary for the homepage cards
-    const yearSummary = {};
-    const reversedRoundData = [...roundData].reverse();
-    reversedRoundData.forEach(r => {
-      if (!yearSummary[r.year]) yearSummary[r.year] = [];
-      if (r.round_name && !yearSummary[r.year].includes(r.round_name)) {
-        yearSummary[r.year].push(r.round_name);
-      }
-    });
-    
-    const yearsArray = Object.keys(yearSummary)
-      .map(y => parseInt(y))
-      .sort((a,b) => a - b)
-      .map(year => ({ year, rounds: yearSummary[year] }));
-    
-    streamSummaries.push({ id: stream, yearSummary: yearsArray });
+    // We no longer build streams.json here, we will scan the public dir at the end.
 
     // --- NEW: EXPORT COLLEGE-LEVEL STATIC CHUNKS ---
     const collegeDataDir = path.resolve(process.cwd(), 'public', 'college_data');
@@ -214,7 +199,7 @@ async function fetchMetadata() {
     
     for (const [collegeCode, dataObj] of Object.entries(collegeOutputs)) {
       const cBuffer = Buffer.from(JSON.stringify(dataObj));
-      const cName = `${stream}_${collegeCode}.json`;
+      const cName = `kcet_${stream}_${collegeCode}.json`;
       fs.writeFileSync(path.join(collegeDataDir, cName), cBuffer);
       const cBrBuffer = await brotliCompress(cBuffer, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4 }});
       fs.writeFileSync(path.join(collegeDataDir, `${cName}.br`), cBrBuffer);
@@ -234,10 +219,10 @@ async function fetchMetadata() {
     }
     const seoPublicDir = path.resolve(process.cwd(), 'public');
     const seoBuffer = Buffer.from(JSON.stringify(seoLookup));
-    fs.writeFileSync(path.join(seoPublicDir, `seo_${stream}.json`), seoBuffer);
+    fs.writeFileSync(path.join(seoPublicDir, `seo_kcet_${stream}.json`), seoBuffer);
     const seoBrBuffer = await brotliCompress(seoBuffer, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4 }});
-    fs.writeFileSync(path.join(seoPublicDir, `seo_${stream}.json.br`), seoBrBuffer);
-    console.log(`✅ Wrote seo_${stream}.json (${Object.keys(seoLookup).length} entries, ${(seoBuffer.length/1024).toFixed(1)}KB)`);
+    fs.writeFileSync(path.join(seoPublicDir, `seo_kcet_${stream}.json.br`), seoBrBuffer);
+    console.log(`✅ Wrote seo_kcet_${stream}.json (${Object.keys(seoLookup).length} entries, ${(seoBuffer.length/1024).toFixed(1)}KB)`);
 
     // --- NEW: EXPORT FULL COMPRESSED DATA IN CHUNKS ---
     const publicDir = path.resolve(process.cwd(), 'public');
@@ -254,7 +239,7 @@ async function fetchMetadata() {
     for (let i = 0; i < numChunks; i++) {
       const chunkData = allMatrixData.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
       const jsonBuffer = Buffer.from(JSON.stringify(chunkData));
-      const chunkName = `data_${stream}_${i}.json`;
+      const chunkName = `data_kcet_${stream}_${i}.json`;
       
       // Write Raw JSON
       fs.writeFileSync(path.join(publicDir, chunkName), jsonBuffer);
@@ -327,28 +312,7 @@ async function fetchMetadata() {
     fs.mkdirSync(publicDir);
   }
 
-  // Write a global index of available streams with their summary data
-  if (streamSummaries.length === 0) {
-    streamSummaries.push({ id: 'engineering', yearSummary: [] });
-    streams['engineering'] = { colleges: [], branches: [], rounds: [] };
-  }
-
-  // Sort streams: engineering first, rest alphabetically
-  streamSummaries.sort((a, b) => {
-    if (a.id === 'engineering') return -1;
-    if (b.id === 'engineering') return 1;
-    return a.id.localeCompare(b.id);
-  });
-
-  const srcDir = path.resolve(process.cwd(), 'src');
-  if (!fs.existsSync(srcDir)) {
-    fs.mkdirSync(srcDir, { recursive: true });
-  }
-
-  fs.writeFileSync(
-    path.join(srcDir, 'streams.json'), 
-    JSON.stringify(streamSummaries, null, 2)
-  );
+  // We will build exams.json after writing all meta files.
 
   // Write individual metadata files per stream
   for (const [stream, data] of Object.entries(streams)) {
@@ -365,29 +329,107 @@ async function fetchMetadata() {
 
     // Write meta_*.json
     const jsonBuffer = Buffer.from(JSON.stringify(metaData));
-    const filePath = path.join(publicDir, `meta_${stream}.json`);
+    const filePath = path.join(publicDir, `meta_kcet_${stream}.json`);
     fs.writeFileSync(filePath, jsonBuffer);
     
     const brBuffer = await brotliCompress(jsonBuffer, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4 }});
-    fs.writeFileSync(path.join(publicDir, `meta_${stream}.json.br`), brBuffer);
+    fs.writeFileSync(path.join(publicDir, `meta_kcet_${stream}.json.br`), brBuffer);
     
     const gzBuffer = await gzip(jsonBuffer, { level: 6 });
-    fs.writeFileSync(path.join(publicDir, `meta_${stream}.json.gz`), gzBuffer);
+    fs.writeFileSync(path.join(publicDir, `meta_kcet_${stream}.json.gz`), gzBuffer);
 
     // Write archive_*.json
     const archiveBuffer = Buffer.from(JSON.stringify(archiveData));
-    const archivePath = path.join(publicDir, `archive_${stream}.json`);
+    const archivePath = path.join(publicDir, `archive_kcet_${stream}.json`);
     fs.writeFileSync(archivePath, archiveBuffer);
     
     const archiveBrBuffer = await brotliCompress(archiveBuffer, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4 }});
-    fs.writeFileSync(path.join(publicDir, `archive_${stream}.json.br`), archiveBrBuffer);
+    fs.writeFileSync(path.join(publicDir, `archive_kcet_${stream}.json.br`), archiveBrBuffer);
     
     const archiveGzBuffer = await gzip(archiveBuffer, { level: 6 });
-    fs.writeFileSync(path.join(publicDir, `archive_${stream}.json.gz`), archiveGzBuffer);
+    fs.writeFileSync(path.join(publicDir, `archive_kcet_${stream}.json.gz`), archiveGzBuffer);
 
-    console.log(`✅ Wrote meta_${stream}.json (${data.colleges.length} colleges, ${data.branches.length} branches)`);
-    console.log(`✅ Wrote archive_${stream}.json (${archiveData.articleCombinations.length} combinations)`);
+    console.log(`✅ Wrote meta_kcet_${stream}.json (${data.colleges.length} colleges, ${data.branches.length} branches)`);
+    console.log(`✅ Wrote archive_kcet_${stream}.json (${archiveData.articleCombinations.length} combinations)`);
   }
+
+  // --- BUILD GLOBAL EXAMS INDEX ---
+  const EXAM_METADATA = {
+    kcet: { title: 'KCET', desc: 'Karnataka Common Entrance Test', icon: 'GraduationCap', color: 'from-blue-500 to-indigo-600' },
+    comedk: { title: 'COMEDK', desc: 'Consortium of Medical, Engineering and Dental Colleges of Karnataka', icon: 'Building2', color: 'from-emerald-500 to-teal-600' },
+    dcet: { title: 'DCET', desc: 'Diploma Common Entrance Test', icon: 'Library', color: 'from-purple-500 to-fuchsia-600' }
+  };
+
+  const files = fs.readdirSync(publicDir);
+  const examsMap = {};
+
+  for (const file of files) {
+    const match = file.match(/^meta_([^_]+)_(.+)\.json$/);
+    if (match) {
+      const examId = match[1];
+      const streamId = match[2];
+
+      if (!examsMap[examId]) {
+        examsMap[examId] = {
+          id: examId,
+          title: EXAM_METADATA[examId]?.title || examId.toUpperCase(),
+          desc: EXAM_METADATA[examId]?.desc || '',
+          icon: EXAM_METADATA[examId]?.icon || 'Building2',
+          color: EXAM_METADATA[examId]?.color || 'from-gray-500 to-gray-600',
+          streams: []
+        };
+      }
+
+      // Read file to get yearSummary
+      const data = JSON.parse(fs.readFileSync(path.join(publicDir, file), 'utf-8'));
+      const rounds = data.rounds || [];
+      const yearSummaryMap = {};
+      
+      rounds.forEach(r => {
+        if (!yearSummaryMap[r.year]) yearSummaryMap[r.year] = [];
+        if (r.round_name && !yearSummaryMap[r.year].includes(r.round_name)) {
+           yearSummaryMap[r.year].push(r.round_name);
+        }
+      });
+
+      const yearSummary = Object.keys(yearSummaryMap)
+        .map(y => parseInt(y))
+        .sort((a,b) => b - a) // Most recent year first
+        .map(year => ({ year, rounds: yearSummaryMap[year].sort() }));
+
+      examsMap[examId].streams.push({
+        id: streamId,
+        yearSummary
+      });
+    }
+  }
+
+  // Sort streams per exam: engineering first, then alphabetically
+  for (const examId of Object.keys(examsMap)) {
+    examsMap[examId].streams.sort((a, b) => {
+      if (a.id === 'engineering') return -1;
+      if (b.id === 'engineering') return 1;
+      return a.id.localeCompare(b.id);
+    });
+  }
+
+  const examsArray = Object.values(examsMap);
+  
+  // Sort exams by order in EXAM_METADATA
+  const orderedExamKeys = Object.keys(EXAM_METADATA);
+  examsArray.sort((a, b) => {
+    let idxA = orderedExamKeys.indexOf(a.id);
+    let idxB = orderedExamKeys.indexOf(b.id);
+    if (idxA === -1) idxA = 999;
+    if (idxB === -1) idxB = 999;
+    return idxA - idxB;
+  });
+
+  const examsJson = JSON.stringify(examsArray, null, 2);
+  const srcDir = path.resolve(process.cwd(), 'src');
+  if (!fs.existsSync(srcDir)) fs.mkdirSync(srcDir, { recursive: true });
+  fs.writeFileSync(path.join(srcDir, 'exams.json'), examsJson);
+  console.log(`✅ Built exams.json with ${examsArray.length} exams.`);
 
   // Generate sitemap.xml
   const domain = process.env.VITE_APP_DOMAIN || 'https://uninode.in';

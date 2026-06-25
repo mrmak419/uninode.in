@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate, useSearchParams, useParams } from 'react-router-dom'
 import { registerSW } from 'virtual:pwa-register'
 import './index.css'
-import streamsData from './streams.json'
+import examsData from './exams.json'
 import { getArticleUrl } from './lib/url'
 
 const App = lazy(() => import('./App.jsx'))
@@ -156,16 +156,28 @@ function LegacyArticleRedirect() {
 
 // Validates that /:stream matches a known stream from streams.json
 // Shows 404 for unknown paths like /sfjofh instead of rendering "Sfjofh Cutoffs"
-const VALID_STREAMS = new Set(streamsData.map(s => s.id));
+const VALID_STREAMS = new Set();
+examsData.forEach(e => e.streams.forEach(s => VALID_STREAMS.add(s.id)));
+const VALID_EXAMS = new Set(examsData.map(e => e.id));
+
 function ValidatedStreamRoute() {
   const { exam, stream } = useParams();
+  
   if (!VALID_STREAMS.has(stream)) {
     return <NotFound />;
   }
-  // Redirect legacy /:stream to /kcet/:stream
-  if (!exam) {
+
+  // If the route doesn't have an :exam param, it might be the legacy /:stream route
+  // Or it might be a hardcoded route like /kcet/:stream where useParams() won't have `exam`.
+  // We can check window.location.pathname
+  const pathParts = window.location.pathname.split('/').filter(Boolean);
+  const currentExam = pathParts.length > 0 ? pathParts[0] : null;
+
+  if (!currentExam || !VALID_EXAMS.has(currentExam)) {
+    // If it's a legacy route like /engineering, redirect to /kcet/engineering
     return <Navigate to={`/kcet/${stream}`} replace />;
   }
+
   return <App />;
 }
 

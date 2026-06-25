@@ -13,7 +13,7 @@ export default function ArticleCTABlocks({
   const [userRankInput, setUserRankInput] = useState('')
 
   return (
-    <div className="mt-12 mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="mt-12 mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-8 text-center flex flex-col justify-between">
         <div>
           <h3 className="text-xl font-bold text-blue-900 mb-3">Will you get a seat?</h3>
@@ -47,6 +47,19 @@ export default function ArticleCTABlocks({
           className="inline-block bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg shadow hover:bg-emerald-700 hover:shadow-md transition-all"
         >
           View College
+        </Link>
+      </div>
+
+      <div className="bg-purple-50 border border-purple-200 rounded-xl p-8 text-center flex flex-col justify-between">
+        <div>
+          <h3 className="text-xl font-bold text-purple-900 mb-3">Option Entry Generator</h3>
+          <p className="text-purple-800 mb-6 text-sm">Automatically generate a personalized, strategic option entry list based on your rank.</p>
+        </div>
+        <Link 
+          to={`/${examPrefix}/option-entry`}
+          className="inline-block bg-purple-600 text-white font-bold py-3 px-6 rounded-lg shadow hover:bg-purple-700 hover:shadow-md transition-all"
+        >
+          Generate List
         </Link>
       </div>
 

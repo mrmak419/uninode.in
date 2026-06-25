@@ -1,7 +1,3 @@
-function pickVariant(variants, seed) {
-  return variants[seed % variants.length];
-}
-
 export default function ArticleNarrative({
   branch,
   cleanCollege,
@@ -13,12 +9,7 @@ export default function ArticleNarrative({
   rounds
 }) {
   let analysisParagraphs = [];
-  const seed = (cleanCollege.length * 7) + (branch.length * 3) + (latestRoundRank && latestRoundRank !== '--' ? parseInt(latestRoundRank, 10) : 0);
 
-
-  // ----------------------------------------------------------------------
-  // Paragraph 1: Year-over-Year Narrative with Tiered Volatility Logic
-  // ----------------------------------------------------------------------
   const latestRounds = Object.keys(rounds[latestYear] || {})
     .map(Number)
     .filter(r => rounds[latestYear][r] !== null && rounds[latestYear][r] !== undefined && rounds[latestYear][r] !== '--')
@@ -27,14 +18,9 @@ export default function ArticleNarrative({
   const hasPrevYear = prevYear && rounds[prevYear];
   const hasMultipleRounds = latestRounds.length > 1;
 
-  let p1 = '';
-  if (!hasPrevYear && !hasMultipleRounds) {
-    p1 = `For the ${branch} program at ${cleanCollege}, the cutoff rank for the ${category} category in the ${latestYear} counseling cycle was established at ${latestRoundRank && latestRoundRank !== '--' ? latestRoundRank.toLocaleString() : '--'}.`;
-  } else {
-    p1 = `Analyzing the historical admissions data for ${branch} at ${cleanCollege}, we can observe clear trends for the ${category} category. In the most recent ${latestYear} counseling cycle, the final cutoff rank landed at ${latestRoundRank && latestRoundRank !== '--' ? latestRoundRank.toLocaleString() : '--'}.`;
-  }
-  
-  if (prevYear && rounds[prevYear]) {
+  let p1 = `The historical cutoff data for the ${branch} program at ${cleanCollege} provides valuable insights into the admission patterns for the ${category} category. In the ${latestYear} counseling cycle, the closing cutoff rank was recorded at ${latestRoundRank && latestRoundRank !== '--' ? latestRoundRank.toLocaleString() : '--'}. This final cutoff rank represents the rank of the last admitted candidate for this specific branch and category during that year's counseling process.`;
+
+  if (hasPrevYear) {
     const prevRounds = Object.keys(rounds[prevYear] || {})
       .map(Number)
       .filter(r => rounds[prevYear][r] !== null && rounds[prevYear][r] !== undefined && rounds[prevYear][r] !== '--')
@@ -43,126 +29,49 @@ export default function ArticleNarrative({
     
     if (latestRoundRank && prevRank && latestRoundRank !== '--' && prevRank !== '--') {
       const diff = latestRoundRank - prevRank;
-      const pct = (diff / prevRank) * 100; // Positive = easier, Negative = harder
+      const pct = Math.abs((diff / prevRank) * 100).toFixed(1);
       const absDiff = Math.abs(diff);
-      const isHighRank = prevRank > 40000;
 
       if (diff > 0) {
-        // Easing Competition
-        if (pct >= 50) {
-          p1 += pickVariant([
-            ` Comparing this to the previous year, the cutoff experienced an unprecedented freefall, dropping by an astonishing ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%). This indicates a near-total collapse in demand or a massive influx of available seats.`,
-            ` In a shocking turn of events, the cutoff plummeted by ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%) from the previous year. It has become drastically easier to get into this program.`
-          ], seed);
-        } else if (pct >= 30) {
-          p1 += pickVariant([
-            ` Comparing this to the previous year, the cutoff plummeted by ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%). This massive relaxation indicates a significant drop in demand.`,
-            ` We observed a massive easing in competition, with the cutoff relaxing by ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%) compared to last year.`
-          ], seed + 1);
-        } else if (pct >= 15) {
-          p1 += pickVariant([
-            ` Comparing this to the previous year, the cutoff relaxed significantly by ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%), making it notably easier to secure a seat here.`,
-            ` Good news for applicants: the cutoff dropped by ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%) from last year, showing a clear relaxation in competition.`
-          ], seed + 2);
-        } else if (pct >= 5) {
-          p1 += pickVariant([
-            ` Comparing this to the previous year, the cutoff relaxed moderately by ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%), showing a steady easing in competition.`,
-            ` The cutoff moved down by ${absDiff.toLocaleString()} ranks (${pct.toFixed(1)}%) compared to last year, which points to a moderate decrease in applicant demand.`
-          ], seed + 3);
-        } else {
-          if (isHighRank) {
-            p1 += pickVariant([
-              ` The cutoff drifted lower by ${absDiff.toLocaleString()} ranks compared to the previous year. While this number seems large, at these higher rank ranges it represents a relatively minor natural fluctuation (${pct.toFixed(1)}%) in demand.`,
-              ` A shift of ${absDiff.toLocaleString()} ranks lower was observed. Due to the high rank tier, this ${pct.toFixed(1)}% change is just normal year-to-year variance.`
-            ], seed + 4);
-          } else {
-            p1 += pickVariant([
-              ` Comparing this to the previous year, the cutoff relaxed slightly by ${absDiff.toLocaleString()} ranks, indicating a minor easing in competition.`,
-              ` The closing rank eased by a gentle ${absDiff.toLocaleString()} ranks from last year, suggesting competition cooled off just a bit.`
-            ], seed + 5);
-          }
-        }
+        p1 += ` When comparing this to the previous year, the cutoff rank eased by ${absDiff.toLocaleString()} ranks, which translates to a shift of ${pct}%. A positive shift in the cutoff rank indicates that the seat was available to candidates with a relatively lower rank compared to the preceding year.`;
       } else if (diff < 0) {
-        // Tightening Competition
-        if (pct <= -50) {
-          p1 += pickVariant([
-            ` The cutoff witnessed an unprecedented exponential surge in demand, aggressively tightening by ${absDiff.toLocaleString()} ranks (${Math.abs(pct).toFixed(1)}%). Securing this seat has become extraordinarily difficult compared to last year.`,
-            ` Competition skyrocketed this year! The cutoff tightened by a massive ${absDiff.toLocaleString()} ranks (${Math.abs(pct).toFixed(1)}%), making this program exceptionally hard to get into compared to previous cycles.`
-          ], seed + 6);
-        } else if (pct <= -30) {
-          p1 += pickVariant([
-            ` The cutoff saw a massive spike in competition, tightening by an aggressive ${absDiff.toLocaleString()} ranks (${Math.abs(pct).toFixed(1)}%) compared to the previous year.`,
-            ` Demand for this seat surged significantly. The cutoff closed ${absDiff.toLocaleString()} ranks earlier (${Math.abs(pct).toFixed(1)}%) than last year, marking a sharp increase in competition.`
-          ], seed + 7);
-        } else if (pct <= -15) {
-          p1 += pickVariant([
-            ` Comparing this to the previous year, the cutoff tightened notably by ${absDiff.toLocaleString()} ranks (${Math.abs(pct).toFixed(1)}%), reflecting a clear surge in student demand for this program.`,
-            ` We've seen a strong upward trend in demand here; the cutoff tightened by ${absDiff.toLocaleString()} ranks (${Math.abs(pct).toFixed(1)}%) since the last cycle.`
-          ], seed + 8);
-        } else if (pct <= -5) {
-          p1 += pickVariant([
-            ` Comparing this to the previous year, the cutoff tightened moderately by ${absDiff.toLocaleString()} ranks (${Math.abs(pct).toFixed(1)}%), indicating a steady increase in competition.`,
-            ` The cutoff closed ${absDiff.toLocaleString()} ranks tighter (${Math.abs(pct).toFixed(1)}%) than last year. This steady climb shows growing interest among applicants.`
-          ], seed + 9);
-        } else {
-          if (isHighRank) {
-            p1 += pickVariant([
-              ` The cutoff tightened by ${absDiff.toLocaleString()} ranks compared to the previous year. Because this is a higher rank tier, this ${Math.abs(pct).toFixed(1)}% shift represents a minor natural fluctuation rather than a severe spike in competition.`,
-              ` A tightening of ${absDiff.toLocaleString()} ranks occurred compared to last year. At these higher ranges, this ${Math.abs(pct).toFixed(1)}% movement is standard and doesn't necessarily imply a massive competitive surge.`
-            ], seed + 10);
-          } else {
-            p1 += pickVariant([
-              ` Comparing this to the previous year, the cutoff tightened by ${absDiff.toLocaleString()} ranks, indicating that securing a seat here has become slightly more competitive.`,
-              ` With the cutoff closing ${absDiff.toLocaleString()} ranks earlier this year, we can see a slight bump in student preference for this program.`,
-              ` The data shows a minor tightening of ${absDiff.toLocaleString()} ranks from last year, suggesting competition is slowly heating up for this seat.`
-            ], seed + 11);
-          }
-        }
+        p1 += ` When comparing this to the previous year, the cutoff rank tightened by ${absDiff.toLocaleString()} ranks, reflecting a shift of ${pct}%. A negative shift in the cutoff rank indicates an increase in competition, as the seat closed at a higher rank than the preceding year.`;
       } else {
-        p1 += pickVariant([
-          ` Comparing this to the previous year, the cutoff remained perfectly stable, indicating a highly consistent and predictable demand for this program.`,
-          ` The cutoff rank didn't move an inch compared to last year. This level of stability shows rock-solid, unchanging demand for this exact seat.`
-        ], seed + 12);
+        p1 += ` The cutoff rank remained entirely unchanged compared to the previous year, indicating a consistent historical demand for this particular seat.`;
       }
     }
   }
   analysisParagraphs.push(p1);
 
-  // ----------------------------------------------------------------------
-  // Paragraph 2: Round-by-Round Narrative
-  // ----------------------------------------------------------------------
-  
-  if (latestRounds.length > 1 && latestRoundRank && firstRoundRank && latestRoundRank !== '--' && firstRoundRank !== '--') {
-    let p2 = `When looking at the round-by-round dynamics during the ${latestYear} counseling process, `;
+  if (hasMultipleRounds && latestRoundRank && firstRoundRank && latestRoundRank !== '--' && firstRoundRank !== '--') {
+    let p2 = `Analyzing the round-by-round progression in ${latestYear}, the admission process opened with a Round 1 cutoff rank of ${firstRoundRank.toLocaleString()}. As candidates exercised their choices and seat allocations were adjusted in subsequent phases, `;
     if (latestRoundRank === firstRoundRank) {
-       p2 += `the cutoffs proved to be extremely rigid. The ranks did not move a single position from the initial Round 1 cutoff of ${firstRoundRank.toLocaleString()}, meaning students who were hoping for the cutoffs to drop in later rounds were left disappointed.`;
+       p2 += `the cutoff rank remained static at ${latestRoundRank.toLocaleString()} through to the final round. This suggests that the initial seat allotment was largely retained by the candidates, leaving little room for the cutoff to drop in later rounds.`;
     } else {
        const drop = latestRoundRank - firstRoundRank;
        if (drop > 0) {
-         const dropPct = (drop / firstRoundRank) * 100;
-         if (dropPct >= 50) {
-           p2 += `there was a massive shift in availability. Counseling opened with a Round 1 cutoff of ${firstRoundRank.toLocaleString()}, but seats were aggressively reallocated, resulting in a staggering freefall of ${drop.toLocaleString()} ranks (${dropPct.toFixed(1)}%) by the final round.`;
-         } else if (dropPct >= 30) {
-           p2 += `there was a significant shift in availability. Counseling opened with a Round 1 cutoff of ${firstRoundRank.toLocaleString()}, but the cutoff ultimately plummeted by ${drop.toLocaleString()} ranks (${dropPct.toFixed(1)}%) to settle at its final position.`;
-         } else if (dropPct >= 15) {
-           p2 += `there was a notable shift in availability. Counseling opened with a Round 1 cutoff of ${firstRoundRank.toLocaleString()}, but as students shuffled, the cutoff relaxed comfortably by ${drop.toLocaleString()} ranks (${dropPct.toFixed(1)}%).`;
-         } else if (dropPct >= 5) {
-           p2 += `there was a moderate shift in availability. Counseling opened with a Round 1 cutoff of ${firstRoundRank.toLocaleString()} and steadily relaxed by ${drop.toLocaleString()} ranks (${dropPct.toFixed(1)}%) over subsequent rounds.`;
-         } else {
-           p2 += `there was only a slight shift. Counseling opened with a Round 1 cutoff of ${firstRoundRank.toLocaleString()} and relaxed by a minor ${drop.toLocaleString()} ranks (${dropPct.toFixed(1)}%) to its final position.`;
-         }
+         const dropPct = ((drop / firstRoundRank) * 100).toFixed(1);
+         p2 += `the cutoff rank relaxed by ${drop.toLocaleString()} ranks, representing a ${dropPct}% change. By the final round, the closing rank settled at ${latestRoundRank.toLocaleString()}. This round-over-round relaxation typically occurs as candidates upgrade to other colleges or courses, freeing up seats for subsequent allotments.`;
        } else {
-         p2 += `the counseling opened with a Round 1 cutoff of ${firstRoundRank.toLocaleString()} and eventually closed tighter at ${latestRoundRank.toLocaleString()}.`;
+         p2 += `the cutoff rank closed tighter at ${latestRoundRank.toLocaleString()} in the final round. Tightening across rounds can happen in specific scenarios where seat availability or category adjustments come into play.`;
        }
     }
     analysisParagraphs.push(p2);
   }
 
-  // ----------------------------------------------------------------------
-  // Summary Trend String (For the bold UI block)
-  // ----------------------------------------------------------------------
-  let trendString = "Newly added or limited data";
-  if (prevYear && rounds[prevYear]) {
+  if (latestRoundRank && latestRoundRank !== '--') {
+     let p3 = `Beyond the numbers, the category assignment plays a critical role in these admission patterns. The ${category} category represents a specific reservation or quota outlined by the examination authority. Candidates falling under this classification have access to a dedicated pool of seats, which often results in different cutoff dynamics compared to the general merit pool. Variations in this cutoff rank from year to year are heavily influenced by the number of eligible candidates within the ${category} category and their performance in the entrance examination. When reviewing the ${latestYear} data, it is essential to remember that the cutoff of ${latestRoundRank.toLocaleString()} is specific only to candidates possessing the valid documentation for the ${category} quota.`;
+     analysisParagraphs.push(p3);
+
+     let p4 = `The structure of the counseling process itself also introduces significant variables into the final admission outcomes. The counseling authority typically conducts multiple rounds, starting with an initial mock allotment followed by the first official round. The opening rank of ${firstRoundRank && firstRoundRank !== '--' ? firstRoundRank.toLocaleString() : 'the initial round'} reflects the immediate preferences of top-scoring candidates. As the counseling progresses into the second round and potentially an extended or mop-up round, seats are frequently reallocated. This reallocation happens because candidates may opt to surrender their allotted seats to pursue opportunities in other prestigious institutions, migrate to different courses such as medical or architecture, or successfully secure upgraded choices within the same engineering counseling structure. The difference between the initial and final cutoff ranks captures this exact mobility.`;
+     analysisParagraphs.push(p4);
+
+     let p5 = `Prospective students aiming for ${branch} at ${cleanCollege} should use these historical ranks as a baseline for their option entry strategy rather than an absolute guarantee. While historical cutoffs are a reliable indicator of past admission trends and institutional popularity, the actual cutoffs for upcoming counseling sessions will depend on the overall performance of the candidate pool, the total number of available seats as defined by the latest seat matrix, and any governmental changes in category-wise reservations. It is highly advisable to list choices dynamically during the option entry phase. A sound strategy involves including colleges where the previous year's closing rank was both slightly above and below the candidate's actual rank, ensuring a safe margin around the ${latestRoundRank.toLocaleString()} benchmark established in ${latestYear}.`;
+     analysisParagraphs.push(p5);
+  }
+
+  let trendString = null;
+  if (hasPrevYear) {
     const prevRounds = Object.keys(rounds[prevYear] || {})
       .map(Number)
       .filter(r => rounds[prevYear][r] !== null && rounds[prevYear][r] !== undefined && rounds[prevYear][r] !== '--')
@@ -170,60 +79,32 @@ export default function ArticleNarrative({
     const prevRank = prevRounds.length > 0 ? rounds[prevYear][prevRounds[prevRounds.length - 1]] : null;
     if (latestRoundRank && prevRank && latestRoundRank !== '--' && prevRank !== '--') {
       const diff = latestRoundRank - prevRank;
-      const pct = ((diff / prevRank) * 100).toFixed(1);
-      const pctNum = parseFloat(pct);
-      const isHighRank = prevRank > 40000;
-      
+      const pct = Math.abs((diff / prevRank) * 100).toFixed(1);
       if (diff > 0) {
-         if (pctNum >= 50) trendString = `Unprecedented Freefall over two years (+${pct}%)`;
-         else if (pctNum >= 30) trendString = `Massive Easing over two years (+${pct}%)`;
-         else if (pctNum >= 15) trendString = `Significant Easing over two years (+${pct}%)`;
-         else if (pctNum >= 5) trendString = `Moderate Easing over two years (+${pct}%)`;
-         else if (isHighRank) trendString = `Minor Fluctuation over two years (+${pct}%)`;
-         else trendString = `Slightly Easing over two years (+${pct}%)`;
+         trendString = `Eased by ${pct}% over two years`;
       } else if (diff < 0) {
-         if (pctNum <= -50) trendString = `Unprecedented Competition Spike over two years (${pct}%)`;
-         else if (pctNum <= -30) trendString = `Massive Competition Spike over two years (${pct}%)`;
-         else if (pctNum <= -15) trendString = `Significantly More Competitive over two years (${pct}%)`;
-         else if (pctNum <= -5) trendString = `Moderately More Competitive over two years (${pct}%)`;
-         else if (isHighRank) trendString = `Minor Fluctuation over two years (${pct}%)`;
-         else trendString = `Slightly More Competitive over two years (${pct}%)`;
+         trendString = `Tightened by ${pct}% over two years`;
       } else {
-         trendString = "Perfectly stable over two years";
+         trendString = "Stable over two years";
       }
     }
-  } else if (latestRounds.length > 1 && latestRoundRank && firstRoundRank && latestRoundRank !== '--' && firstRoundRank !== '--') {
+  } else if (hasMultipleRounds && latestRoundRank && firstRoundRank && latestRoundRank !== '--' && firstRoundRank !== '--') {
      const diff = latestRoundRank - firstRoundRank;
-     const pct = ((diff / firstRoundRank) * 100).toFixed(1);
-     const pctNum = parseFloat(pct);
-     const isHighRank = firstRoundRank > 40000;
-     
+     const pct = Math.abs((diff / firstRoundRank) * 100).toFixed(1);
      if (diff > 0) {
-         if (pctNum >= 50) trendString = `Unprecedented Freefall across rounds in ${latestYear} (+${pct}%)`;
-         else if (pctNum >= 30) trendString = `Massive Easing across rounds in ${latestYear} (+${pct}%)`;
-         else if (pctNum >= 15) trendString = `Significant Easing across rounds in ${latestYear} (+${pct}%)`;
-         else if (pctNum >= 5) trendString = `Moderate Easing across rounds in ${latestYear} (+${pct}%)`;
-         else if (isHighRank) trendString = `Minor Fluctuation across rounds in ${latestYear} (+${pct}%)`;
-         else trendString = `Slightly Easing across rounds in ${latestYear} (+${pct}%)`;
+         trendString = `Eased by ${pct}% across rounds in ${latestYear}`;
      } else if (diff < 0) {
-         if (pctNum <= -50) trendString = `Unprecedented Competition Spike across rounds in ${latestYear} (${pct}%)`;
-         else if (pctNum <= -30) trendString = `Massive Competition Spike across rounds in ${latestYear} (${pct}%)`;
-         else if (pctNum <= -15) trendString = `Significantly More Competitive across rounds in ${latestYear} (${pct}%)`;
-         else if (pctNum <= -5) trendString = `Moderately More Competitive across rounds in ${latestYear} (${pct}%)`;
-         else if (isHighRank) trendString = `Minor Fluctuation across rounds in ${latestYear} (${pct}%)`;
-         else trendString = `Slightly More Competitive across rounds in ${latestYear} (${pct}%)`;
+         trendString = `Tightened by ${pct}% across rounds in ${latestYear}`;
      } else {
          trendString = `Stable across rounds in ${latestYear}`;
      }
-  } else {
-     trendString = null;
   }
 
   return (
     <div className="prose prose-blue max-w-none mt-8">
       <div className="text-lg font-bold mb-6">
         <div className="text-gray-900 mb-2">
-          Latest cutoff: {latestRoundRank ? latestRoundRank.toLocaleString() : '--'} ({latestYear} Round {latestRounds[latestRounds.length - 1]})
+          Closing cutoff: {latestRoundRank ? latestRoundRank.toLocaleString() : '--'} ({latestYear} Round {latestRounds[latestRounds.length - 1]})
         </div>
         {trendString && <div className="text-blue-700">Trend: {trendString}</div>}
       </div>

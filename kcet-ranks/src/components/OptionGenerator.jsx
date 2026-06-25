@@ -155,14 +155,15 @@ export default function OptionGenerator() {
       setLoading(true)
       setError(null)
       try {
+        const cacheKey = `${examPrefix}_${stream}`
         let data
-        if (metadataCache.has(stream)) {
-          data = metadataCache.get(stream)
+        if (metadataCache.has(cacheKey)) {
+          data = metadataCache.get(cacheKey)
         } else {
-          const res = await fetch(`/meta_${stream}.json?v=1`)
-          if (!res.ok) throw new Error(`Stream metadata not found for ${stream}`)
+          const res = await fetch(`/meta_${examPrefix}_${stream}.json?v=1`)
+          if (!res.ok) throw new Error(`Stream metadata not found for ${examPrefix}_${stream}`)
           data = await res.json()
-          metadataCache.set(stream, data)
+          metadataCache.set(cacheKey, data)
         }
         
         setColleges(data.colleges || [])
@@ -178,22 +179,22 @@ export default function OptionGenerator() {
         // Only load the heavy matrix chunks if shouldLoad is true!
         if (shouldLoad) {
           let mergedData
-          if (matrixDataCache.has(stream)) {
-            mergedData = matrixDataCache.get(stream)
+          if (matrixDataCache.has(cacheKey)) {
+            mergedData = matrixDataCache.get(cacheKey)
           } else {
             let matrixData = []
             if (data.numChunks && data.numChunks > 0) {
               const fetchPromises = []
               for (let i = 0; i < data.numChunks; i++) {
                 fetchPromises.push(
-                  fetch(`/data_${stream}_${i}.json?v=${data.lastUpdated || ''}`)
+                  fetch(`/data_${examPrefix}_${stream}_${i}.json?v=${data.lastUpdated || ''}`)
                     .then(r => r.ok ? r.json() : [])
                 )
               }
               const chunkResults = await Promise.all(fetchPromises)
               matrixData = chunkResults.flat()
             } else {
-              const dataRes = await fetch(`/data_${stream}.json?v=${data.lastUpdated || ''}`)
+              const dataRes = await fetch(`/data_${examPrefix}_${stream}.json?v=${data.lastUpdated || ''}`)
               if (dataRes.ok) matrixData = await dataRes.json()
             }
             
@@ -215,7 +216,7 @@ export default function OptionGenerator() {
               }
             }
             mergedData = Array.from(mergedMap.values())
-            matrixDataCache.set(stream, mergedData)
+            matrixDataCache.set(cacheKey, mergedData)
           }
           setFullMatrixData(mergedData)
         }
@@ -227,7 +228,7 @@ export default function OptionGenerator() {
       }
     }
     loadStreamData()
-  }, [stream, shouldLoad])
+  }, [examPrefix, stream, shouldLoad])
 
   // --- Write inputs to LocalStorage ---
   useEffect(() => {
@@ -387,9 +388,9 @@ export default function OptionGenerator() {
       return
     }
 
-    let newPath = '/option-entry'
+    let newPath = `/${examPrefix}/option-entry`
     if (stream && category && rank && !isNaN(Number(rank))) {
-      newPath = `/option-entry/${stream}/${category.toLowerCase()}/rank/${rank}`
+      newPath = `/${examPrefix}/option-entry/${stream}/${category.toLowerCase()}/rank/${rank}`
     }
 
     const currentParams = new URLSearchParams()
@@ -921,8 +922,8 @@ export default function OptionGenerator() {
   return (
     <div className="min-h-screen bg-paper flex flex-col">
       <TabTitle 
-        title={`Option Entry List Generator | Uninode KCET`} 
-        description="Build, prioritize, and validate your KCET Option Entry preference list strategically based on historical cutoff ranks."
+        title={`Option Entry List Generator | Uninode`} 
+        description="Build, prioritize, and validate your Option Entry preference list strategically based on historical cutoff ranks."
       />
 
       <main id="printable-area" className="flex-1 w-full max-w-7xl mx-auto px-4 py-6 md:py-8 flex flex-col">
@@ -962,6 +963,8 @@ export default function OptionGenerator() {
 
         {/* Configuration Bar */}
         <OptionConfigBar
+          examPrefix={examPrefix}
+          onExamChange={(newExam) => navigate(`/${newExam}/option-entry/engineering/${category.toLowerCase()}/rank/${rank}`)}
           stream={stream}
           setStream={setStream}
           rank={rank}

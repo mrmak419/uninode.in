@@ -7,7 +7,7 @@ import Footer from './components/Footer.jsx'
 import { Menu } from 'lucide-react'
 import { SidebarContext } from './components/Layout.jsx'
 import TabTitle from './components/TabTitle.jsx'
-import streamsData from './streams.json'
+
 import { slugify } from './lib/url'
 
 const moduleCache = {
@@ -27,7 +27,7 @@ const ALL_CATEGORIES = [
 // DB aliases will handle this dynamically now.
 
 export default function App() {
-  const { exam, stream, branchName, collegeName, rankValue, category: categoryParam } = useParams()
+  const { exam = 'kcet', stream = 'engineering', branchName, collegeName, rankValue, category: categoryParam } = useParams()
   const examPrefix = (exam || 'kcet').toLowerCase()
   const formattedStreamName = stream ? stream.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Stream'
   const navigate = useNavigate()
@@ -35,12 +35,12 @@ export default function App() {
   // Parse initial URL parameters for shared links
   const [searchParams, setSearchParams] = useSearchParams()
 
-  const isAnalyzerRoute = window.location.pathname.startsWith('/analyzer/')
-  const isExplorerRoute = window.location.pathname.startsWith('/explorer/')
+  const isAnalyzerRoute = window.location.pathname.includes('/analyzer/')
+  const isExplorerRoute = window.location.pathname.includes('/explorer/')
 
   // Search state
   const [rank,       setRank]       = useState(rankValue || searchParams.get('rank') || '')
-  const [variation,  setVariation]  = useState(parseInt(searchParams.get('variation')) || 3000)
+  const [variation,  setVariation]  = useState(searchParams.has('variation') ? (searchParams.get('variation') === '' ? '' : parseInt(searchParams.get('variation'))) : '')
   const [category,   setCategory]   = useState((categoryParam || searchParams.get('cat') || 'GM').toUpperCase())
   const [seatType,   setSeatType]   = useState(searchParams.get('seat') || 'ROK')
   
@@ -70,8 +70,7 @@ export default function App() {
   const [fullMatrixData, setFullMatrixData] = useState(null)
   const [pendingSearch, setPendingSearch] = useState(false)
   
-  // Stream metadata
-  const [availableStreams, setAvailableStreams] = useState(streamsData)
+
 
   // Load stream-specific metadata (colleges, branches, rounds) instantly via CDN JSON
   useEffect(() => {
@@ -89,17 +88,18 @@ export default function App() {
 
     async function loadMeta() {
       try {
-        if (moduleCache.meta[stream] && moduleCache.matrix[stream]) {
-          const data = moduleCache.meta[stream];
+        const cacheKey = `${exam}_${stream}`;
+        if (moduleCache.meta[cacheKey] && moduleCache.matrix[cacheKey]) {
+          const data = moduleCache.meta[cacheKey];
           setColleges(data.colleges);
           setBranches(data.branches);
           setRounds(data.rounds);
-          setFullMatrixData(moduleCache.matrix[stream]);
+          setFullMatrixData(moduleCache.matrix[cacheKey]);
           return;
         }
 
-        const res = await fetch(`/meta_${stream}.json?v=${__BUILD_HASH__}`)
-        if (!res.ok) throw new Error(`Stream metadata not found for ${stream}`)
+        const res = await fetch(`/meta_${exam}_${stream}.json?v=${__BUILD_HASH__}`)
+        if (!res.ok) throw new Error(`Stream metadata not found for ${exam}_${stream}`)
         const data = await res.json()
         
         const uniqueRounds = data.rounds || []
@@ -108,15 +108,15 @@ export default function App() {
           return b.round - a.round;
         })
 
-        moduleCache.meta[stream] = {
+        moduleCache.meta[cacheKey] = {
           colleges: data.colleges || [],
           branches: data.branches || [],
           rounds: uniqueRounds
         };
 
-        setColleges(moduleCache.meta[stream].colleges)
-        setBranches(moduleCache.meta[stream].branches)
-        setRounds(moduleCache.meta[stream].rounds)
+        setColleges(moduleCache.meta[cacheKey].colleges)
+        setBranches(moduleCache.meta[cacheKey].branches)
+        setRounds(moduleCache.meta[cacheKey].rounds)
 
         // Also fetch the full matrix data in chunks for client-side search
         let matrixData = [];
@@ -124,7 +124,7 @@ export default function App() {
           const fetchPromises = [];
           for (let i = 0; i < data.numChunks; i++) {
             fetchPromises.push(
-              fetch(`/data_${stream}_${i}.json?v=${__BUILD_HASH__}`)
+              fetch(`/data_${exam}_${stream}_${i}.json?v=${__BUILD_HASH__}`)
                 .then(r => r.ok ? r.json() : [])
             );
           }
@@ -132,13 +132,13 @@ export default function App() {
           matrixData = chunkResults.flat();
         } else {
           // Fallback just in case some streams don't have chunks yet
-          const dataRes = await fetch(`/data_${stream}.json?v=${__BUILD_HASH__}`);
+          const dataRes = await fetch(`/data_${exam}_${stream}.json?v=${__BUILD_HASH__}`);
           if (dataRes.ok) {
             matrixData = await dataRes.json();
           }
         }
         
-        moduleCache.matrix[stream] = matrixData;
+        moduleCache.matrix[cacheKey] = matrixData;
         setFullMatrixData(matrixData);
       } catch (err) {
         console.error("Failed to load stream metadata/data:", err)
@@ -269,9 +269,22 @@ export default function App() {
       let filteredData = fullMatrixData.filter(row => row.category === urlCategory && row.seat_type === urlSeatType)
 
       if (currentMode === 'analyzer') {
-        const safeVariation = Math.min(50000, Math.max(0, variation))
-        const lo = Math.max(1, rankNum - safeVariation)
-        const hi = rankNum + safeVariation
+        let lo, hi;
+        if (variation === '') {
+          // Auto variation logic
+          if (rankNum > 10000) {
+            lo = Math.max(1, rankNum - (rankNum * 0.3));
+            hi = rankNum + (rankNum * 0.5);
+          } else {
+            lo = Math.max(1, rankNum * 0.5); // 50% before
+            hi = rankNum * 3; // 3x after for top ranks
+          }
+        } else {
+          // Manual variation logic
+          const safeVariation = Math.min(300000, Math.max(0, variation));
+          lo = Math.max(1, rankNum - safeVariation);
+          hi = rankNum + safeVariation;
+        }
         filteredData = filteredData.filter(row => row.max_rank >= lo && row.min_rank <= hi)
       }
 
@@ -321,7 +334,7 @@ export default function App() {
       }, 100);
 
       const params = new URLSearchParams()
-      if (currentMode === 'analyzer') params.set('variation', variation)
+      if (currentMode === 'analyzer' && variation !== '') params.set('variation', variation)
       params.set('seat', urlSeatType)
       if (resolvedCollegeName && currentMode === 'analyzer') params.set('college', resolvedCollegeName)
       if (resolvedBranches.length > 0 && currentMode === 'analyzer') {
@@ -394,7 +407,7 @@ export default function App() {
 
   const handleClear = useCallback(() => {
     setRank('')
-    setVariation(3000)
+    setVariation('')
     setCategory('GM')
     setSeatType('ROK')
     setSelectedBranches([])

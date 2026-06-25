@@ -1,31 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { X, ChevronDown, BookOpen } from 'lucide-react'
-import streams from '../streams.json'
+import examsData from '../exams.json'
 import RazorpayButton from './RazorpayButton'
-
-const EXAM_INFO = {
-  kcet: { title: 'KCET' },
-  comedk: { title: 'COMEDK' },
-  dcet: { title: 'DCET' }
-}
 
 export default function Sidebar({ onClose }) {
   const location = useLocation()
-  const [openExam, setOpenExam] = useState('kcet')
+  const [openExam, setOpenExam] = useState(null)
   const [openArticle, setOpenArticle] = useState(null)
 
-  // Auto-expand the correct exam accordion based on the URL
-  useEffect(() => {
-    const pathParts = location.pathname.split('/').filter(Boolean)
-    if (pathParts.length > 0 && EXAM_INFO[pathParts[0]]) {
-      if (pathParts.includes('articles')) {
-        setOpenArticle(pathParts[0])
-      } else {
-        setOpenExam(pathParts[0])
-      }
-    }
-  }, [location.pathname])
+  // Auto-expand removed per user request
 
   return (
     <div className="flex flex-col h-full bg-paper">
@@ -52,7 +36,7 @@ export default function Sidebar({ onClose }) {
             ${location.pathname === '/' ? 'bg-ink text-white shadow-sm' : 'text-muted hover:bg-gray-100 hover:text-ink'}
           `}
         >
-          Home (All Exams)
+          Home
         </Link>
         
         <Link
@@ -84,37 +68,37 @@ export default function Sidebar({ onClose }) {
         {/* Dynamic Exam Dropdowns */}
         <div className="pt-2 border-t border-border/50">
           <span className="block px-3 py-2 text-xs font-bold text-muted uppercase tracking-wider">Exam Streams</span>
-          {Object.entries(EXAM_INFO).map(([examId, info]) => (
-            <div key={examId} className="mb-1">
+          {examsData.map((examObj) => (
+            <div key={examObj.id} className="mb-1">
               <button 
-                onClick={() => setOpenExam(openExam === examId ? null : examId)}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-bold transition-colors ${openExam === examId ? 'text-ink bg-gray-50' : 'text-muted hover:bg-gray-100 hover:text-ink'}`}
+                onClick={() => setOpenExam(openExam === examObj.id ? null : examObj.id)}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-bold transition-colors ${openExam === examObj.id ? 'text-ink bg-gray-50' : 'text-muted hover:bg-gray-100 hover:text-ink'}`}
               >
-                {info.title}
-                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${openExam === examId ? 'rotate-180' : ''}`} />
+                {examObj.title}
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${openExam === examObj.id ? 'rotate-180' : ''}`} />
               </button>
               
               {/* Accordion Content */}
               <div 
-                className={`overflow-hidden transition-all duration-300 ease-in-out ${openExam === examId ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${openExam === examObj.id ? 'max-h-[1200px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}
               >
                 <div className="pl-4 pr-1 pb-2 space-y-0.5">
                   <Link
-                    to={`/${examId}`}
+                    to={`/${examObj.id}`}
                     onClick={() => {
                       if (window.innerWidth < 1024) onClose()
                     }}
                     className={`
                       block px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                      ${location.pathname === `/${examId}` ? 'bg-ink text-white shadow-sm' : 'text-muted hover:bg-gray-100 hover:text-ink'}
+                      ${location.pathname === `/${examObj.id}` ? 'bg-ink text-white shadow-sm' : 'text-muted hover:bg-gray-100 hover:text-ink'}
                     `}
                   >
-                    All {info.title} Streams
+                    {examObj.title} Streams
                   </Link>
-                  {streams.map(s => {
+                  {examObj.streams.map(s => {
                     const streamId = typeof s === 'string' ? s : s.id;
                     const displayName = streamId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                    const targetPath = `/${examId}/${streamId}`;
+                    const targetPath = `/${examObj.id}/${streamId}`;
                     const isActive = location.pathname === targetPath;
                     
                     return (
@@ -151,42 +135,42 @@ export default function Sidebar({ onClose }) {
               ${location.pathname === '/articles' ? 'bg-ink text-white shadow-sm' : 'text-blue-600 hover:bg-blue-50'}
             `}
           >
-            All Article Archives
+            Article Archives
           </Link>
-          {Object.entries(EXAM_INFO).map(([examId, info]) => (
-            <div key={`article-${examId}`} className="mb-1">
+          {examsData.map((examObj) => (
+            <div key={`article-${examObj.id}`} className="mb-1">
               <button 
-                onClick={() => setOpenArticle(openArticle === examId ? null : examId)}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${openArticle === examId ? 'text-blue-700 bg-blue-50' : 'text-gray-600 hover:bg-blue-50 hover:text-blue-700'}`}
+                onClick={() => setOpenArticle(openArticle === examObj.id ? null : examObj.id)}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${openArticle === examObj.id ? 'text-blue-700 bg-blue-50' : 'text-gray-600 hover:bg-blue-50 hover:text-blue-700'}`}
               >
                 <div className="flex items-center gap-2">
                   <BookOpen className="w-4 h-4" />
-                  {info.title} Articles
+                  {examObj.title} Articles
                 </div>
-                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${openArticle === examId ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${openArticle === examObj.id ? 'rotate-180' : ''}`} />
               </button>
               
               {/* Accordion Content */}
               <div 
-                className={`overflow-hidden transition-all duration-300 ease-in-out ${openArticle === examId ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${openArticle === examObj.id ? 'max-h-[1200px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}
               >
                 <div className="pl-6 pr-1 pb-2 space-y-0.5 border-l-2 border-blue-100 ml-4">
                   <Link
-                    to={`/${examId}/articles`}
+                    to={`/${examObj.id}/articles`}
                     onClick={() => {
                       if (window.innerWidth < 1024) onClose()
                     }}
                     className={`
                       block px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                      ${location.pathname === `/${examId}/articles` ? 'bg-blue-100 text-blue-800' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}
+                      ${location.pathname === `/${examObj.id}/articles` ? 'bg-blue-100 text-blue-800' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}
                     `}
                   >
-                    All Streams
+                    View Streams
                   </Link>
-                  {streams.map(s => {
+                  {examObj.streams.map(s => {
                     const streamId = typeof s === 'string' ? s : s.id;
                     const displayName = streamId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                    const targetPath = `/${examId}/articles/${streamId}`;
+                    const targetPath = `/${examObj.id}/articles/${streamId}`;
                     const isActive = location.pathname === targetPath;
                     
                     return (

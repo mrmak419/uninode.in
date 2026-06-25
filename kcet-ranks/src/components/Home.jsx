@@ -1,17 +1,11 @@
 import { useState, useEffect, useContext } from 'react'
-import { Link, useSearchParams, useNavigate, useParams } from 'react-router-dom'
+import { Link, useSearchParams, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Laptop, Building2, Pill, Activity, Wheat, Stethoscope, FlaskConical, Sprout, PersonStanding, Search, Menu, ListOrdered, GraduationCap, Library } from 'lucide-react'
 import LegalFooter from './LegalFooter'
 import { SidebarContext } from './Layout'
 
 import TabTitle from './TabTitle'
-import streamsData from '../streams.json'
-
-const EXAM_INFO = {
-  kcet: { title: 'KCET', desc: 'Karnataka Common Entrance Test', icon: GraduationCap, color: 'from-blue-500 to-indigo-600' },
-  comedk: { title: 'COMEDK', desc: 'Consortium of Medical, Engineering and Dental Colleges of Karnataka', icon: Building2, color: 'from-emerald-500 to-teal-600' },
-  dcet: { title: 'DCET', desc: 'Diploma Common Entrance Test', icon: Library, color: 'from-purple-500 to-fuchsia-600' }
-}
+import examsData from '../exams.json'
 
 const STREAM_INFO = {
   engineering: { title: 'Engineering', desc: 'B.E. / B.Tech cutoffs across all branches.', icon: Laptop, color: 'from-blue-500 to-indigo-600' },
@@ -26,8 +20,18 @@ const STREAM_INFO = {
 }
 
 export default function Home() {
-  const { exam } = useParams()
-  const [streams, setStreams] = useState(streamsData)
+  const { exam: examParam } = useParams()
+  const location = useLocation()
+  const pathPart = location.pathname.split('/')[1]
+  const exam = examParam || (['kcet', 'comedk', 'dcet'].includes(pathPart) ? pathPart : undefined)
+  const currentExam = examsData.find(e => e.id === exam)
+  const initialStreams = currentExam ? currentExam.streams : []
+  const [streams, setStreams] = useState(initialStreams)
+
+  useEffect(() => {
+    const e = examsData.find(e => e.id === exam)
+    setStreams(e ? e.streams : [])
+  }, [exam])
   const [searchQuery, setSearchQuery] = useState('')
   const { toggleSidebar } = useContext(SidebarContext)
   const [searchParams] = useSearchParams()
@@ -44,12 +48,12 @@ export default function Home() {
   useEffect(() => {
     if (exam) {
       const timer = setTimeout(() => {
-        fetch('/meta_engineering.json')
+        fetch(`/meta_${exam}_engineering.json`)
           .then(res => res.json())
           .then(data => {
             if (data.numChunks) {
               for (let i = 0; i < data.numChunks; i++) {
-                fetch(`/data_engineering_${i}.json`);
+                fetch(`/data_${exam}_engineering_${i}.json`);
               }
             }
           })
@@ -130,14 +134,14 @@ export default function Home() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {!isExamView ? (
             /* Render Exams */
-            Object.entries(EXAM_INFO)
-              .filter(([id, info]) => info.title.toLowerCase().includes(searchQuery.toLowerCase()) || id.toLowerCase().includes(searchQuery.toLowerCase()))
-              .map(([examId, info]) => {
-                const IconComponent = info.icon;
+            examsData
+              .filter(info => info.title.toLowerCase().includes(searchQuery.toLowerCase()) || info.id.toLowerCase().includes(searchQuery.toLowerCase()))
+              .map(info => {
+                const IconComponent = info.icon === 'GraduationCap' ? GraduationCap : info.icon === 'Library' ? Library : Building2;
                 return (
                   <Link 
-                    key={examId} 
-                    to={`/${examId}`}
+                    key={info.id} 
+                    to={`/${info.id}`}
                     className="group relative bg-white p-5 rounded-2xl shadow-sm border border-border hover:shadow-md hover:border-transparent transition-all duration-300 overflow-hidden flex flex-col"
                   >
                     <div className={`absolute inset-0 bg-gradient-to-br ${info.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />

@@ -26,7 +26,7 @@ export default function ArchiveGrid({ examPrefix = 'kcet', stream }) {
     async function loadArchive() {
       try {
         setLoading(true)
-        const res = await fetch(`/archive_${stream}.json`)
+        const res = await fetch(`/archive_${examPrefix}_${stream}.json`)
         if (!res.ok) throw new Error("Metadata not found")
         const data = await res.json()
         

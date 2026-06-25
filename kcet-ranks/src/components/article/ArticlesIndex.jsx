@@ -1,21 +1,20 @@
 import { useContext } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useLocation } from 'react-router-dom'
 import { BookOpen, Menu, GraduationCap, Building2, Library } from 'lucide-react'
 import TabTitle from '../TabTitle'
 import { SidebarContext } from '../Layout'
-import streams from '../../streams.json'
-
-const EXAM_INFO = {
-  kcet: { title: 'KCET', desc: 'Karnataka Common Entrance Test', icon: GraduationCap, color: 'from-blue-500 to-indigo-600' },
-  comedk: { title: 'COMEDK', desc: 'Consortium of Medical, Engineering and Dental Colleges of Karnataka', icon: Building2, color: 'from-emerald-500 to-teal-600' },
-  dcet: { title: 'DCET', desc: 'Diploma Common Entrance Test', icon: Library, color: 'from-purple-500 to-fuchsia-600' }
-}
+import examsData from '../../exams.json'
 
 export default function ArticlesIndex() {
-  const { exam } = useParams()
+  const { exam: examParam } = useParams()
+  const location = useLocation()
+  const pathPart = location.pathname.split('/')[1]
+  const exam = examParam || (['kcet', 'comedk', 'dcet'].includes(pathPart) ? pathPart : undefined)
   const { toggleSidebar } = useContext(SidebarContext)
 
   const isExamView = !!exam;
+  const currentExam = examsData.find(e => e.id === exam);
+  const streams = currentExam ? currentExam.streams : [];
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center">
@@ -56,12 +55,12 @@ export default function ArticlesIndex() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {!isExamView ? (
-             Object.entries(EXAM_INFO).map(([examId, info]) => {
-                const IconComponent = info.icon;
+             examsData.map(info => {
+                const IconComponent = info.icon === 'GraduationCap' ? GraduationCap : info.icon === 'Library' ? Library : Building2;
                 return (
                   <Link
-                    key={examId}
-                    to={`/${examId}/articles`}
+                    key={info.id}
+                    to={`/${info.id}/articles`}
                     className="group p-6 bg-white border border-gray-200 rounded-xl hover:border-blue-500 hover:shadow-md transition-all flex flex-col justify-center relative overflow-hidden"
                   >
                     <div className={`absolute inset-0 bg-gradient-to-br ${info.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
