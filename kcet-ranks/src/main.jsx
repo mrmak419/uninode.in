@@ -206,11 +206,15 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/option-entry/:stream/:category/rank/:rank" element={<Navigate to="/kcet/option-entry/:stream/:category/rank/:rank" replace />} />
               <Route path="/option-entry" element={<Navigate to="/kcet/option-entry" replace />} />
               
-              {/* Root Stream Route — validated against known streams */}
-              <Route path="/:exam/:stream" element={<ValidatedStreamRoute />} />
-              <Route path="/:stream" element={<ValidatedStreamRoute />} />
-              <Route path="/:exam" element={<Home />} />
-              <Route path="/" element={<Home />} />
+              {/* Exam Routes */}
+              <Route path="/kcet/:stream" element={<ValidatedStreamRoute />} />
+              <Route path="/comedk/:stream" element={<ValidatedStreamRoute />} />
+              <Route path="/dcet/:stream" element={<ValidatedStreamRoute />} />
+              
+              <Route path="/kcet" element={<Home />} />
+              <Route path="/comedk" element={<Home />} />
+              <Route path="/dcet" element={<Home />} />
+              <Route path="/" element={<Navigate to="/kcet" replace />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
