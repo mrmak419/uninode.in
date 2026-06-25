@@ -1,14 +1,18 @@
-name: Deploy to Cloudflare Pages (SSG)
+name: Deploy to GitHub Pages
 
 on:
   workflow_dispatch: # Triggered manually from Admin Panel
 
 permissions:
   contents: read
-  deployments: write
+  pages: write
+  id-token: write
 
 jobs:
   build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -17,6 +21,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -37,13 +44,11 @@ jobs:
       - name: Generate Static Site Pages (SSG)
         run: node scripts/generate-static-site.js
 
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: uninode-in
-          directory: dist
-          workingDirectory: kcet-ranks
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          wranglerVersion: '3'
+          path: './kcet-ranks/dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
