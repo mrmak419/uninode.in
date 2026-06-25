@@ -520,9 +520,10 @@ export default function App() {
         )}
 
         {/* Results */}
-        <div id="results-container" className="mt-8 scroll-mt-6">
+        <div id="results-container" className="mt-8 scroll-mt-6 min-h-[500px]">
           {loading && (
-            <div className="text-center py-16 text-muted font-body text-sm">
+            <div className="text-center py-16 text-muted font-body text-sm flex flex-col items-center justify-center h-full min-h-[200px]">
+              <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-600 rounded-full animate-spin mb-4"></div>
               Searching across {rounds.length} rounds…
             </div>
           )}

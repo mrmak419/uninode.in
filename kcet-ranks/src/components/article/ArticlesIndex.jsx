@@ -1,8 +1,9 @@
-import { useState, useEffect, useContext } from 'react'
+import { useContext } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { BookOpen, Menu, GraduationCap, Building2, Library } from 'lucide-react'
 import TabTitle from '../TabTitle'
 import { SidebarContext } from '../Layout'
+import streams from '../../streams.json'
 
 const EXAM_INFO = {
   kcet: { title: 'KCET', desc: 'Karnataka Common Entrance Test', icon: GraduationCap, color: 'from-blue-500 to-indigo-600' },
@@ -12,15 +13,7 @@ const EXAM_INFO = {
 
 export default function ArticlesIndex() {
   const { exam } = useParams()
-  const [streams, setStreams] = useState([])
   const { toggleSidebar } = useContext(SidebarContext)
-
-  useEffect(() => {
-    fetch('/streams.json')
-      .then(res => res.json())
-      .then(data => setStreams(data))
-      .catch(err => console.error("Failed to load streams index:", err))
-  }, [])
 
   const isExamView = !!exam;
 
