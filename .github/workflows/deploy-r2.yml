@@ -26,9 +26,6 @@ jobs:
 
       - name: Build Vite App
         run: npm run build
-
-      - name: Fetch Latest Data & Build Meta
-        run: node scripts/fetch-meta.js
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
