@@ -24,12 +24,18 @@ function xmlEscape(str) {
 const DIST_DIR = path.resolve(process.cwd(), 'dist')
 const EXAMS = ['kcet', 'comedk', 'dcet']
 
-function injectSeo(htmlTemplate, title, description) {
+function injectSeo(htmlTemplate, title, description, urlPath) {
   let html = htmlTemplate
   // Replace title
   html = html.replace(/<title>.*?<\/title>/, `<title>${xmlEscape(title)}</title>`)
   // Replace description
   html = html.replace(/<meta name="description" content=".*?">/, `<meta name="description" content="${xmlEscape(description)}">`)
+  
+  // Inject Canonical Tag
+  const canonicalTag = `<link rel="canonical" href="https://uninode.in${urlPath}" />`
+  if (html.includes('</head>')) {
+    html = html.replace('</head>', `  ${canonicalTag}\n</head>`)
+  }
   return html
 }
 
@@ -71,7 +77,8 @@ function main() {
   EXAMS.forEach(exam => {
     const title = `${exam.toUpperCase()} Cutoffs & Ranks Analyzer`
     const description = `Explore ${exam.toUpperCase()} cutoffs, analyze ranks, and view college details.`
-    writeHtmlFile(`/${exam}`, injectSeo(template, title, description))
+    const examUrl = `/${exam}`
+    writeHtmlFile(examUrl, injectSeo(template, title, description, examUrl))
     generatedCount++
     
     // 2. Generate tool pages per stream
@@ -79,13 +86,16 @@ function main() {
       const stream = streamObj.id
       const streamName = stream.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 
-      writeHtmlFile(`/${exam}/${stream}/explorer`, injectSeo(template, `${exam.toUpperCase()} ${streamName} College Explorer`, `Explore ${streamName} colleges through ${exam.toUpperCase()} quota.`))
+      const explorerUrl = `/${exam}/${stream}/explorer`
+      writeHtmlFile(explorerUrl, injectSeo(template, `${exam.toUpperCase()} ${streamName} College Explorer`, `Explore ${streamName} colleges through ${exam.toUpperCase()} quota.`, explorerUrl))
       generatedCount++
       
-      writeHtmlFile(`/${exam}/${stream}/analyzer`, injectSeo(template, `${exam.toUpperCase()} ${streamName} Rank Analyzer`, `Analyze your ${exam.toUpperCase()} rank for ${streamName} colleges.`))
+      const analyzerUrl = `/${exam}/${stream}/analyzer`
+      writeHtmlFile(analyzerUrl, injectSeo(template, `${exam.toUpperCase()} ${streamName} Rank Analyzer`, `Analyze your ${exam.toUpperCase()} rank for ${streamName} colleges.`, analyzerUrl))
       generatedCount++
       
-      writeHtmlFile(`/${exam}/articles/${stream}`, injectSeo(template, `${exam.toUpperCase()} ${streamName} College Cutoffs Archive`, `Browse all cutoff archives for ${streamName} colleges under ${exam.toUpperCase()}.`))
+      const articlesUrl = `/${exam}/articles/${stream}`
+      writeHtmlFile(articlesUrl, injectSeo(template, `${exam.toUpperCase()} ${streamName} College Cutoffs Archive`, `Browse all cutoff archives for ${streamName} colleges under ${exam.toUpperCase()}.`, articlesUrl))
       generatedCount++
     })
   })
@@ -115,7 +125,7 @@ function main() {
           // Let's generate it for 'kcet' by default. If the user expands this script to know which exam the stream belongs to, they can update here.
           const urlPath = `/kcet/articles/${stream}/${collegeCode.toLowerCase()}/${slugifiedCourse}/${category.toLowerCase()}`
           
-          writeHtmlFile(urlPath, injectSeo(template, title, description))
+          writeHtmlFile(urlPath, injectSeo(template, title, description, urlPath))
           generatedCount++
         }
       })
