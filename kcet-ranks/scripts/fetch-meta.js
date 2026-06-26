@@ -473,11 +473,13 @@ async function fetchMetadata() {
   let collegeCount = 0;
   let rankBucketCount = 0;
 
-  for (const streamObj of streamSummaries) {
+  const validStreams = Object.keys(streams).map(id => ({ id }));
+  for (const streamObj of validStreams) {
     const sId = streamObj.id;
     
     // Main stream page
     mainUrls.push({ loc: `${domain}/${sId}`, changefreq: 'weekly', priority: '0.8' });
+    mainUrls.push({ loc: `${domain}/kcet/option-entry/${sId}`, changefreq: 'weekly', priority: '0.8' });
 
     const streamData = streams[sId];
     
@@ -494,6 +496,8 @@ async function fetchMetadata() {
       
       for (const rb of rankBuckets) {
         analyzerUrls.push({ loc: `${domain}/kcet/${sId}/analyzer/rank/${rb}/${encodeURIComponent(cat)}`, changefreq: 'weekly', priority: '0.7' });
+        // Generate Option Entry URLs dynamically as well
+        mainUrls.push({ loc: `${domain}/kcet/option-entry/${sId}/${encodeURIComponent(cat)}/rank/${rb}`, changefreq: 'weekly', priority: '0.7' });
         rankBucketCount++;
       }
     }

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://kcet.uninode.in/sitemap.xml
+Sitemap: https://uninode.in/sitemap.xml
