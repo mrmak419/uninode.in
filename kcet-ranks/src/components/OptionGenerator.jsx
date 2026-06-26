@@ -35,7 +35,9 @@ export default function OptionGenerator() {
     if (paramCategory) return paramCategory.toUpperCase()
     return (searchParams.get('cat') || localStorage.getItem('op_cat') || 'GM').toUpperCase()
   })
-  const [seatType, setSeatType] = useState(searchParams.get('seat') || localStorage.getItem('op_seat') || 'ROK')
+  const [seatType, setSeatType] = useState(() => {
+    return (searchParams.get('seat') || localStorage.getItem('op_seat') || 'ROK').toUpperCase()
+  })
   
   // Preference list state
   const [optionsList, setOptionsList] = useState([])

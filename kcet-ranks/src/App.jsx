@@ -125,8 +125,8 @@ export default function App() {
     loadMeta()
   }, [stream])
 
-  const urlCategory = categoryParam || searchParams.get('cat') || category;
-  const urlSeatType = searchParams.get('seat') || seatType;
+  const urlCategory = (categoryParam || searchParams.get('cat') || category || 'GM').toUpperCase();
+  const urlSeatType = (searchParams.get('seat') || seatType || 'ROK').toUpperCase();
 
   useEffect(() => {
     let active = true;
@@ -211,7 +211,7 @@ export default function App() {
     const useUrlParams = !hasAutoSearched;
     const urlRank = useUrlParams ? (rankValue || searchParams.get('rank') || rank) : rank;
     const urlCategory = (useUrlParams ? (categoryParam || searchParams.get('cat') || category || 'GM') : category).toUpperCase();
-    const urlSeatType = useUrlParams ? (searchParams.get('seat') || seatType || 'ROK') : seatType;
+    const urlSeatType = (useUrlParams ? (searchParams.get('seat') || seatType || 'ROK') : seatType).toUpperCase();
     
     let rankNum = parseInt(urlRank, 10);
     
