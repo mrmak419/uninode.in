@@ -1,1 +1,17 @@
+/articles/:stream/:college/:branch/:category /kcet/articles/:stream/:college/:branch?c=:category 301!
+/:exam/articles/:stream/:college/:branch/:category /:exam/articles/:stream/:college/:branch?c=:category 301!
+
+/analyzer/:stream/rank/:rankValue/:category /kcet/:stream/analyzer/rank/:rankValue?cat=:category 301!
+/analyzer/:stream/* /kcet/:stream/analyzer/:splat 301!
+/analyzer/:stream /kcet/:stream/analyzer 301!
+
+/explorer/:stream/* /kcet/:stream/explorer/:splat 301!
+/explorer/:stream /kcet/:stream/explorer 301!
+
+/option-entry/:stream/* /kcet/option-entry/:stream/:splat 301!
+/option-entry/:stream /kcet/option-entry/:stream 301!
+
+/articles/:stream/* /kcet/articles/:stream/:splat 301!
+/articles/:stream /kcet/articles/:stream 301!
+
 /* /index.html 200

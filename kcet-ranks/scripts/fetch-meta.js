@@ -8,6 +8,7 @@ import { promisify } from 'util';
 const brotliCompress = promisify(zlib.brotliCompress);
 const gzip = promisify(zlib.gzip);
 import { processCollegeChunks } from './precompute-suggestions.js';
+import { calculateAdvancedMetrics } from './math-engine.js';
 
 function slugify(text) {
   if (!text) return '';
@@ -116,6 +117,19 @@ async function fetchMetadata() {
     process.exit(1);
   }
 
+  // Helper to fix ALL CAPS branch names
+  const toTitleCase = (str) => {
+    if (!str) return str;
+    return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+  };
+
+  branchData.forEach(b => {
+    if (b.raw_name) b.raw_name = toTitleCase(b.raw_name);
+    if (b.parent_branches?.name) {
+      b.parent_branches.name = toTitleCase(b.parent_branches.name);
+    }
+  });
+
   // 3. Dynamically determine all streams available in the database
   const uniqueStreamsSet = new Set();
   collegeData.forEach(c => { if (c.stream) uniqueStreamsSet.add(c.stream); });
@@ -138,7 +152,7 @@ async function fetchMetadata() {
       continue;
     }
 
-    streams[stream] = { colleges: new Map(), branches: new Map(), rounds: roundData, combinations: new Set(), articleCombinations: new Set(), maxRankByCategory: {} };
+    streams[stream] = { colleges: new Map(), branches: new Map(), rounds: roundData, combinations: new Set(), maxRankByCategory: {} };
 
     // Fetch matrix data to discover active colleges and branches for this stream
     let allMatrixData = [];
@@ -157,6 +171,15 @@ async function fetchMetadata() {
     }
 
     if (allMatrixData.length > 0) {
+      console.log(`Calculating advanced mathematical metrics for ${stream}...`);
+      
+      // Titlecase course names before metrics calculations
+      allMatrixData.forEach(row => {
+        if (row.course_name) row.course_name = toTitleCase(row.course_name);
+      });
+
+      allMatrixData = calculateAdvancedMetrics(allMatrixData);
+
       allMatrixData.forEach(row => {
         // Track absolute maximum rank per category for precise SEO sitemap buckets
         if (row.category && row.max_rank) {
@@ -179,11 +202,8 @@ async function fetchMetadata() {
           streams[stream].branches.set(row.course_name, branch);
         }
         // Add valid combination
-        if (col && branch && col.college_name) {
+        if (col && branch && col.college_name && row.max_rank > 0) {
           streams[stream].combinations.add(`${col.college_code}::${col.college_name}::${row.course_name}`);
-          if (row.category && row.max_rank > 0) {
-            streams[stream].articleCombinations.add(`${col.college_code}::${col.college_name}::${row.course_name}::${row.category}::${row.seat_type || 'G'}`);
-          }
         }
       });
     }
@@ -206,7 +226,7 @@ async function fetchMetadata() {
     }
     console.log(`✅ Saved ${Object.keys(collegeOutputs).length} college-specific files for ${stream}`);
 
-    // --- SEO LOOKUP for Edge Function ---
+    // --- SEO LOOKUP for Edge Function & SSG ---
     const seoLookup = {};
     for (const row of allMatrixData) {
       if (row.seat_type !== 'ROK') continue;
@@ -214,7 +234,7 @@ async function fetchMetadata() {
       if (!seoData) continue;
       const key = `${row.college_code}|${slugify(row.course_name)}|${row.category}`.toLowerCase();
       if (!seoLookup[key]) {
-        seoLookup[key] = { ...seoData, code: row.college_code };
+        seoLookup[key] = { ...seoData, code: row.college_code, advMath: row.advMath };
       }
     }
     const seoPublicDir = path.resolve(process.cwd(), 'public');
@@ -228,18 +248,22 @@ async function fetchMetadata() {
     const publicDir = path.resolve(process.cwd(), 'public');
     if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
 
-    const CHUNK_SIZE = 30000;
-    const numChunks = Math.ceil(allMatrixData.length / CHUNK_SIZE);
-    
-    // Store numChunks in the meta object so the frontend knows how many to fetch
-    streams[stream].numChunks = numChunks;
+    const groupedData = new Map();
+    for (const row of allMatrixData) {
+      const cat = row.category || 'GM';
+      const seat = row.seat_type || 'ROK';
+      const key = `${cat}_${seat}`;
+      if (!groupedData.has(key)) {
+        groupedData.set(key, []);
+      }
+      groupedData.get(key).push(row);
+    }
 
-    console.log(`Compressing ${allMatrixData.length} rows for ${stream} into ${numChunks} chunks...`);
+    console.log(`Compressing ${allMatrixData.length} rows for ${stream} into ${groupedData.size} category-specific files...`);
     
-    for (let i = 0; i < numChunks; i++) {
-      const chunkData = allMatrixData.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+    for (const [key, chunkData] of groupedData.entries()) {
       const jsonBuffer = Buffer.from(JSON.stringify(chunkData));
-      const chunkName = `data_kcet_${stream}_${i}.json`;
+      const chunkName = `data_kcet_${stream}_${key}.json`;
       
       // Write Raw JSON
       fs.writeFileSync(path.join(publicDir, chunkName), jsonBuffer);
@@ -251,13 +275,12 @@ async function fetchMetadata() {
       // Write Gzip
       const gzBuffer = await gzip(jsonBuffer, { level: 6 });
       fs.writeFileSync(path.join(publicDir, `${chunkName}.gz`), gzBuffer);
-      
-      console.log(`✅ Saved ${chunkName} (Raw: ${(jsonBuffer.length/1024/1024).toFixed(2)}MB, Brotli: ${(brBuffer.length/1024/1024).toFixed(2)}MB)`);
     }
   }
 
   // Convert Maps/Sets back to arrays
   for (const streamKey of Object.keys(streams)) {
+
     streams[streamKey].colleges = Array.from(streams[streamKey].colleges.values());
     streams[streamKey].branches = Array.from(streams[streamKey].branches.values());
 
@@ -301,9 +324,6 @@ async function fetchMetadata() {
     if (streams[streamKey].combinations) {
       streams[streamKey].combinations = Array.from(streams[streamKey].combinations).sort(sortFn);
     }
-    if (streams[streamKey].articleCombinations) {
-      streams[streamKey].articleCombinations = Array.from(streams[streamKey].articleCombinations).sort(sortFn);
-    }
   }
 
   // Write files to public folder
@@ -319,13 +339,13 @@ async function fetchMetadata() {
     delete data._seenRounds;
     data.lastUpdated = Date.now();
     
-    // Extract articleCombinations to a separate file so meta_*.json stays tiny
+    // Extract combinations to a separate file so meta_*.json stays tiny
     const archiveData = { 
-      articleCombinations: data.articleCombinations || [] 
+      articleCombinations: data.combinations || [] 
     };
     
     const metaData = { ...data };
-    delete metaData.articleCombinations;
+    delete metaData.combinations;
 
     // Write meta_*.json
     const jsonBuffer = Buffer.from(JSON.stringify(metaData));
@@ -444,7 +464,7 @@ async function fetchMetadata() {
   
   // Home page and index pages
   mainUrls.push({ loc: `${domain}/`, changefreq: 'daily', priority: '1.0' });
-  mainUrls.push({ loc: `${domain}/articles`, changefreq: 'daily', priority: '0.9' });
+  mainUrls.push({ loc: `${domain}/kcet/articles`, changefreq: 'daily', priority: '0.9' });
   mainUrls.push({ loc: `${domain}/gear`, changefreq: 'daily', priority: '0.8' });
   mainUrls.push({ loc: `${domain}/option-entry`, changefreq: 'daily', priority: '0.9' });
 
@@ -473,7 +493,7 @@ async function fetchMetadata() {
       const rankBuckets = Array.from({ length: numOf1kBuckets }, (_, i) => (i + 1) * 1000);
       
       for (const rb of rankBuckets) {
-        analyzerUrls.push({ loc: `${domain}/analyzer/${sId}/rank/${rb}/${encodeURIComponent(cat)}`, changefreq: 'weekly', priority: '0.7' });
+        analyzerUrls.push({ loc: `${domain}/kcet/${sId}/analyzer/rank/${rb}/${encodeURIComponent(cat)}`, changefreq: 'weekly', priority: '0.7' });
         rankBucketCount++;
       }
     }
@@ -483,7 +503,7 @@ async function fetchMetadata() {
       for (const b of streamData.branches) {
         const bName = b.raw_name;
         if (!bName) continue;
-        const bUrl = `${domain}/explorer/${sId}/branch/${slugify(bName)}`;
+        const bUrl = `${domain}/kcet/${sId}/explorer/branch/${slugify(bName)}`;
         explorerUrls.push({ loc: bUrl, changefreq: 'weekly', priority: '0.6' });
         branchCount++;
       }
@@ -493,7 +513,7 @@ async function fetchMetadata() {
     if (streamData && streamData.colleges) {
       for (const c of streamData.colleges) {
         if (!c.college_code) continue;
-        const cUrl = `${domain}/explorer/${sId}/college/${c.college_code.toLowerCase()}`;
+        const cUrl = `${domain}/kcet/${sId}/explorer/college/${c.college_code.toLowerCase()}`;
         explorerUrls.push({ loc: cUrl, changefreq: 'weekly', priority: '0.6' });
         collegeCount++;
       }
@@ -504,24 +524,24 @@ async function fetchMetadata() {
       for (const combo of streamData.combinations) {
         const [cCode, cName, bName] = combo.split('::');
         if (!cCode || !bName) continue;
-        const comboUrl = `${domain}/explorer/${sId}/branch/${slugify(bName)}?college=${cCode.toLowerCase()}`;
+        const comboUrl = `${domain}/kcet/${sId}/explorer/branch/${slugify(bName)}?college=${cCode.toLowerCase()}`;
         cutoffUrls.push({ loc: comboUrl, changefreq: 'weekly', priority: '0.5' });
       }
     }
 
     // Article URLs and Pagination
-    if (streamData && streamData.articleCombinations) {
+    if (streamData && streamData.combinations) {
       const perPage = 24;
-      const totalPages = Math.ceil(streamData.articleCombinations.length / perPage);
+      const totalPages = Math.ceil(streamData.combinations.length / perPage);
       
       for (let p = 1; p <= totalPages; p++) {
-        paginationUrls.push({ loc: `${domain}/articles/${sId}?page=${p}`, changefreq: 'weekly', priority: '0.6' });
+        paginationUrls.push({ loc: `${domain}/kcet/articles/${sId}?page=${p}`, changefreq: 'weekly', priority: '0.6' });
       }
 
-      for (const combo of streamData.articleCombinations) {
-        const [cCode, cName, bName, cat, st] = combo.split('::');
-        if (!cCode || !bName || !cat) continue;
-        const articleUrl = `${domain}/articles/${sId}/${cCode.toLowerCase()}/${slugify(bName)}/${cat.toUpperCase()}`;
+      for (const combo of streamData.combinations) {
+        const [cCode, cName, bName] = combo.split('::');
+        if (!cCode || !bName) continue;
+        const articleUrl = `${domain}/kcet/articles/${sId}/${cCode.toLowerCase()}/${slugify(bName)}`;
         articleUrls.push({ loc: articleUrl, changefreq: 'weekly', priority: '0.6' });
       }
     }
@@ -529,6 +549,14 @@ async function fetchMetadata() {
   
   // Intelligent Semantic Chunking by Feature
   const URLS_PER_SITEMAP = 10000;
+  
+  // Clean up old sitemaps to prevent stale files
+  fs.readdirSync(publicDir).forEach(file => {
+    if (file.startsWith('sitemap') && file.endsWith('.xml')) {
+      fs.unlinkSync(path.join(publicDir, file));
+    }
+  });
+
   let sitemapIndexXml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
   
   function processCategory(prefix, urls) {

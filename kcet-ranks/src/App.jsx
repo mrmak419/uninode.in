@@ -111,41 +111,53 @@ export default function App() {
         moduleCache.meta[cacheKey] = {
           colleges: data.colleges || [],
           branches: data.branches || [],
-          rounds: uniqueRounds
+          rounds: uniqueRounds,
+          lastUpdated: data.lastUpdated || __BUILD_HASH__
         };
 
         setColleges(moduleCache.meta[cacheKey].colleges)
         setBranches(moduleCache.meta[cacheKey].branches)
         setRounds(moduleCache.meta[cacheKey].rounds)
-
-        // Also fetch the full matrix data in chunks for client-side search
-        let matrixData = [];
-        if (data.numChunks && data.numChunks > 0) {
-          const fetchPromises = [];
-          for (let i = 0; i < data.numChunks; i++) {
-            fetchPromises.push(
-              fetch(`/data_${exam}_${stream}_${i}.json?v=${__BUILD_HASH__}`)
-                .then(r => r.ok ? r.json() : [])
-            );
-          }
-          const chunkResults = await Promise.all(fetchPromises);
-          matrixData = chunkResults.flat();
-        } else {
-          // Fallback just in case some streams don't have chunks yet
-          const dataRes = await fetch(`/data_${exam}_${stream}.json?v=${__BUILD_HASH__}`);
-          if (dataRes.ok) {
-            matrixData = await dataRes.json();
-          }
-        }
-        
-        moduleCache.matrix[cacheKey] = matrixData;
-        setFullMatrixData(matrixData);
       } catch (err) {
         console.error("Failed to load stream metadata/data:", err)
       }
     }
     loadMeta()
   }, [stream])
+
+  const urlCategory = categoryParam || searchParams.get('cat') || category;
+  const urlSeatType = searchParams.get('seat') || seatType;
+
+  useEffect(() => {
+    let active = true;
+    async function loadMatrix() {
+      // Clear data to show loading state if they click search before it arrives
+      setFullMatrixData(null)
+      try {
+        const cacheKey = `${exam}_${stream}_${urlCategory}_${urlSeatType}`
+        if (moduleCache.matrix[cacheKey]) {
+          if (active) setFullMatrixData(moduleCache.matrix[cacheKey])
+          return
+        }
+        
+        const cacheBuster = moduleCache.meta[`${exam}_${stream}`]?.lastUpdated || __BUILD_HASH__
+        const res = await fetch(`/data_${exam}_${stream}_${urlCategory}_${urlSeatType}.json?v=${cacheBuster}`)
+        
+        if (res.ok) {
+           const matrixData = await res.json()
+           moduleCache.matrix[cacheKey] = matrixData
+           if (active) setFullMatrixData(matrixData)
+        } else {
+           if (active) setFullMatrixData([]) // No data for this combination
+        }
+      } catch (err) {
+        console.error(err)
+        if (active) setFullMatrixData([])
+      }
+    }
+    loadMatrix()
+    return () => { active = false }
+  }, [exam, stream, urlCategory, urlSeatType])
 
   // Resolve college code parameter to college name for the input field
   useEffect(() => {
@@ -266,7 +278,8 @@ export default function App() {
         setSelectedBranches(resolvedBranches);
       }
 
-      let filteredData = fullMatrixData.filter(row => row.category === urlCategory && row.seat_type === urlSeatType)
+      // The fetched fullMatrixData is already scoped to urlCategory and urlSeatType
+      let filteredData = fullMatrixData;
 
       if (currentMode === 'analyzer') {
         let lo, hi;
@@ -346,7 +359,7 @@ export default function App() {
       
       let newPath = `/${examPrefix}/${stream}`
       if (currentMode === 'analyzer' && rankNum) {
-        newPath = `/${examPrefix}/${stream}/analyzer/rank/${rankNum}/${encodeURIComponent(urlCategory.toLowerCase())}`
+        newPath = `/${examPrefix}/${stream}/analyzer/rank/${rankNum}`
       } else if (currentMode === 'explorer') {
         if (resolvedBranches.length > 0) {
           newPath = `/${examPrefix}/${stream}/explorer/branch/${encodeURIComponent(slugify(resolvedBranches[0]))}`
@@ -600,6 +613,7 @@ function groupByCourseCollege(rows, availableRounds) {
         college_name: row.college_name || row.college_code,
         course_name:  row.course_name, // Keep the first original name for display
         rounds: { ...(row.rounds || {}) },
+        advMath: row.advMath
       })
     } else {
       // Merge rounds if the course is already in the map (handles variations like "Computer Sci ence")

@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Menu } from 'lucide-react'
 import { SidebarContext } from '../Layout'
 import { slugify, normalizeCourse } from '../../lib/url'
@@ -12,6 +12,7 @@ import ArticleCTABlocks from './ArticleCTABlocks'
 import ArticleFAQ from './ArticleFAQ'
 import ArticleOtherCategories from './ArticleOtherCategories'
 import ArticleSuggestions from './ArticleSuggestions'
+import ArticleMasterTable from './ArticleMasterTable'
 import Footer from '../Footer'
 
 const articleMetaCache = {}
@@ -38,24 +39,43 @@ const TopNavigation = ({ examPrefix }) => {
 }
 
 export default function ArticleContainer() {
-  const { exam, stream: streamParam, college, branch, category } = useParams()
+  const { exam, stream: streamParam, college, branch } = useParams()
   const examPrefix = (exam || 'kcet').toLowerCase()
   const stream = streamParam || 'engineering'
+  const [searchParams] = useSearchParams()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [articleData, setArticleData] = useState(null)
   const [collegeDataObj, setCollegeDataObj] = useState(null)
+  const [category, setCategory] = useState('')
+  const [matchedRows, setMatchedRows] = useState([])
 
   useEffect(() => {
     window.scrollTo(0, 0)
-    if (college && branch && category) {
+    if (college && branch) {
       loadArticle()
     } else {
       // Archive mode
       setLoading(false)
     }
-  }, [college, branch, category, stream])
+  }, [college, branch, stream])
+
+  useEffect(() => {
+    const queryCat = searchParams.get('c')
+    if (queryCat && matchedRows.length > 0) {
+      const hasCat = matchedRows.find(r => r.category?.toUpperCase() === queryCat.toUpperCase())
+      if (hasCat) {
+        setCategory(queryCat.toUpperCase())
+      }
+    }
+  }, [searchParams, matchedRows])
+
+  // Scroll to top smoothly when category changes (e.g. from bottom suggestions)
+  useEffect(() => {
+    if (category) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [category])
 
   async function loadArticle() {
     try {
@@ -102,7 +122,7 @@ export default function ArticleContainer() {
            break;
         }
 
-        const collegeDataRes = await fetch(`/college_data/${stream}_${collegeCode}.json?v=${__BUILD_HASH__}`);
+        const collegeDataRes = await fetch(`/college_data/${examPrefix}_${stream}_${collegeCode}.json?v=${__BUILD_HASH__}`);
         
         if (collegeDataRes.ok) {
           finalCollegeData = await collegeDataRes.json();
@@ -119,19 +139,32 @@ export default function ArticleContainer() {
 
       const allData = finalCollegeData.cutoffs;
       const normalizedMatchingRawNames = matchingRawNames.map(name => normalizeCourse(name));
-      const matchedRow = allData.find(r => 
-        r.category?.toUpperCase() === category?.toUpperCase() && 
+      const mRows = allData.filter(r => 
         normalizedMatchingRawNames.includes(normalizeCourse(r.course_name))
       );
 
-      if (!matchedRow) {
+      if (mRows.length === 0) {
         setError("Article Not Found (Row mismatch)")
         setLoading(false)
         return
       }
 
       setCollegeDataObj(finalCollegeData)
-      setArticleData(matchedRow)
+      setMatchedRows(mRows)
+      
+      const hasGM = mRows.find(r => r.category?.toUpperCase() === 'GM')
+      
+      const initialCatParam = searchParams.get('c')
+      const hasInitialCat = initialCatParam && mRows.find(r => r.category?.toUpperCase() === initialCatParam.toUpperCase())
+      
+      let defaultCat;
+      if (hasInitialCat) {
+        defaultCat = initialCatParam.toUpperCase();
+      } else {
+        defaultCat = hasGM ? 'GM' : mRows[0].category;
+      }
+      
+      setCategory(defaultCat)
       
     } catch (err) {
       console.error("Article load error:", err);
@@ -142,7 +175,7 @@ export default function ArticleContainer() {
   }
 
     // Render Archive if no specific college/branch requested
-    if (!college || !branch || !category) {
+    if (!college || !branch) {
       return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center w-full">
           <TopNavigation examPrefix={examPrefix} />
@@ -163,7 +196,7 @@ export default function ArticleContainer() {
       )
     }
   
-    if (error || !articleData) {
+    if (error || matchedRows.length === 0) {
       return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center w-full">
           <TopNavigation examPrefix={examPrefix} />
@@ -179,6 +212,9 @@ export default function ArticleContainer() {
     }
 
   // --- Parse Data for Single Article Subcomponents ---
+  const articleData = matchedRows.find(r => r.category === category) || matchedRows[0];
+  if (!articleData) return null;
+
   const rawRounds = articleData.rounds || {};
   const rounds = {};
   Object.keys(rawRounds).forEach(key => {
@@ -243,8 +279,8 @@ export default function ArticleContainer() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center w-full">
       <TopNavigation examPrefix={examPrefix} />
-      <main className="w-full max-w-4xl mx-auto px-4 py-8 overflow-hidden">
-        <div className="mb-6">
+      <main className="w-full max-w-4xl mx-auto px-4 py-4 overflow-hidden">
+        <div className="mb-2">
           <Link to={`/${examPrefix}/articles/${stream}`} className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-blue-600 transition-colors uppercase tracking-wider">
             <ArrowLeft size={16} /> Back to {formattedStream} Articles
           </Link>
@@ -254,6 +290,7 @@ export default function ArticleContainer() {
           cleanCollege={cleanCollege} 
           branch={articleData.course_name} 
           category={category} 
+          setCategory={setCategory}
           topYears={topYears} 
           articleData={articleData} 
           seatType={articleData.seat_type} 
@@ -270,6 +307,8 @@ export default function ArticleContainer() {
         />
         
         <ArticleNarrative 
+          examPrefix={examPrefix}
+          stream={stream}
           branch={articleData.course_name}
           cleanCollege={cleanCollege}
           category={category}
@@ -278,6 +317,7 @@ export default function ArticleContainer() {
           prevYear={prevYear}
           firstRoundRank={firstRoundRank}
           rounds={rounds}
+          advMath={articleData.advMath}
         />
         
         <ArticleFAQ 
@@ -292,6 +332,12 @@ export default function ArticleContainer() {
           hasDropHistory={hasDropHistory}
           topYears={topYears}
           latestRounds={latestRounds}
+        />
+
+        <ArticleMasterTable 
+          matchedRows={matchedRows}
+          cleanCollege={cleanCollege}
+          branch={articleData.course_name}
         />
         
         <ArticleCTABlocks 

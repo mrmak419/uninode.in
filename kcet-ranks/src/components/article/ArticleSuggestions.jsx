@@ -25,6 +25,7 @@ export default function ArticleSuggestions({
       {prevItem ? (
         <Link 
           to={getArticleUrl(examPrefix, stream, prevItem.college_code, prevItem.branch, prevItem.category)}
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           className="group flex flex-col justify-center items-start p-6 bg-white border border-gray-200 rounded-xl hover:border-blue-500 hover:shadow-md transition-all"
         >
           <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1 group-hover:text-blue-600 transition-colors">
@@ -38,6 +39,7 @@ export default function ArticleSuggestions({
       {nextItem ? (
         <Link 
           to={getArticleUrl(examPrefix, stream, nextItem.college_code, nextItem.branch, nextItem.category)}
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           className="group flex flex-col justify-center items-end text-right p-6 bg-white border border-gray-200 rounded-xl hover:border-blue-500 hover:shadow-md transition-all"
         >
           <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1 group-hover:text-blue-600 transition-colors">

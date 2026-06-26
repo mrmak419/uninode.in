@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import examsData from '../exams.json'
 
 export default function NotFound() {
   const [isRetrying, setIsRetrying] = useState(false)
@@ -57,19 +58,22 @@ export default function NotFound() {
         <p className="text-muted mb-8 text-sm leading-relaxed">
           The page you're looking for doesn't exist or may have been moved.
         </p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3 justify-center">
           <Link
             to="/"
             className="px-6 py-2.5 bg-ink text-paper font-bold rounded-lg shadow hover:bg-black transition-all text-sm flex items-center justify-center"
           >
             Go Home
           </Link>
-          <Link
-            to="/articles/engineering"
-            className="px-6 py-2.5 bg-paper text-ink font-bold rounded-lg shadow border border-border hover:bg-black/5 transition-all text-sm flex items-center justify-center"
-          >
-            Browse Articles
-          </Link>
+          {examsData.map(exam => (
+            <Link
+              key={exam.id}
+              to={`/${exam.id}`}
+              className="px-6 py-2.5 bg-paper text-ink font-bold rounded-lg shadow border border-border hover:bg-black/5 transition-all text-sm flex items-center justify-center"
+            >
+              {exam.title || exam.id.toUpperCase()}
+            </Link>
+          ))}
         </div>
       </div>
     </div>

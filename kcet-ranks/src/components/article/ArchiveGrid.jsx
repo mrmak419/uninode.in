@@ -32,8 +32,10 @@ export default function ArchiveGrid({ examPrefix = 'kcet', stream }) {
         
         let combs = []
         if (data.articleCombinations && data.articleCombinations.length > 0) {
-          combs = data.articleCombinations
+          // articleCombinations are typically "cCode::cName::b" (length 3). Appending "::GM" makes them length 4.
+          combs = data.articleCombinations.map(c => `${c}::GM`)
         } else if (data.combinations) {
+          // combinations are typically "cName::b" (length 2). Appending "::GM" makes them length 3.
           combs = data.combinations.map(c => `${c}::GM`)
         }
         
@@ -44,6 +46,8 @@ export default function ArchiveGrid({ examPrefix = 'kcet', stream }) {
           const parts = c.split('::')
           let cat = '';
           if (parts.length === 5) {
+            cat = parts[3];
+          } else if (parts.length === 4) {
             cat = parts[3];
           } else {
             cat = parts[2];
@@ -67,6 +71,8 @@ export default function ArchiveGrid({ examPrefix = 'kcet', stream }) {
        const parts = comb.split('::')
        let cCode, cName, b, cat;
        if (parts.length === 5) {
+         [cCode, cName, b, cat] = parts;
+       } else if (parts.length === 4) {
          [cCode, cName, b, cat] = parts;
        } else {
          [cName, b, cat] = parts;
@@ -141,6 +147,8 @@ export default function ArchiveGrid({ examPrefix = 'kcet', stream }) {
           let cCode, cName, b, cat, st;
           if (parts.length === 5) {
             [cCode, cName, b, cat, st] = parts;
+          } else if (parts.length === 4) {
+            [cCode, cName, b, cat] = parts;
           } else {
             [cName, b, cat, st] = parts;
             cCode = cName;

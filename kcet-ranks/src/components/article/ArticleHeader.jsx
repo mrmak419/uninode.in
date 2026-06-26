@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Info } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
-import { getArticleUrl } from '../../lib/url'
 
-export default function ArticleHeader({ cleanCollege, branch, category, topYears, articleData, seatType, uniqueCategories, examPrefix, stream, collegeCode }) {
+export default function ArticleHeader({ cleanCollege, branch, category, setCategory, topYears, articleData, seatType, uniqueCategories, examPrefix, stream, collegeCode }) {
   const [showSeatInfo, setShowSeatInfo] = useState(false)
-  const navigate = useNavigate()
 
   // Update document title for SPA navigation (edge function handles initial SSR title + JSON-LD)
   useEffect(() => {
@@ -27,18 +24,18 @@ export default function ArticleHeader({ cleanCollege, branch, category, topYears
 
   const handleCategoryChange = (e) => {
     const newCategory = e.target.value;
-    if (newCategory !== category) {
-      navigate(getArticleUrl(examPrefix, stream, collegeCode, branch, newCategory))
+    if (newCategory !== category && setCategory) {
+      setCategory(newCategory);
     }
   }
 
   return (
     <>
-      <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight mb-6">
+      <h1 className="text-xl md:text-2xl font-bold text-gray-900 leading-tight mb-3">
         {cleanCollege} {branch} Cutoff ({category}) {topYears.length > 0 ? `- ${topYears.join(' & ')}` : ''}
       </h1>
 
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 font-mono text-sm md:text-base text-gray-700 leading-relaxed break-words relative">
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 font-mono text-sm md:text-base text-gray-700 leading-relaxed break-words relative">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <div className="mb-2"><strong>College:</strong> {articleData.college_name}</div>

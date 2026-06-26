@@ -110,8 +110,13 @@ export default function ResultsTable({ rows, rounds, userRank, stream, category,
                     </div>
 
                     {/* Course Info */}
-                    <div className="text-sm md:text-base text-ink leading-snug">
-                      {row.course_name}
+                    <div className="flex flex-col">
+                      <div className="text-sm md:text-base text-ink leading-snug">
+                        {row.course_name}
+                      </div>
+                      
+                      {/* Advanced Math Badges */}
+                      
                     </div>
 
                     {/* Latest Cutoff */}

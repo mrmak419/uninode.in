@@ -1,4 +1,60 @@
+import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { getArticleUrl } from '../../lib/url';
+
+const MetricCard = ({ title, tooltip, children, iconPath }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="h-full flex flex-col bg-white p-5 rounded-xl shadow-sm border border-gray-200 relative" ref={containerRef}>
+      <div className="flex items-center mb-2">
+        <div className="bg-gray-100 p-2 rounded-lg mr-3 text-gray-700">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: iconPath }}></svg>
+        </div>
+        <h4 className="text-lg font-bold text-gray-800 m-0">{title}</h4>
+        
+        <div className="ml-auto relative flex items-center">
+          <button 
+            type="button" 
+            className={`transition-colors p-1 ${isOpen ? 'text-blue-600' : 'text-gray-400 hover:text-blue-600'}`}
+            aria-label="Info"
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 16v-4"></path>
+              <path d="M12 8h.01"></path>
+            </svg>
+          </button>
+          {isOpen && (
+            <div className="absolute right-0 bottom-full mb-2 w-64 p-3 bg-gray-800 text-white text-sm rounded-lg shadow-xl z-10 pointer-events-auto">
+              {tooltip}
+              <div className="absolute w-3 h-3 bg-gray-800 transform rotate-45 -bottom-1.5 right-3"></div>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="text-gray-700 leading-relaxed m-0 text-base">
+        {children}
+      </div>
+    </div>
+  )
+}
+
 export default function ArticleNarrative({
+  examPrefix,
+  stream,
   branch,
   cleanCollege,
   category,
@@ -6,71 +62,18 @@ export default function ArticleNarrative({
   latestRoundRank,
   prevYear,
   firstRoundRank,
-  rounds
+  rounds,
+  advMath
 }) {
-  let analysisParagraphs = [];
-
   const latestRounds = Object.keys(rounds[latestYear] || {})
     .map(Number)
     .filter(r => rounds[latestYear][r] !== null && rounds[latestYear][r] !== undefined && rounds[latestYear][r] !== '--')
     .sort((a,b) => a - b);
     
+  let trendString = null;
   const hasPrevYear = prevYear && rounds[prevYear];
   const hasMultipleRounds = latestRounds.length > 1;
 
-  let p1 = `The historical cutoff data for the ${branch} program at ${cleanCollege} provides valuable insights into the admission patterns for the ${category} category. In the ${latestYear} counseling cycle, the closing cutoff rank was recorded at ${latestRoundRank && latestRoundRank !== '--' ? latestRoundRank.toLocaleString() : '--'}. This final cutoff rank represents the rank of the last admitted candidate for this specific branch and category during that year's counseling process.`;
-
-  if (hasPrevYear) {
-    const prevRounds = Object.keys(rounds[prevYear] || {})
-      .map(Number)
-      .filter(r => rounds[prevYear][r] !== null && rounds[prevYear][r] !== undefined && rounds[prevYear][r] !== '--')
-      .sort((a,b) => a - b);
-    const prevRank = prevRounds.length > 0 ? rounds[prevYear][prevRounds[prevRounds.length - 1]] : null;
-    
-    if (latestRoundRank && prevRank && latestRoundRank !== '--' && prevRank !== '--') {
-      const diff = latestRoundRank - prevRank;
-      const pct = Math.abs((diff / prevRank) * 100).toFixed(1);
-      const absDiff = Math.abs(diff);
-
-      if (diff > 0) {
-        p1 += ` When comparing this to the previous year, the cutoff rank eased by ${absDiff.toLocaleString()} ranks, which translates to a shift of ${pct}%. A positive shift in the cutoff rank indicates that the seat was available to candidates with a relatively lower rank compared to the preceding year.`;
-      } else if (diff < 0) {
-        p1 += ` When comparing this to the previous year, the cutoff rank tightened by ${absDiff.toLocaleString()} ranks, reflecting a shift of ${pct}%. A negative shift in the cutoff rank indicates an increase in competition, as the seat closed at a higher rank than the preceding year.`;
-      } else {
-        p1 += ` The cutoff rank remained entirely unchanged compared to the previous year, indicating a consistent historical demand for this particular seat.`;
-      }
-    }
-  }
-  analysisParagraphs.push(p1);
-
-  if (hasMultipleRounds && latestRoundRank && firstRoundRank && latestRoundRank !== '--' && firstRoundRank !== '--') {
-    let p2 = `Analyzing the round-by-round progression in ${latestYear}, the admission process opened with a Round 1 cutoff rank of ${firstRoundRank.toLocaleString()}. As candidates exercised their choices and seat allocations were adjusted in subsequent phases, `;
-    if (latestRoundRank === firstRoundRank) {
-       p2 += `the cutoff rank remained static at ${latestRoundRank.toLocaleString()} through to the final round. This suggests that the initial seat allotment was largely retained by the candidates, leaving little room for the cutoff to drop in later rounds.`;
-    } else {
-       const drop = latestRoundRank - firstRoundRank;
-       if (drop > 0) {
-         const dropPct = ((drop / firstRoundRank) * 100).toFixed(1);
-         p2 += `the cutoff rank relaxed by ${drop.toLocaleString()} ranks, representing a ${dropPct}% change. By the final round, the closing rank settled at ${latestRoundRank.toLocaleString()}. This round-over-round relaxation typically occurs as candidates upgrade to other colleges or courses, freeing up seats for subsequent allotments.`;
-       } else {
-         p2 += `the cutoff rank closed tighter at ${latestRoundRank.toLocaleString()} in the final round. Tightening across rounds can happen in specific scenarios where seat availability or category adjustments come into play.`;
-       }
-    }
-    analysisParagraphs.push(p2);
-  }
-
-  if (latestRoundRank && latestRoundRank !== '--') {
-     let p3 = `Beyond the numbers, the category assignment plays a critical role in these admission patterns. The ${category} category represents a specific reservation or quota outlined by the examination authority. Candidates falling under this classification have access to a dedicated pool of seats, which often results in different cutoff dynamics compared to the general merit pool. Variations in this cutoff rank from year to year are heavily influenced by the number of eligible candidates within the ${category} category and their performance in the entrance examination. When reviewing the ${latestYear} data, it is essential to remember that the cutoff of ${latestRoundRank.toLocaleString()} is specific only to candidates possessing the valid documentation for the ${category} quota.`;
-     analysisParagraphs.push(p3);
-
-     let p4 = `The structure of the counseling process itself also introduces significant variables into the final admission outcomes. The counseling authority typically conducts multiple rounds, starting with an initial mock allotment followed by the first official round. The opening rank of ${firstRoundRank && firstRoundRank !== '--' ? firstRoundRank.toLocaleString() : 'the initial round'} reflects the immediate preferences of top-scoring candidates. As the counseling progresses into the second round and potentially an extended or mop-up round, seats are frequently reallocated. This reallocation happens because candidates may opt to surrender their allotted seats to pursue opportunities in other prestigious institutions, migrate to different courses such as medical or architecture, or successfully secure upgraded choices within the same engineering counseling structure. The difference between the initial and final cutoff ranks captures this exact mobility.`;
-     analysisParagraphs.push(p4);
-
-     let p5 = `Prospective students aiming for ${branch} at ${cleanCollege} should use these historical ranks as a baseline for their option entry strategy rather than an absolute guarantee. While historical cutoffs are a reliable indicator of past admission trends and institutional popularity, the actual cutoffs for upcoming counseling sessions will depend on the overall performance of the candidate pool, the total number of available seats as defined by the latest seat matrix, and any governmental changes in category-wise reservations. It is highly advisable to list choices dynamically during the option entry phase. A sound strategy involves including colleges where the previous year's closing rank was both slightly above and below the candidate's actual rank, ensuring a safe margin around the ${latestRoundRank.toLocaleString()} benchmark established in ${latestYear}.`;
-     analysisParagraphs.push(p5);
-  }
-
-  let trendString = null;
   if (hasPrevYear) {
     const prevRounds = Object.keys(rounds[prevYear] || {})
       .map(Number)
@@ -100,6 +103,139 @@ export default function ArticleNarrative({
      }
   }
 
+  let advancedMathUI = null;
+  if (advMath) {
+    let mathParagraphs = [];
+    
+    if (advMath.cagrTag) {
+      mathParagraphs.push(
+        <MetricCard 
+          key="cagr" 
+          title="Historical Trend" 
+          tooltip="Measures whether the rank required to get this seat is increasing or decreasing over a multi-year period."
+          iconPath='<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline>'
+        >
+          Over the last {advMath.years || 3} years, the competition for this seat is <strong>{advMath.cagrTag}</strong>.
+          {advMath.cagr != null && ` Specifically, the rank boundary has been shifting at a compound annual rate of ${(Math.abs(advMath.cagr) * 100).toFixed(1)}% per year, giving us a very clear long-term trajectory.`}
+        </MetricCard>
+      );
+    }
+    
+    if (advMath.momentumTag) {
+      mathParagraphs.push(
+        <MetricCard 
+          key="mom" 
+          title="Current Demand" 
+          tooltip="Shows if the popularity of this seat is currently speeding up or slowing down compared to last year."
+          iconPath='<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>'
+        >
+          Right now, the demand from students is <strong>{advMath.momentumTag}</strong>.
+          {advMath.acceleration != null && ` The year-over-year shift in rank cutoffs accelerated by ${Math.abs(Math.round(advMath.acceleration))} positions recently, confirming this immediate momentum.`}
+        </MetricCard>
+      );
+    }
+    
+    if (advMath.volatilityTag) {
+      mathParagraphs.push(
+        <MetricCard 
+          key="vol" 
+          title="Seat Drop Risk" 
+          tooltip="Measures how much the cutoff falls between the first and last rounds. High risk means you shouldn't rely on it dropping much."
+          iconPath='<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path>'
+        >
+          During counseling rounds, holding out for this seat exhibits <strong>{advMath.volatilityTag}</strong>.
+          {advMath.volatility != null && ` Historically, the rank cutoff drops by an average of ${advMath.volatility.toFixed(1)}% between the first round and the final round.`}
+        </MetricCard>
+      );
+    }
+    
+    if (advMath.zScoreTag) {
+      mathParagraphs.push(
+        <MetricCard 
+          key="z" 
+          title="State Rank" 
+          tooltip="Compares this seat's difficulty against all other colleges in the state offering the exact same branch."
+          iconPath='<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 1.1-.9 2-2 2H6"></path><path d="M14 14.66V17c0 1.1.9 2 2 2h2"></path><path d="M18 4c0 3.2-2 5.5-5 5.5h-2c-3 0-5-2.3-5-5.5V4h12z"></path>'
+        >
+          Compared to all other colleges offering this branch, this seat is <strong>{advMath.zScoreTag}</strong>.
+          {advMath.zScore != null && ` This gives it a statistical Z-Score of ${advMath.zScore.toFixed(2)} when standardizing cutoffs across Karnataka.`}
+        </MetricCard>
+      );
+    }
+    
+    if (advMath.bpiTag) {
+      mathParagraphs.push(
+        <MetricCard 
+          key="bpi" 
+          title="College Priority" 
+          tooltip="Compares this specific branch to the most demanded branch (usually Computer Science) at this exact same college."
+          iconPath='<circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle>'
+        >
+          Compared to the best branch in this college, this acts as <strong>{advMath.bpiTag}</strong>.
+          {advMath.bpi != null && ` The Branch Preference Index (BPI) sits at ${advMath.bpi.toFixed(2)}, which mathematically compares its cutoff against the toughest branch at this campus.`}
+        </MetricCard>
+      );
+    }
+
+    if (advMath.ci) {
+      mathParagraphs.push(
+        <MetricCard 
+          key="ci" 
+          title="Expected Cutoff" 
+          tooltip="A statistically calculated safe range for this year's cutoff based on all historical counseling rounds."
+          iconPath='<rect width="16" height="20" x="4" y="2" rx="2"></rect><line x1="8" x2="16" y1="6" y2="6"></line><line x1="16" x2="16" y1="14" y2="18"></line><path d="M16 10h.01"></path><path d="M12 10h.01"></path><path d="M8 10h.01"></path><path d="M12 14h.01"></path><path d="M8 14h.01"></path><path d="M12 18h.01"></path><path d="M8 18h.01"></path>'
+        >
+          Based on past data, our confidence interval projects a safe target rank between <strong>{advMath.ci.lower.toLocaleString()} and {advMath.ci.upper.toLocaleString()}</strong>.
+        </MetricCard>
+      );
+    }
+    
+    if (advMath.cushionTag) {
+      mathParagraphs.push(
+        <MetricCard 
+          key="cushion" 
+          title="Category Advantage" 
+          tooltip="Shows if having this specific category reservation provides a large or small rank advantage over the General Merit category."
+          iconPath='<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>'
+        >
+          The {category} quota <strong>{advMath.cushionTag}</strong>.
+          {advMath.gmRank && advMath.latestRank && ` For example, while GM required a rank of ${advMath.gmRank.toLocaleString()}, this category allowed ranks up to ${advMath.latestRank.toLocaleString()}.`}
+        </MetricCard>
+      );
+    }
+    
+    if (advMath.peers && advMath.peers.length > 0) {
+      mathParagraphs.push(
+        <MetricCard 
+          key="peers" 
+          title="Similar Options" 
+          tooltip="Colleges that have an almost identical level of competition and cutoff rank for this branch."
+          iconPath='<path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"></path><path d="M15 5.764v15"></path><path d="M9 3.236v15"></path>'
+        >
+          <ul className="list-disc pl-6">
+            {advMath.peers.map((peer, idx) => (
+              <li key={idx} className="mb-1">
+                <Link to={getArticleUrl(examPrefix, stream, peer.college_code, branch, category)} className="font-bold text-blue-600 hover:underline">
+                  {peer.college_name}
+                </Link> (Distance: {peer.distance} ranks)
+              </li>
+            ))}
+          </ul>
+        </MetricCard>
+      );
+    }
+
+    if (mathParagraphs.length > 0) {
+      advancedMathUI = (
+        <div className="mt-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {mathParagraphs}
+          </div>
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="prose prose-blue max-w-none mt-8">
       <div className="text-lg font-bold mb-6">
@@ -108,11 +244,7 @@ export default function ArticleNarrative({
         </div>
         {trendString && <div className="text-blue-700">Trend: {trendString}</div>}
       </div>
-      {analysisParagraphs.map((text, i) => (
-        <p key={i} className="text-gray-700 leading-relaxed text-lg mb-6">
-          {text}
-        </p>
-      ))}
+      {advancedMathUI}
     </div>
   )
 }

@@ -41,7 +41,7 @@ export default function ArticleFAQ({
         </div>
 
         <div className="bg-gray-50 rounded-lg p-6">
-          <h3 className="font-bold text-gray-900 text-lg mb-2">Should I wait till Round 3 (Extended Round)?</h3>
+          <h3 className="font-bold text-gray-900 text-lg mb-2">Should I wait till Round 3?</h3>
           <p className="text-gray-700">
             {(latestRounds.includes(3) && rounds[latestYear][3] > (rounds[latestYear][2] || rounds[latestYear][1] || 0))
               ? `Based on historical trends, Round 3 cutoffs do relax further for this branch. However, participating in the extended round carries risk as seat availability drops significantly.`
@@ -69,13 +69,6 @@ export default function ArticleFAQ({
           <h3 className="font-bold text-gray-900 text-lg mb-2">If my rank is exactly {latestRoundRank ? latestRoundRank.toLocaleString() : 'the closing cutoff'}, am I guaranteed a seat next year?</h3>
           <p className="text-gray-700">
             No, historical cutoffs are not guarantees for future admissions. The cutoff of {latestRoundRank ? latestRoundRank.toLocaleString() : '--'} in {latestYear} simply reflects the rank of the last candidate admitted that year based on that specific candidate pool. Future cutoffs will depend entirely on the number of applicants, seat availability, paper difficulty, and the specific choices made by candidates in the upcoming counseling cycle.
-          </p>
-        </div>
-
-        <div className="bg-gray-50 rounded-lg p-6">
-          <h3 className="font-bold text-gray-900 text-lg mb-2">What role does the {category} category play in these cutoffs?</h3>
-          <p className="text-gray-700">
-            The {category} classification dictates a specific subset of seats allocated within the college's overall seat matrix. Cutoffs for this category operate independently from the General Merit (GM) cutoffs. The competition is strictly limited to other candidates who have successfully claimed and verified their eligibility for the {category} quota during the document verification process.
           </p>
         </div>
 

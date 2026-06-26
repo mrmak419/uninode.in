@@ -31,8 +31,11 @@ export function getArticleUrl(exam, stream, collegeCode, branchName, category) {
   const s = (stream || 'engineering').toLowerCase();
   const col = (collegeCode || '').toLowerCase();
   const br = slugify(branchName);
-  const cat = (category || '').toUpperCase();
-  return `/${e}/articles/${s}/${col}/${br}/${cat}`;
+  let url = `/${e}/articles/${s}/${col}/${br}`;
+  if (category) {
+    url += `?c=${category}`;
+  }
+  return url;
 }
 
 /**

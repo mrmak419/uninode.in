@@ -41,7 +41,7 @@ export default function OptionGenerator() {
   const [optionsList, setOptionsList] = useState([])
 
   // UI state
-  const [activeTab, setActiveTab] = useState('search') // 'search' or 'list' for mobile
+  const [activeTab, setActiveTab] = useState('list') // 'search' or 'list' for mobile
   const [searchQuery, setSearchQuery] = useState(() => localStorage.getItem('op_search_query') || '')
   const [selectedSearchBranches, setSelectedSearchBranches] = useState(() => {
     try {
@@ -61,6 +61,7 @@ export default function OptionGenerator() {
   const [branches, setBranches] = useState([])
   const [rounds, setRounds] = useState([])
   const [fullMatrixData, setFullMatrixData] = useState(null)
+  const [maxRankByCategory, setMaxRankByCategory] = useState({})
 
   // Accordion expands for historical cutoff tables
   const [expandedHistory, setExpandedHistory] = useState(new Set())
@@ -74,7 +75,6 @@ export default function OptionGenerator() {
       return []
     }
   })
-  const [wizardThreshold, setWizardThreshold] = useState(() => localStorage.getItem('op_wizard_threshold') || 'balanced')
   const [wizardBranchInput, setWizardBranchInput] = useState('')
   const [wizardBranchOpen, setWizardBranchOpen] = useState(false)
   const wizardBranchRef = useRef(null)
@@ -149,18 +149,18 @@ export default function OptionGenerator() {
     setBranches([])
     setRounds([])
     setFullMatrixData(null)
+    setMaxRankByCategory({})
     setExpandedHistory(new Set())
+    setOptionsList([])
 
-    async function loadStreamData() {
-      setLoading(true)
-      setError(null)
+    async function loadMeta() {
       try {
         const cacheKey = `${examPrefix}_${stream}`
         let data
         if (metadataCache.has(cacheKey)) {
           data = metadataCache.get(cacheKey)
         } else {
-          const res = await fetch(`/meta_${examPrefix}_${stream}.json?v=1`)
+          const res = await fetch(`/meta_${examPrefix}_${stream}.json?v=${__BUILD_HASH__}`)
           if (!res.ok) throw new Error(`Stream metadata not found for ${examPrefix}_${stream}`)
           data = await res.json()
           metadataCache.set(cacheKey, data)
@@ -175,39 +175,48 @@ export default function OptionGenerator() {
           return b.round - a.round
         })
         setRounds(uniqueRounds)
+        setMaxRankByCategory(data.maxRankByCategory || {})
+      } catch (err) {
+        console.error("Failed to load stream metadata:", err)
+      }
+    }
+    loadMeta()
+  }, [examPrefix, stream])
 
-        // Only load the heavy matrix chunks if shouldLoad is true!
-        if (shouldLoad) {
-          let mergedData
-          if (matrixDataCache.has(cacheKey)) {
-            mergedData = matrixDataCache.get(cacheKey)
-          } else {
-            let matrixData = []
-            if (data.numChunks && data.numChunks > 0) {
-              const fetchPromises = []
-              for (let i = 0; i < data.numChunks; i++) {
-                fetchPromises.push(
-                  fetch(`/data_${examPrefix}_${stream}_${i}.json?v=${data.lastUpdated || ''}`)
-                    .then(r => r.ok ? r.json() : [])
-                )
-              }
-              const chunkResults = await Promise.all(fetchPromises)
-              matrixData = chunkResults.flat()
-            } else {
-              const dataRes = await fetch(`/data_${examPrefix}_${stream}.json?v=${data.lastUpdated || ''}`)
-              if (dataRes.ok) matrixData = await dataRes.json()
-            }
+  useEffect(() => {
+    let active = true;
+    async function loadMatrix() {
+      if (!shouldLoad) {
+        setLoading(false)
+        return
+      }
+      
+      setLoading(true)
+      setError(null)
+      setOptionsList([])
+      try {
+        const cacheKey = `${examPrefix}_${stream}_${category}_${seatType}`
+        let mergedData
+        if (matrixDataCache.has(cacheKey)) {
+          mergedData = matrixDataCache.get(cacheKey)
+        } else {
+          const metaCache = metadataCache.get(`${examPrefix}_${stream}`)
+          const cacheBuster = metaCache?.lastUpdated || Date.now()
+
+          const res = await fetch(`/data_${examPrefix}_${stream}_${category}_${seatType}.json?v=${cacheBuster}`)
+          if (res.ok) {
+            const matrixData = await res.json()
             
-            // Merge variations of course names (e.g. "D ata Science" and "Da ta Science")
+            // Merge variations of course names
             const mergedMap = new Map()
             for (const row of matrixData) {
               const normCourse = normalizeCourse(row.course_name)
-              const key = `${row.college_code.toUpperCase()}||${normCourse}||${(row.category || '').toUpperCase()}||${(row.seat_type || '').toUpperCase()}`
+              const key = `${row.college_code.toUpperCase()}||${normCourse}`
               if (!mergedMap.has(key)) {
                 mergedMap.set(key, {
                   ...row,
-                  course_name: row.course_name, // Keep the first name
-                  normalized_course: normCourse, // Pre-normalized for speed
+                  course_name: row.course_name,
+                  normalized_course: normCourse,
                   rounds: { ...(row.rounds || {}) }
                 })
               } else {
@@ -216,19 +225,22 @@ export default function OptionGenerator() {
               }
             }
             mergedData = Array.from(mergedMap.values())
-            matrixDataCache.set(cacheKey, mergedData)
+          } else {
+            mergedData = []
           }
-          setFullMatrixData(mergedData)
+          matrixDataCache.set(cacheKey, mergedData)
         }
+        if (active) setFullMatrixData(mergedData)
       } catch (err) {
-        console.error("Failed to load option generator data:", err)
-        setError("Failed to load cutoff data for this stream. Please try again.")
+        console.error("Failed to load matrix data:", err)
+        if (active) setError("Failed to load cutoff data for this combination. Please try again.")
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     }
-    loadStreamData()
-  }, [examPrefix, stream, shouldLoad])
+    loadMatrix()
+    return () => { active = false }
+  }, [examPrefix, stream, shouldLoad, category, seatType])
 
   // --- Write inputs to LocalStorage ---
   useEffect(() => {
@@ -241,10 +253,6 @@ export default function OptionGenerator() {
   useEffect(() => {
     localStorage.setItem('op_wizard_branches', JSON.stringify(wizardBranches))
   }, [wizardBranches])
-
-  useEffect(() => {
-    localStorage.setItem('op_wizard_threshold', wizardThreshold)
-  }, [wizardThreshold])
 
   useEffect(() => {
     localStorage.setItem('op_search_branches', JSON.stringify(selectedSearchBranches))
@@ -431,24 +439,39 @@ export default function OptionGenerator() {
     }
   }, [paramStream, paramCategory, paramRank])
 
-  // --- Compile Suggested Options list on click (Generate) once data is ready ---
+  // --- Re-generate Option List when matrix data or inputs change (if pending) ---
   useEffect(() => {
-    if (pendingGenerate && fullMatrixData && fullMatrixData.length > 0 && branches.length > 0) {
+    if (pendingGenerate && fullMatrixData !== null && branches.length > 0) {
       setPendingGenerate(false)
+      
+      if (fullMatrixData.length === 0) {
+        setOptionsList([])
+        return
+      }
+
       const numericRank = Number(rank)
-      const multiplier = wizardThreshold === 'safe' ? 4 : 3
       
       let maxRankInData = 250000
-      let maxVal = 0
-      fullMatrixData.forEach(row => {
-        const cutoff = getLatestCutoff(row.rounds)
-        if (cutoff && cutoff.rank > maxVal) {
-          maxVal = cutoff.rank
-        }
-      })
-      if (maxVal > 0) maxRankInData = maxVal
+      if (maxRankByCategory && maxRankByCategory[category]) {
+        maxRankInData = maxRankByCategory[category]
+      } else {
+        let maxVal = 0
+        fullMatrixData.forEach(row => {
+          const cutoff = getLatestCutoff(row.rounds)
+          if (cutoff && cutoff.rank > maxVal) {
+            maxVal = cutoff.rank
+          }
+        })
+        if (maxVal > 0) maxRankInData = maxVal
+      }
 
-      let maxCutoffLimit = numericRank * multiplier
+      let maxCutoffLimit
+      if (numericRank < 50000) {
+        maxCutoffLimit = numericRank * 4
+      } else {
+        maxCutoffLimit = numericRank * 2
+      }
+      
       if (numericRank >= maxRankInData) {
         maxCutoffLimit = maxRankInData
       } else {
@@ -472,7 +495,6 @@ export default function OptionGenerator() {
       }
 
       const matchedRows = fullMatrixData.filter(row => {
-        if (row.category !== category || row.seat_type !== seatType) return false
         return matchedRawNormalized.has(row.normalized_course)
       })
 
@@ -490,10 +512,8 @@ export default function OptionGenerator() {
       })
       .filter(item => {
         if (item.cutoff_rank == null) return false
-        if (!showAllPossible) {
-          if (item.safety === 'hidden') return false
-          if (item.cutoff_rank > maxCutoffLimit) return false
-        }
+        if (item.cutoff_rank > maxCutoffLimit) return false
+        if (!showAllPossible && item.safety === 'hidden') return false
         return true
       })
       .sort((a, b) => a.cutoff_rank - b.cutoff_rank)
@@ -518,7 +538,7 @@ export default function OptionGenerator() {
         })
       }
     }
-  }, [pendingGenerate, fullMatrixData, branches, rank, wizardThreshold, wizardBranches, category, seatType, getLatestCutoff, evaluateSafety, showAllPossible])
+  }, [pendingGenerate, fullMatrixData, branches, rank, wizardBranches, category, seatType, getLatestCutoff, evaluateSafety, showAllPossible, maxRankByCategory])
 
   // --- Save preference list to LocalStorage on changes ---
   useEffect(() => {
@@ -999,8 +1019,6 @@ export default function OptionGenerator() {
           setWizardBranchOpen={setWizardBranchOpen}
           filteredWizardBranches={filteredWizardBranches}
           toggleWizardBranch={toggleWizardBranch}
-          wizardThreshold={wizardThreshold}
-          setWizardThreshold={setWizardThreshold}
           handleAutoGenerate={handleAutoGenerate}
           wizardBranchRef={wizardBranchRef}
           generating={pendingGenerate}
@@ -1043,19 +1061,19 @@ export default function OptionGenerator() {
             {/* Tab Toggles */}
             <div className="flex bg-border/50 p-1 rounded-xl border border-border/80 print:hidden max-w-md mx-auto w-full mb-2">
               <button 
-                onClick={() => setActiveTab('search')}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'search' ? 'bg-white shadow-sm text-ink' : 'text-muted'}`}
-              >
-                <Search className="w-4 h-4" /> Find Choices
-              </button>
-              <button 
                 onClick={() => setActiveTab('list')}
                 className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'list' ? 'bg-white shadow-sm text-ink' : 'text-muted'}`}
               >
-                <ListOrdered className="w-4 h-4" /> My Priority List 
+                <ListOrdered className="w-4 h-4" /> My Option Entry 
                 {optionsList.length > 0 && (
                   <span className="px-1.5 py-0.5 bg-ink text-white rounded text-[10px] font-mono font-bold leading-none">{optionsList.length}</span>
                 )}
+              </button>
+              <button 
+                onClick={() => setActiveTab('search')}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'search' ? 'bg-white shadow-sm text-ink' : 'text-muted'}`}
+              >
+                <Search className="w-4 h-4" /> Find Colleges
               </button>
             </div>
             {/* Left Panel: Search & Suggestions */}
@@ -1074,7 +1092,6 @@ export default function OptionGenerator() {
               removeOption={removeOption}
               expandedHistory={expandedHistory}
               toggleHistory={toggleHistory}
-              stream={stream}
               rounds={rounds}
               rank={rank}
               evaluateSafety={evaluateSafety}

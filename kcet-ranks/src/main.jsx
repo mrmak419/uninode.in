@@ -141,6 +141,43 @@ class ErrorBoundary extends React.Component {
 
 const LoadingFallback = () => <div className="min-h-screen flex items-center justify-center text-muted font-mono text-sm">Loading...</div>
 
+function KcetRedirect() {
+  const location = window.location;
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  
+  if (pathParts.length >= 2) {
+    const feature = pathParts[0]; // "analyzer", "explorer", "articles", "option-entry"
+    const stream = pathParts[1];
+    const rest = pathParts.slice(2).join('/');
+    
+    let newPath = '';
+    
+    if (feature === 'analyzer' || feature === 'explorer') {
+      // /analyzer/engineering/... -> /kcet/engineering/analyzer/...
+      newPath = `/kcet/${stream}/${feature}${rest ? '/' + rest : ''}`;
+    } else if (feature === 'articles') {
+      const restParts = pathParts.slice(2);
+      if (restParts.length === 3) {
+        newPath = `/kcet/articles/${stream}/${restParts[0]}/${restParts[1]}`;
+        const params = new URLSearchParams(location.search);
+        params.set('c', restParts[2]);
+        const qs = params.toString();
+        return <Navigate to={`${newPath}${qs ? '?' + qs : ''}${location.hash}`} replace />;
+      }
+      newPath = `/kcet/articles/${stream}${rest ? '/' + rest : ''}`;
+    } else if (feature === 'option-entry') {
+      newPath = `/kcet/option-entry/${stream}${rest ? '/' + rest : ''}`;
+    } else {
+      newPath = `/kcet${location.pathname}`;
+    }
+    
+    return <Navigate to={`${newPath}${location.search}${location.hash}`} replace />;
+  }
+  
+  const newPath = `/kcet${location.pathname}${location.search}${location.hash}`;
+  return <Navigate to={newPath} replace />;
+}
+
 function LegacyArticleRedirect() {
   const [searchParams] = useSearchParams()
   const stream = searchParams.get('stream') || 'engineering'
@@ -199,28 +236,27 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/gear" element={<GearIndex />} />
 
               {/* Article Routes */}
-              <Route path="/:exam/articles/:stream/:college/:branch/:category" element={<ArticleContainer />} />
+              <Route path="/:exam/articles/:stream/:college/:branch" element={<ArticleContainer />} />
               <Route path="/:exam/articles/:stream" element={<ArticleContainer />} />
               <Route path="/:exam/articles" element={<ArticlesIndex />} />
-              <Route path="/articles/:stream/:college/:branch/:category" element={<Navigate to="/kcet/articles/:stream/:college/:branch/:category" replace />} />
-              <Route path="/articles/:stream" element={<Navigate to="/kcet/articles/:stream" replace />} />
-              <Route path="/articles" element={<Navigate to="/kcet/articles" replace />} />
+              <Route path="/articles/*" element={<KcetRedirect />} />
               <Route path="/article" element={<LegacyArticleRedirect />} />
               
               {/* Explorer Routes */}
               <Route path="/:exam/:stream/explorer/branch/:branchName" element={<App />} />
               <Route path="/:exam/:stream/explorer/college/:collegeName" element={<App />} />
-              <Route path="/explorer/:stream/branch/:branchName" element={<App />} />
-              <Route path="/explorer/:stream/college/:collegeName" element={<App />} />
+              <Route path="/explorer/*" element={<KcetRedirect />} />
               
               {/* Analyzer Routes */}
               <Route path="/:exam/:stream/analyzer/rank/:rankValue/:category" element={<App />} />
-              <Route path="/analyzer/:stream/rank/:rankValue/:category" element={<App />} />
+              <Route path="/:exam/:stream/analyzer/rank/:rankValue" element={<App />} />
+              <Route path="/analyzer/*" element={<KcetRedirect />} />
+              
               {/* Option Entry Generator Routes */}
               <Route path="/:exam/option-entry/:stream/:category/rank/:rank" element={<OptionGenerator />} />
+              <Route path="/:exam/option-entry/:stream" element={<OptionGenerator />} />
               <Route path="/:exam/option-entry" element={<OptionGenerator />} />
-              <Route path="/option-entry/:stream/:category/rank/:rank" element={<Navigate to="/kcet/option-entry/:stream/:category/rank/:rank" replace />} />
-              <Route path="/option-entry" element={<Navigate to="/kcet/option-entry" replace />} />
+              <Route path="/option-entry/*" element={<KcetRedirect />} />
               
               {/* Exam Routes */}
               <Route path="/kcet/:stream" element={<ValidatedStreamRoute />} />

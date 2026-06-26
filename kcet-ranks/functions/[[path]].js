@@ -470,7 +470,7 @@ export async function onRequest(context) {
             "headline": pageTitle,
             "description": pageDescription,
             "image": [
-              url.origin + "/logo.png"
+              url.origin + "/logo_1.png"
             ],
             "author": { 
               "@type": "Organization", 
@@ -482,7 +482,7 @@ export async function onRequest(context) {
               "name": "Uninode",
               "logo": {
                 "@type": "ImageObject",
-                "url": url.origin + "/logo.png"
+                "url": url.origin + "/logo_1.png"
               }
             }
           };

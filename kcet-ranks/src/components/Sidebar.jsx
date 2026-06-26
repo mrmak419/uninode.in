@@ -16,7 +16,7 @@ export default function Sidebar({ onClose }) {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-6 border-b border-border shrink-0">
         <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity" onClick={onClose}>
-          <img src="/logo.png" alt="KCET Logo" className="w-10 h-10 rounded-lg shadow-sm shrink-0" />
+          <img src="/logo_1.png" alt="KCET Logo" className="w-10 h-10 rounded-lg shadow-sm shrink-0" />
           <span className="font-display font-bold text-ink text-sm tracking-tight leading-tight">Uninode Cutoff Analyzer</span>
         </Link>
         <button onClick={onClose} aria-label="Close Sidebar" className="p-1 text-muted hover:text-ink lg:hidden">

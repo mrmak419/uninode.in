@@ -1,7 +1,5 @@
 import React from 'react'
 import BranchPicker from './BranchPicker'
-import ThresholdSelector from './ThresholdSelector'
-
 export default function OptionWizard({
   wizardBranches,
   setWizardBranches,
@@ -11,8 +9,6 @@ export default function OptionWizard({
   setWizardBranchOpen,
   filteredWizardBranches,
   toggleWizardBranch,
-  wizardThreshold,
-  setWizardThreshold,
   handleAutoGenerate,
   wizardBranchRef,
   generating
@@ -36,13 +32,8 @@ export default function OptionWizard({
           containerRef={wizardBranchRef}
         />
       </div>
-
+      
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-        <ThresholdSelector
-          value={wizardThreshold}
-          onChange={setWizardThreshold}
-        />
-
         <button
           onClick={handleAutoGenerate}
           disabled={generating}
