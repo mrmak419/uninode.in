@@ -1113,6 +1113,7 @@ export default function OptionGenerator() {
               handleDrop={handleDrop}
               handleDragEnd={handleDragEnd}
               draggedIndex={draggedIndex}
+              showAllPossible={showAllPossible}
               dragOverIndex={dragOverIndex}
               stream={stream}
               rounds={rounds}

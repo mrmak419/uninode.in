@@ -38,7 +38,8 @@ export default function OptionPriorityList({
   handleClearList,
   shareStatus,
   activeTab,
-  category
+  category,
+  showAllPossible = false
 }) {
   return (
     <div className={`flex flex-col gap-4 print:block ${activeTab === 'list' ? 'block' : 'hidden'}`}>
@@ -118,7 +119,7 @@ export default function OptionPriorityList({
         ) : (
           <div className="divide-y divide-border/60">
             {[
-              { key: 'hidden', label: 'Unrealistic / Reach Choices', badgeClass: 'bg-purple-50 text-purple-700 border-purple-200', textClass: 'text-purple-900', headerBg: 'bg-purple-50/40 hover:bg-purple-50/70' },
+              ...(showAllPossible ? [{ key: 'hidden', label: 'Unrealistic Choices', badgeClass: 'bg-purple-50 text-purple-700 border-purple-200', textClass: 'text-purple-900', headerBg: 'bg-purple-50/40 hover:bg-purple-50/70' }] : []),
               { key: 'dream', label: 'Dream Choices', badgeClass: 'bg-red-50 text-red-700 border-red-200', textClass: 'text-red-900', headerBg: 'bg-red-50/40 hover:bg-red-50/70' },
               { key: 'borderline', label: 'Target Choices', badgeClass: 'bg-yellow-50 text-yellow-700 border-yellow-200', textClass: 'text-yellow-900', headerBg: 'bg-yellow-50/40 hover:bg-yellow-50/70' },
               { key: 'safe', label: 'Safe Choices', badgeClass: 'bg-green-50 text-green-700 border-green-200', textClass: 'text-green-900', headerBg: 'bg-green-50/40 hover:bg-green-50/70' },
