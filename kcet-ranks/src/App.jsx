@@ -540,7 +540,7 @@ export default function App() {
         />
 
         {error && (
-          <div className="mt-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-miss text-sm">
+          <div className={`mt-4 px-4 py-3 border rounded-lg text-sm ${error.includes('downloading') ? 'bg-yellow-50 border-yellow-200 text-yellow-800' : 'bg-red-50 border-red-200 text-miss'}`}>
             {error}
           </div>
         )}

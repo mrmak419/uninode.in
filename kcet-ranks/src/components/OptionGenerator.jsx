@@ -458,45 +458,37 @@ export default function OptionGenerator() {
         maxRankInData = maxRankByCategory[category]
       } else {
         let maxVal = 0
-        fullMatrixData.forEach(row => {
-          const cutoff = getLatestCutoff(row.rounds)
-          if (cutoff && cutoff.rank > maxVal) {
-            maxVal = cutoff.rank
+        for (const r of fullMatrixData) {
+          if (r.rounds) {
+            Object.values(r.rounds).forEach(v => {
+              if (v !== '--' && typeof v === 'number' && v > maxVal) maxVal = v
+            })
           }
-        })
+        }
         if (maxVal > 0) maxRankInData = maxVal
       }
 
-      let maxCutoffLimit
-      if (numericRank < 50000) {
-        maxCutoffLimit = numericRank * 4
-      } else {
-        maxCutoffLimit = numericRank * 2
-      }
-      
-      if (numericRank >= maxRankInData) {
-        maxCutoffLimit = maxRankInData
-      } else {
-        maxCutoffLimit = Math.min(maxCutoffLimit, maxRankInData)
-      }
+      // Hard cutoff limit based on rank
+      let maxCutoffLimit = numericRank < 50000 ? numericRank * 4 : numericRank * 2
+      maxCutoffLimit = Math.min(maxCutoffLimit, maxRankInData + 1000)
 
-      // Filter branches (with space/special char normalization)
-      const normalizedSelected = wizardBranches.map(w => normalizeCourse(w))
-      const matchedRawNormalized = new Set()
-      for (const selectedNorm of normalizedSelected) {
-        let expanded = false
-        if (stream === 'engineering') {
-          for (const b of branches) {
-            if (b.parent_branches?.name && normalizeCourse(b.parent_branches.name) === selectedNorm) {
-              matchedRawNormalized.add(normalizeCourse(b.raw_name))
-              expanded = true
-            }
-          }
-        }
-        if (!expanded) matchedRawNormalized.add(selectedNorm)
-      }
+      const matchedRawNormalized = new Set(
+        wizardBranches.flatMap(wb => {
+          const pb = branches.find(b => {
+             if (stream === 'engineering') return b.parent_branches?.name === wb
+             return b.raw_name === wb
+          })
+          if (!pb) return []
+          return branches.filter(b => {
+             if (stream === 'engineering') return b.parent_branches?.name === wb
+             return b.raw_name === wb
+          }).map(b => normalizeCourse(b.raw_name))
+        })
+      )
 
       const matchedRows = fullMatrixData.filter(row => {
+        const cutoff = getLatestCutoff(row.rounds)
+        if (!cutoff) return false
         return matchedRawNormalized.has(row.normalized_course)
       })
 
@@ -515,7 +507,6 @@ export default function OptionGenerator() {
       .filter(item => {
         if (item.cutoff_rank == null) return false
         if (item.cutoff_rank > maxCutoffLimit) return false
-        if (!showAllPossible && item.safety === 'hidden') return false
         return true
       })
       .sort((a, b) => a.cutoff_rank - b.cutoff_rank)
