@@ -552,6 +552,164 @@ function main() {
       writeHtmlFile(urlPath, injectSeo(template, title, description, urlPath, { jsonLd, fallbackHtml, isArticle: true }))
       generatedCount++
     })
+
+    // --- EXPLORER & ANALYZER SSG LOGIC ---
+    const comboLookup = {};
+    const branchesMap = {};
+    const collegesMap = {};
+
+    combos.forEach(combo => {
+      const parts = combo.split('::');
+      if (parts.length >= 3) {
+        const cCode = parts[0].toLowerCase();
+        const cName = parts[1];
+        const course = parts[2];
+        const slugCourse = slugify(course);
+        comboLookup[`${cCode}|${slugCourse}`] = { cName, course, combo };
+        
+        if (!branchesMap[slugCourse]) branchesMap[slugCourse] = { courseName: course, colleges: [] };
+        branchesMap[slugCourse].colleges.push({ cCode, cName });
+        
+        if (!collegesMap[cCode]) collegesMap[cCode] = { cName, branches: [] };
+        if (!collegesMap[cCode].branches.find(b => b.slugCourse === slugCourse)) {
+          collegesMap[cCode].branches.push({ courseName: course, slugCourse });
+        }
+      }
+    });
+
+    console.log(`Generating Explorer Branch pages for ${stream}...`);
+    for (const slugCourse in branchesMap) {
+      const data = branchesMap[slugCourse];
+      const urlPath = `/${exam}/${stream}/explorer/branch/${slugCourse}`;
+      const title = `${data.courseName} Colleges - ${exam.toUpperCase()} ${streamName}`;
+      const description = `Explore all colleges offering ${data.courseName} under ${exam.toUpperCase()} ${streamName}.`;
+      
+      let htmlList = data.colleges.map(c => `
+        <li class="p-4 border-b border-gray-100 hover:bg-gray-50">
+          <a href="/${exam}/articles/${stream}/${c.cCode}/${slugCourse}" class="text-blue-600 font-bold hover:underline block">
+            ${escapeHtml(cleanCollegeName(c.cName))}
+          </a>
+        </li>
+      `).join('');
+      
+      const fallbackHtml = `
+        <div class="max-w-4xl mx-auto px-4 py-8">
+          <h1 class="text-3xl font-extrabold mb-6 text-gray-900">${escapeHtml(data.courseName)} Colleges</h1>
+          <p class="text-lg text-gray-700 mb-8">Colleges offering this branch based on historical data.</p>
+          <ul class="bg-white rounded-xl shadow-sm border border-gray-100">${htmlList}</ul>
+        </div>
+      `;
+      
+      writeHtmlFile(urlPath, injectSeo(template, title, description, urlPath, { fallbackHtml }));
+      generatedCount++;
+    }
+
+    console.log(`Generating Explorer College pages for ${stream}...`);
+    for (const cCode in collegesMap) {
+      const data = collegesMap[cCode];
+      const urlPath = `/${exam}/${stream}/explorer/college/${cCode}`;
+      const cleanCName = cleanCollegeName(data.cName);
+      const title = `${cleanCName} - ${exam.toUpperCase()} ${streamName} Cutoffs`;
+      const description = `Explore all branch cutoffs for ${cleanCName} under ${exam.toUpperCase()} ${streamName}.`;
+      
+      let htmlList = data.branches.map(b => `
+        <li class="p-4 border-b border-gray-100 hover:bg-gray-50">
+          <a href="/${exam}/articles/${stream}/${cCode}/${b.slugCourse}" class="text-blue-600 font-bold hover:underline block">
+            ${escapeHtml(b.courseName)}
+          </a>
+        </li>
+      `).join('');
+      
+      const fallbackHtml = `
+        <div class="max-w-4xl mx-auto px-4 py-8">
+          <h1 class="text-3xl font-extrabold mb-6 text-gray-900">${escapeHtml(cleanCName)}</h1>
+          <p class="text-lg text-gray-700 mb-8">Branches offered at this college.</p>
+          <ul class="bg-white rounded-xl shadow-sm border border-gray-100">${htmlList}</ul>
+        </div>
+      `;
+      
+      writeHtmlFile(urlPath, injectSeo(template, title, description, urlPath, { fallbackHtml }));
+      generatedCount++;
+    }
+
+    console.log(`Generating Analyzer Rank Buckets for ${stream}...`);
+    let maxRank = 0;
+    if (seoDataMap) {
+      Object.keys(seoDataMap).forEach(key => {
+        if (seoDataMap[key].r) maxRank = Math.max(maxRank, seoDataMap[key].r);
+      });
+    }
+    
+    if (maxRank > 0) {
+      const rankBuckets = [];
+      const phase1Limit = Math.min(maxRank, 50000);
+      for (let r = 1000; r <= phase1Limit; r += 1000) { rankBuckets.push(r); }
+      if (maxRank > 50000) {
+        for (let r = 55000; r <= maxRank + 5000; r += 5000) { rankBuckets.push(r); }
+      }
+      
+      for (const rb of rankBuckets) {
+        const urlPath = `/${exam}/${stream}/analyzer/rank/${rb}`;
+        
+        const matches = [];
+        if (seoDataMap) {
+          Object.keys(seoDataMap).forEach(key => {
+            if (key.endsWith('|gm')) { // Base fallback on GM
+              const cutoff = seoDataMap[key].r;
+              if (cutoff >= rb) {
+                const parts = key.split('|');
+                const cCode = parts[0];
+                const slugCourse = parts[1];
+                const comboData = comboLookup[`${cCode}|${slugCourse}`];
+                if (comboData) {
+                  matches.push({
+                    cCode, slugCourse, cName: comboData.cName, courseName: comboData.course, cutoff
+                  });
+                }
+              }
+            }
+          });
+        }
+        
+        matches.sort((a, b) => a.cutoff - b.cutoff);
+        const topMatches = matches.slice(0, 75); // Cap to 75 to prevent bloat
+        
+        const title = `Colleges for Rank ${formatRank(rb)} in ${exam.toUpperCase()} ${streamName}`;
+        const description = `Find out which colleges and branches you can get with a rank of ${formatRank(rb)} (General Merit).`;
+        
+        let htmlList = topMatches.map(m => `
+          <li class="p-4 border-b border-gray-100 hover:bg-gray-50">
+            <a href="/${exam}/articles/${stream}/${m.cCode}/${m.slugCourse}" class="block">
+              <div class="font-bold text-blue-600 text-lg">${escapeHtml(cleanCollegeName(m.cName))}</div>
+              <div class="text-gray-700">${escapeHtml(m.courseName)}</div>
+              <div class="mt-1 text-sm text-gray-500">Closing Cutoff: <strong>${formatRank(m.cutoff)}</strong></div>
+            </a>
+          </li>
+        `).join('');
+        
+        if (topMatches.length === 0) {
+          htmlList = `<li class="p-4 text-gray-500">No colleges found matching this criteria.</li>`;
+        } else if (matches.length > 75) {
+          htmlList += `<li class="p-4 text-center text-gray-500 font-medium">...and ${matches.length - 75} more options. Load the app to see all.</li>`;
+        }
+        
+        const fallbackHtml = `
+          <div class="max-w-4xl mx-auto px-4 py-8">
+            <h1 class="text-3xl font-extrabold mb-4 text-gray-900">${escapeHtml(title)}</h1>
+            <p class="text-lg text-gray-700 mb-8">Top matches based on historical counseling data.</p>
+            <ul class="bg-white rounded-xl shadow-sm border border-gray-200 divide-y divide-gray-100">${htmlList}</ul>
+            <div class="mt-8 text-center">
+              <a href="/${exam}/${stream}/analyzer" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full shadow-md">
+                Launch Full Analyzer Tool
+              </a>
+            </div>
+          </div>
+        `;
+        
+        writeHtmlFile(urlPath, injectSeo(template, title, description, urlPath, { fallbackHtml }));
+        generatedCount++;
+      }
+    }
   })
 
   console.log(`✅ Static site generation complete. Generated ${generatedCount} HTML files.`)

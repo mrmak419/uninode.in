@@ -7,7 +7,7 @@
     "predev": "node scripts/fetch-meta.js",
     "dev": "vite",
     "prebuild": "node scripts/fetch-meta.js",
-    "build": "vite build",
+    "build": "vite build && node -e \"require('fs').copyFileSync('dist/index.html', 'dist/404.html')\"",
     "preview": "vite preview"
   },
   "dependencies": {
