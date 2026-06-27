@@ -211,8 +211,8 @@ function ValidatedStreamRoute() {
   const currentExam = pathParts.length > 0 ? pathParts[0] : null;
 
   if (!currentExam || !VALID_EXAMS.has(currentExam)) {
-    // If it's a legacy route like /engineering, redirect to /kcet/engineering
-    return <Navigate to={`/kcet/${stream}`} replace />;
+    // If it's a legacy route like /engineering, redirect to /kcet/engineering, preserving query params
+    return <Navigate to={`/kcet/${stream}${window.location.search}${window.location.hash}`} replace />;
   }
 
   return <App />;
