@@ -468,13 +468,13 @@ async function fetchMetadata() {
   
   // ── Static / Main Pages ──
   mainUrls.push({ loc: `${domain}/`, changefreq: 'daily', priority: '1.0' });
-  mainUrls.push({ loc: `${domain}/kcet`, changefreq: 'daily', priority: '0.9' });
-  mainUrls.push({ loc: `${domain}/kcet/articles`, changefreq: 'daily', priority: '0.9' });
-  mainUrls.push({ loc: `${domain}/kcet/option-entry`, changefreq: 'weekly', priority: '0.8' });
-  mainUrls.push({ loc: `${domain}/gear`, changefreq: 'weekly', priority: '0.7' });
-  mainUrls.push({ loc: `${domain}/contact`, changefreq: 'monthly', priority: '0.4' });
-  mainUrls.push({ loc: `${domain}/privacy`, changefreq: 'monthly', priority: '0.3' });
-  mainUrls.push({ loc: `${domain}/terms`, changefreq: 'monthly', priority: '0.3' });
+  mainUrls.push({ loc: `${domain}/kcet/`, changefreq: 'daily', priority: '0.9' });
+  mainUrls.push({ loc: `${domain}/kcet/articles/`, changefreq: 'daily', priority: '0.9' });
+  mainUrls.push({ loc: `${domain}/kcet/option-entry/`, changefreq: 'weekly', priority: '0.8' });
+  mainUrls.push({ loc: `${domain}/gear/`, changefreq: 'weekly', priority: '0.7' });
+  mainUrls.push({ loc: `${domain}/contact/`, changefreq: 'monthly', priority: '0.4' });
+  mainUrls.push({ loc: `${domain}/privacy/`, changefreq: 'monthly', priority: '0.3' });
+  mainUrls.push({ loc: `${domain}/terms/`, changefreq: 'monthly', priority: '0.3' });
 
   const streamSitemaps = {}; // Will hold arrays for articles, analyzer, explorer per stream
 
@@ -493,9 +493,9 @@ async function fetchMetadata() {
     };
 
     // ── Stream Landing Pages (go into main) ──
-    mainUrls.push({ loc: `${domain}/kcet/${sId}`, changefreq: 'weekly', priority: '0.8' });
-    mainUrls.push({ loc: `${domain}/kcet/articles/${sId}`, changefreq: 'weekly', priority: '0.7' });
-    mainUrls.push({ loc: `${domain}/kcet/option-entry/${sId}`, changefreq: 'weekly', priority: '0.8' });
+    mainUrls.push({ loc: `${domain}/kcet/${sId}/`, changefreq: 'weekly', priority: '0.8' });
+    mainUrls.push({ loc: `${domain}/kcet/articles/${sId}/`, changefreq: 'weekly', priority: '0.7' });
+    mainUrls.push({ loc: `${domain}/kcet/option-entry/${sId}/`, changefreq: 'weekly', priority: '0.8' });
     
     // ── Analyzer: Smart Rank Buckets ──
     const maxRankByCategory = streamData ? streamData.maxRankByCategory : {};
@@ -518,7 +518,7 @@ async function fetchMetadata() {
       }
       
       for (const rb of rankBuckets) {
-        streamSitemaps[sId].analyzer.push({ loc: `${domain}/kcet/${sId}/analyzer/rank/${rb}?cat=${encodeURIComponent(cat)}`, changefreq: 'weekly', priority: '0.6' });
+        streamSitemaps[sId].analyzer.push({ loc: `${domain}/kcet/${sId}/analyzer/rank/${rb}/?cat=${encodeURIComponent(cat)}`, changefreq: 'weekly', priority: '0.6' });
         rankBucketCount++;
       }
     }
@@ -528,7 +528,7 @@ async function fetchMetadata() {
       for (const b of streamData.branches) {
         const bName = b.raw_name;
         if (!bName) continue;
-        streamSitemaps[sId].explorer.push({ loc: `${domain}/kcet/${sId}/explorer/branch/${slugify(bName)}`, changefreq: 'weekly', priority: '0.6' });
+        streamSitemaps[sId].explorer.push({ loc: `${domain}/kcet/${sId}/explorer/branch/${slugify(bName)}/`, changefreq: 'weekly', priority: '0.6' });
         branchCount++;
       }
     }
@@ -537,7 +537,7 @@ async function fetchMetadata() {
     if (streamData && streamData.colleges) {
       for (const c of streamData.colleges) {
         if (!c.college_code) continue;
-        streamSitemaps[sId].explorer.push({ loc: `${domain}/kcet/${sId}/explorer/college/${c.college_code.toLowerCase()}`, changefreq: 'weekly', priority: '0.6' });
+        streamSitemaps[sId].explorer.push({ loc: `${domain}/kcet/${sId}/explorer/college/${c.college_code.toLowerCase()}/`, changefreq: 'weekly', priority: '0.6' });
         collegeCount++;
       }
     }
@@ -548,7 +548,7 @@ async function fetchMetadata() {
       const perPage = 24;
       const totalPages = Math.ceil(streamData.combinations.length / perPage);
       for (let p = 2; p <= totalPages; p++) {
-        streamSitemaps[sId].articles.push({ loc: `${domain}/kcet/articles/${sId}?page=${p}`, changefreq: 'weekly', priority: '0.5' });
+        streamSitemaps[sId].articles.push({ loc: `${domain}/kcet/articles/${sId}/?page=${p}`, changefreq: 'weekly', priority: '0.5' });
       }
 
       // Individual article pages (Combinations are pre-verified college+branch pairs from data)
@@ -558,7 +558,7 @@ async function fetchMetadata() {
         // In the new URL format, category is ?c=
         // We will just generate the base article URL (which handles all categories via query params or selector)
         // If you want every single category URL in the sitemap, it multiplies it heavily. We stick to base article path for SEO.
-        streamSitemaps[sId].articles.push({ loc: `${domain}/kcet/articles/${sId}/${cCode.toLowerCase()}/${slugify(bName)}`, changefreq: 'weekly', priority: '0.5' });
+        streamSitemaps[sId].articles.push({ loc: `${domain}/kcet/articles/${sId}/${cCode.toLowerCase()}/${slugify(bName)}/`, changefreq: 'weekly', priority: '0.5' });
         articleCount++;
       }
     }
