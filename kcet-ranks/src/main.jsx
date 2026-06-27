@@ -158,13 +158,13 @@ function KcetRedirect() {
     } else if (feature === 'articles') {
       const restParts = pathParts.slice(2);
       if (restParts.length === 3) {
-        newPath = `/kcet/articles/${stream}/${restParts[0]}/${restParts[1]}`;
+        newPath = `/kcet/articles/${stream}/${restParts[0]}/${restParts[1]}/`;
         const params = new URLSearchParams(location.search);
         params.set('c', restParts[2]);
         const qs = params.toString();
         return <Navigate to={`${newPath}${qs ? '?' + qs : ''}${location.hash}`} replace />;
       }
-      newPath = `/kcet/articles/${stream}${rest ? '/' + rest : ''}`;
+      newPath = `/kcet/articles/${stream}${rest ? '/' + rest + '/' : '/'}`;
     } else if (feature === 'option-entry') {
       newPath = `/kcet/option-entry/${stream}${rest ? '/' + rest : ''}`;
     } else {
@@ -188,7 +188,7 @@ function LegacyArticleRedirect() {
   if (college && branch && category) {
     return <Navigate to={getArticleUrl('kcet', stream, college, branch, category)} replace />
   }
-  return <Navigate to={`/kcet/articles/${stream}`} replace />
+  return <Navigate to={`/kcet/articles/${stream}/`} replace />
 }
 
 // Validates that /:stream matches a known stream from streams.json

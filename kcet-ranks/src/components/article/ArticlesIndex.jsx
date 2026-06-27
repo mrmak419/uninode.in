@@ -42,7 +42,7 @@ export default function ArticlesIndex() {
       <div className="max-w-4xl w-full px-4 pb-12">
         {isExamView && (
           <div className="mb-4 flex items-center gap-2 text-sm font-medium text-gray-500">
-            <Link to="/articles" className="hover:text-gray-900 transition-colors">Article Archives</Link>
+            <Link to="/articles/" className="hover:text-gray-900 transition-colors">Article Archives</Link>
             <span>/</span>
             <span className="text-gray-900 uppercase">{exam}</span>
           </div>
@@ -60,7 +60,7 @@ export default function ArticlesIndex() {
                 return (
                   <Link
                     key={info.id}
-                    to={`/${info.id}/articles`}
+                    to={`/${info.id}/articles/`}
                     className="group p-6 bg-white border border-gray-200 rounded-xl hover:border-blue-500 hover:shadow-md transition-all flex flex-col justify-center relative overflow-hidden"
                   >
                     <div className={`absolute inset-0 bg-gradient-to-br ${info.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
@@ -80,7 +80,7 @@ export default function ArticlesIndex() {
               return (
                 <Link
                   key={streamId}
-                  to={`/${exam}/articles/${streamId}`}
+                  to={`/${exam}/articles/${streamId}/`}
                   className="group p-6 bg-white border border-gray-200 rounded-xl hover:border-blue-500 hover:shadow-md transition-all flex flex-col justify-center"
                 >
                   <h2 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">

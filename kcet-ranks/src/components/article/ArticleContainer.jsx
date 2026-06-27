@@ -241,7 +241,7 @@ export default function ArticleContainer() {
         <TopNavigation examPrefix={examPrefix} />
         <main className="w-full max-w-4xl mx-auto px-4 py-8 overflow-hidden">
           <div className="mb-6">
-            <Link to={`/${examPrefix}/articles/${stream}`} className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-blue-600 transition-colors uppercase tracking-wider">
+            <Link to={`/${examPrefix}/articles/${stream}/`} className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-blue-600 transition-colors uppercase tracking-wider">
               <ArrowLeft size={16} /> Back to {formattedStream} Articles
             </Link>
           </div>
@@ -281,7 +281,7 @@ export default function ArticleContainer() {
       <TopNavigation examPrefix={examPrefix} />
       <main className="w-full max-w-4xl mx-auto px-4 py-4 overflow-hidden">
         <div className="mb-2">
-          <Link to={`/${examPrefix}/articles/${stream}`} className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-blue-600 transition-colors uppercase tracking-wider">
+          <Link to={`/${examPrefix}/articles/${stream}/`} className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-blue-600 transition-colors uppercase tracking-wider">
             <ArrowLeft size={16} /> Back to {formattedStream} Articles
           </Link>
         </div>

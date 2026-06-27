@@ -31,7 +31,7 @@ export function getArticleUrl(exam, stream, collegeCode, branchName, category) {
   const s = (stream || 'engineering').toLowerCase();
   const col = (collegeCode || '').toLowerCase();
   const br = slugify(branchName);
-  let url = `/${e}/articles/${s}/${col}/${br}`;
+  let url = `/${e}/articles/${s}/${col}/${br}/`;
   if (category) {
     url += `?c=${category}`;
   }
@@ -45,7 +45,7 @@ export function getExplorerCollegeUrl(exam, stream, collegeCode) {
   const e = (exam || 'kcet').toLowerCase();
   const s = (stream || 'engineering').toLowerCase();
   const col = (collegeCode || '').toLowerCase();
-  return `/${e}/${s}/explorer/college/${col}`;
+  return `/${e}/${s}/explorer/college/${col}/`;
 }
 
 /**
@@ -55,7 +55,7 @@ export function getExplorerBranchUrl(exam, stream, branchName) {
   const e = (exam || 'kcet').toLowerCase();
   const s = (stream || 'engineering').toLowerCase();
   const br = slugify(branchName);
-  return `/${e}/${s}/explorer/branch/${br}`;
+  return `/${e}/${s}/explorer/branch/${br}/`;
 }
 
 /**
@@ -65,5 +65,5 @@ export function getAnalyzerUrl(exam, stream, rank, category) {
   const e = (exam || 'kcet').toLowerCase();
   const s = (stream || 'engineering').toLowerCase();
   const cat = (category || '').toUpperCase();
-  return `/${e}/${s}/analyzer/rank/${rank}/${cat}`;
+  return `/${e}/${s}/analyzer/rank/${rank}/${cat}/`;
 }

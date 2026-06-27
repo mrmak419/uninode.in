@@ -54,7 +54,8 @@ function injectSeo(htmlTemplate, title, description, urlPath, options = {}) {
   html = html.replace(/<title>.*?<\/title>/, `<title>${xmlEscape(title)}</title>`)
   html = html.replace(/<meta name="description" content=".*?"\s*\/?>/, `<meta name="description" content="${xmlEscape(description)}">`)
   
-  const canonicalTag = `<link rel="canonical" href="${BASE_URL}${urlPath}" />`
+  const normalizedUrlPath = urlPath === '/' ? '/' : (urlPath.endsWith('/') ? urlPath : urlPath + '/');
+  const canonicalTag = `<link rel="canonical" href="${BASE_URL}${normalizedUrlPath}" />`
   if (html.includes('</head>')) {
     html = html.replace('</head>', `  ${canonicalTag}\n</head>`)
   }

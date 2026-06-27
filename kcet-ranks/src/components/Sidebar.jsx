@@ -126,13 +126,13 @@ export default function Sidebar({ onClose }) {
         {/* Dynamic Article Dropdowns */}
         <div className="pt-2 mt-2 border-t border-border/50">
           <Link
-            to="/articles"
+            to="/articles/"
             onClick={() => {
               if (window.innerWidth < 1024) onClose()
             }}
             className={`
               block px-3 py-2 rounded-lg text-sm font-bold transition-colors mb-2
-              ${location.pathname === '/articles' ? 'bg-ink text-white shadow-sm' : 'text-blue-600 hover:bg-blue-50'}
+              ${location.pathname === '/articles/' ? 'bg-ink text-white shadow-sm' : 'text-blue-600 hover:bg-blue-50'}
             `}
           >
             Article Archives
@@ -156,13 +156,13 @@ export default function Sidebar({ onClose }) {
               >
                 <div className="pl-6 pr-1 pb-2 space-y-0.5 border-l-2 border-blue-100 ml-4">
                   <Link
-                    to={`/${examObj.id}/articles`}
+                    to={`/${examObj.id}/articles/`}
                     onClick={() => {
                       if (window.innerWidth < 1024) onClose()
                     }}
                     className={`
                       block px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                      ${location.pathname === `/${examObj.id}/articles` ? 'bg-blue-100 text-blue-800' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}
+                      ${location.pathname === `/${examObj.id}/articles/` ? 'bg-blue-100 text-blue-800' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}
                     `}
                   >
                     View Streams
@@ -170,7 +170,7 @@ export default function Sidebar({ onClose }) {
                   {examObj.streams.map(s => {
                     const streamId = typeof s === 'string' ? s : s.id;
                     const displayName = streamId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                    const targetPath = `/${examObj.id}/articles/${streamId}`;
+                    const targetPath = `/${examObj.id}/articles/${streamId}/`;
                     const isActive = location.pathname === targetPath;
                     
                     return (
