@@ -713,9 +713,6 @@ function main() {
   })
 
   console.log(`✅ Static site generation complete. Generated ${generatedCount} HTML files.`)
-  const notFoundPath = path.join(DIST_DIR, '404.html')
-  fs.writeFileSync(notFoundPath, template)
-  console.log(`✅ Created 404.html for SPA routing`)
 }
 
 main()
