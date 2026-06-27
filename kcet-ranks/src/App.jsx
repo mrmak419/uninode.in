@@ -348,7 +348,8 @@ export default function App() {
 
       const params = new URLSearchParams()
       if (currentMode === 'analyzer' && variation !== '') params.set('variation', variation)
-      params.set('seat', urlSeatType)
+      if (urlSeatType !== 'ROK') params.set('seat', urlSeatType)
+      
       if (resolvedCollegeName && currentMode === 'analyzer') params.set('college', resolvedCollegeName)
       if (resolvedBranches.length > 0 && currentMode === 'analyzer') {
         params.set('branches', resolvedBranches.map(b => slugify(b)).join(','))
@@ -359,7 +360,7 @@ export default function App() {
       
       let newPath = `/${examPrefix}/${stream}`
       if (currentMode === 'analyzer' && rankNum) {
-        newPath = `/${examPrefix}/${stream}/analyzer/rank/${rankNum}`
+        newPath = `/${examPrefix}/${stream}/analyzer/rank/${rankNum}/${urlCategory.toLowerCase()}`
       } else if (currentMode === 'explorer') {
         if (resolvedBranches.length > 0) {
           newPath = `/${examPrefix}/${stream}/explorer/branch/${encodeURIComponent(slugify(resolvedBranches[0]))}`

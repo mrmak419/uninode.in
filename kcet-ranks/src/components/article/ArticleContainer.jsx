@@ -14,6 +14,7 @@ import ArticleOtherCategories from './ArticleOtherCategories'
 import ArticleSuggestions from './ArticleSuggestions'
 import ArticleMasterTable from './ArticleMasterTable'
 import Footer from '../Footer'
+import NotFound from '../NotFound'
 
 const articleMetaCache = {}
 const collegeDataCache = {}
@@ -91,7 +92,10 @@ export default function ArticleContainer() {
       
       const bQuery = slugify(branch)
       const matchingRawNames = meta.branches.filter(b => {
-        return bQuery === slugify(b.raw_name)
+        const rawMatch = bQuery === slugify(b.raw_name);
+        const parentMatch = b.parent_branches && bQuery === slugify(b.parent_branches.name);
+        const aliasMatch = b.parent_branches && b.parent_branches.alias && bQuery === slugify(b.parent_branches.alias);
+        return rawMatch || parentMatch || aliasMatch;
       }).map(b => b.raw_name)
 
       if (matchingRawNames.length === 0) {
@@ -197,18 +201,7 @@ export default function ArticleContainer() {
     }
   
     if (error || matchedRows.length === 0) {
-      return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center w-full">
-          <TopNavigation examPrefix={examPrefix} />
-          <main className="max-w-4xl mx-auto px-4 py-16 text-center w-full">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Content Not Found</h1>
-            <p className="text-gray-600 mb-8">{error || "The cutoff data you're looking for isn't available or couldn't be loaded."}</p>
-            <button onClick={() => window.history.back()} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">
-              Go Back
-            </button>
-          </main>
-        </div>
-      )
+      return <NotFound />
     }
 
   // --- Parse Data for Single Article Subcomponents ---
