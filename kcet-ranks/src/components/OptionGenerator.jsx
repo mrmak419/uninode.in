@@ -193,11 +193,15 @@ export default function OptionGenerator() {
         return
       }
       
+      const actualCategory = seatType === 'HK' 
+        ? (category === 'GM' ? 'GMH' : (category.endsWith('G') ? category.slice(0, -1) + 'H' : category + 'H'))
+        : category;
+
       setLoading(true)
       setError(null)
       setOptionsList([])
       try {
-        const cacheKey = `${examPrefix}_${stream}_${category}_${seatType}`
+        const cacheKey = `${examPrefix}_${stream}_${actualCategory}_${seatType}`
         let mergedData
         if (matrixDataCache.has(cacheKey)) {
           mergedData = matrixDataCache.get(cacheKey)
@@ -205,7 +209,7 @@ export default function OptionGenerator() {
           const metaCache = metadataCache.get(`${examPrefix}_${stream}`)
           const cacheBuster = metaCache?.lastUpdated || Date.now()
 
-          const res = await fetch(`/data_${examPrefix}_${stream}_${category}_${seatType}.json?v=${cacheBuster}`)
+          const res = await fetch(`/data_${examPrefix}_${stream}_${actualCategory}_${seatType}.json?v=${cacheBuster}`)
           if (res.ok) {
             const matrixData = await res.json()
             
@@ -316,6 +320,10 @@ export default function OptionGenerator() {
   useEffect(() => {
     if (fullMatrixData && fullMatrixData.length > 0 && colleges.length > 0 && branches.length > 0) {
       const listParam = searchParams.get('list')
+      const actualCategory = seatType === 'HK' 
+        ? (category === 'GM' ? 'GMH' : (category.endsWith('G') ? category.slice(0, -1) + 'H' : category + 'H'))
+        : category;
+
       if (listParam && !hasLoadedSharedList.current) {
         hasLoadedSharedList.current = true
         // Parse shared list URL parameter (supports both old ','/':' and new '-'/'-' delimiters)
@@ -339,7 +347,7 @@ export default function OptionGenerator() {
           const matchedRow = fullMatrixData.find(row => 
             row.college_code.toLowerCase() === collegeCode.toLowerCase() && 
             row.course_name.toLowerCase() === courseName.toLowerCase() && 
-            row.category === category && 
+            row.category === actualCategory && 
             row.seat_type === seatType
           )
 
@@ -369,7 +377,7 @@ export default function OptionGenerator() {
               const matchedRow = fullMatrixData.find(row => 
                 row.college_code.toUpperCase() === item.college_code.toUpperCase() && 
                 row.course_name.toLowerCase() === item.course_name.toLowerCase() && 
-                row.category === category && 
+                row.category === actualCategory && 
                 row.seat_type === seatType
               )
               const cutoff = matchedRow ? getLatestCutoff(matchedRow.rounds) : null
@@ -601,8 +609,12 @@ export default function OptionGenerator() {
   // --- Search Options Logic ---
   const eligibleColleges = useMemo(() => {
     if (!fullMatrixData || fullMatrixData.length === 0) return []
+    
+    const actualCategory = seatType === 'HK' 
+      ? (category === 'GM' ? 'GMH' : (category.endsWith('G') ? category.slice(0, -1) + 'H' : category + 'H'))
+      : category;
 
-    let data = fullMatrixData.filter(row => row.category === category && row.seat_type === seatType)
+    let data = fullMatrixData.filter(row => row.category === actualCategory && row.seat_type === seatType)
 
     // Filter by branch (with space/special char normalization)
     if (wizardBranches.length > 0) {
